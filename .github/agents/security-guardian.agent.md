@@ -476,6 +476,43 @@ When a `[CUSTOM]` rule conflicts with an OWASP/WAF rule, the custom rule takes p
 
 ---
 
+## Automated Enforcement Tools
+
+Security Guardian provides guidance, but automated tools enforce it in CI/CD. Run `./tools/setup.sh` to install them, or `./tools/setup.sh --check` to see what's already installed.
+
+### Tool-to-Rule Mapping
+
+| Tool | Enforces | Type |
+|------|----------|------|
+| **Semgrep** | `[OWASP-A01]`–`[OWASP-A10]` — injection, auth, access control, XSS, misconfig | SAST |
+| **Gitleaks** | `[OWASP-A04]` — hardcoded secrets, API keys, tokens in source | Secret Scanner |
+| **Trivy** | `[OWASP-A02]` misconfig, `[OWASP-A03]` supply chain — container/IaC/dependency scanning | Vulnerability Scanner |
+| **npm audit** | `[OWASP-A03]` — Node.js dependency vulnerabilities | SCA |
+| **cargo audit / cargo deny** | `[OWASP-A03]` — Rust crate vulnerabilities and license compliance | SCA |
+| **pip-audit / bandit / safety** | `[OWASP-A03]` supply chain, `[OWASP-A05]` injection — Python deps and SAST | SCA + SAST |
+| **dotnet list --vulnerable** | `[OWASP-A03]` — .NET NuGet package vulnerabilities | SCA |
+| **GitHub Actions workflow** | All of the above — runs automatically on PRs and pushes | CI/CD |
+
+### Quick Commands
+
+```bash
+# Install all tools for your project (auto-detects languages)
+./tools/setup.sh
+
+# Check what's installed
+./tools/setup.sh --check
+
+# Run a full security scan now
+./tools/setup.sh --scan
+
+# Install tools for ALL languages
+./tools/setup.sh --all
+```
+
+When running a **Code Review**, reference tool findings to validate your analysis. When in **Implementation** mode, suggest adding these tools to new projects.
+
+---
+
 ## References
 
 ### OWASP

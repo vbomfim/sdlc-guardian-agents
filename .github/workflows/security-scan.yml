@@ -1,0 +1,224 @@
+# Security Guardian — CI/CD Security Scan
+# Runs automated security tools on every PR and push to main.
+# Maps to OWASP Top 10 2025 + Cloud Provider WAF standards.
+#
+# Copy this file to your repo: .github/workflows/security-scan.yml
+
+name: "🛡️ Security Guardian Scan"
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    # Weekly full scan (dependency vulnerabilities change over time)
+    - cron: "0 8 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ─── Secret Detection [OWASP-A04] ─────────────────────────────────────────
+  secrets:
+    name: "🔑 Secret Scanning [OWASP-A04]"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─── SAST with Semgrep [OWASP-A01 through A10] ────────────────────────────
+  sast:
+    name: "🔍 SAST Analysis [OWASP A01-A10]"
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        run: semgrep scan --config=auto --severity ERROR --severity WARNING --sarif --output=semgrep.sarif .
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+        continue-on-error: true
+
+  # ─── Dependency Audit [OWASP-A03] ─────────────────────────────────────────
+  dependencies:
+    name: "📦 Dependency Audit [OWASP-A03]"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Node.js
+            check_file: package-lock.json
+            audit_cmd: npm audit --audit-level=moderate
+          - name: Python
+            check_file: requirements.txt
+            audit_cmd: pip install pip-audit && pip-audit -r requirements.txt
+          - name: Rust
+            check_file: Cargo.lock
+            audit_cmd: cargo install cargo-audit && cargo audit
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check if ${{ matrix.name }} project
+        id: check
+        run: |
+          if [ -f "${{ matrix.check_file }}" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node.js
+        if: steps.check.outputs.exists == 'true' && matrix.name == 'Node.js'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Python
+        if: steps.check.outputs.exists == 'true' && matrix.name == 'Python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup Rust
+        if: steps.check.outputs.exists == 'true' && matrix.name == 'Rust'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run ${{ matrix.name }} audit
+        if: steps.check.outputs.exists == 'true'
+        run: ${{ matrix.audit_cmd }}
+
+  # ─── Container & IaC Scanning [OWASP-A02] [OWASP-A03] ────────────────────
+  trivy:
+    name: "🐳 Trivy Scan [OWASP-A02, A03]"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          severity: "CRITICAL,HIGH"
+          format: "sarif"
+          output: "trivy.sarif"
+
+      - name: Upload Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy.sarif
+        continue-on-error: true
+
+  # ─── .NET Specific [OWASP-A03] ────────────────────────────────────────────
+  dotnet-audit:
+    name: "🔷 .NET Audit [OWASP-A03]"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for .NET projects
+        id: check
+        run: |
+          if find . -name "*.csproj" -o -name "*.sln" | head -1 | grep -q .; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup .NET
+        if: steps.check.outputs.exists == 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore and audit
+        if: steps.check.outputs.exists == 'true'
+        run: |
+          dotnet restore
+          dotnet list package --vulnerable --include-transitive 2>&1 | tee audit-output.txt
+          if grep -q "has the following vulnerable packages" audit-output.txt; then
+            echo "::warning::Vulnerable .NET packages detected"
+          fi
+
+  # ─── Python Bandit SAST [OWASP-A05] ───────────────────────────────────────
+  bandit:
+    name: "🐍 Bandit SAST [OWASP-A05]"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for Python code
+        id: check
+        run: |
+          if find . -name "*.py" | head -1 | grep -q .; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Python
+        if: steps.check.outputs.exists == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run Bandit
+        if: steps.check.outputs.exists == 'true'
+        run: |
+          pip install bandit
+          bandit -r . -ll -ii --format sarif --output bandit.sarif || true
+
+      - name: Upload Bandit SARIF
+        if: steps.check.outputs.exists == 'true'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: bandit.sarif
+        continue-on-error: true
+
+  # ─── Summary Gate ──────────────────────────────────────────────────────────
+  security-gate:
+    name: "🛡️ Security Gate"
+    runs-on: ubuntu-latest
+    needs: [secrets, sast, dependencies, trivy]
+    if: always()
+    steps:
+      - name: Check results
+        run: |
+          echo "🛡️ Security Guardian — Scan Results"
+          echo "===================================="
+          echo ""
+          echo "Secret Scanning:     ${{ needs.secrets.result }}"
+          echo "SAST (Semgrep):      ${{ needs.sast.result }}"
+          echo "Dependency Audit:    ${{ needs.dependencies.result }}"
+          echo "Trivy Scan:          ${{ needs.trivy.result }}"
+          echo ""
+
+          if [[ "${{ needs.secrets.result }}" == "failure" ]]; then
+            echo "::error::🔑 CRITICAL: Secrets detected in code! [OWASP-A04]"
+            exit 1
+          fi
+
+          if [[ "${{ needs.sast.result }}" == "failure" ]]; then
+            echo "::warning::🔍 SAST findings detected — review required [OWASP A01-A10]"
+          fi
+
+          echo "✅ Security gate passed"

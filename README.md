@@ -134,11 +134,53 @@ your-repo/
 ├── .github/
 │   ├── agents/
 │   │   └── security-guardian.agent.md    ← The agent (invoke via /agent)
-│   └── instructions/
-│       ├── security-standard.instructions.md  ← Auto-applied rules
-│       └── project-security.instructions.md   ← [CUSTOM] rules (optional)
+│   ├── instructions/
+│   │   ├── security-standard.instructions.md  ← Auto-applied rules
+│   │   └── project-security.instructions.md   ← [CUSTOM] rules (optional)
+│   └── workflows/
+│       └── security-scan.yml             ← CI/CD automated enforcement
+├── tools/
+│   └── setup.sh                          ← Tool installer (run once per machine)
 └── AGENTS.md                        ← Project-specific overrides (optional)
 ```
+
+## Automated Security Tools
+
+Security Guardian includes a setup script and CI/CD workflow to enforce rules with real tools.
+
+### Quick Start
+
+```bash
+# Install security tools (auto-detects your project's languages)
+./tools/setup.sh
+
+# Check what's already installed
+./tools/setup.sh --check
+
+# Run a full security scan
+./tools/setup.sh --scan
+```
+
+### What Gets Installed
+
+| Tool | What It Does | OWASP Rules |
+|------|-------------|-------------|
+| **Semgrep** | Static analysis (SAST) — finds injection, auth issues, misconfig | A01–A10 |
+| **Gitleaks** | Detects hardcoded secrets in source code | A04 |
+| **Trivy** | Scans dependencies, containers, and IaC for vulnerabilities | A02, A03 |
+| **npm audit** | Node.js dependency vulnerabilities | A03 |
+| **cargo audit + deny** | Rust crate vulnerabilities and license compliance | A03 |
+| **pip-audit + bandit + safety** | Python dependency and code security | A03, A05 |
+| **dotnet list --vulnerable** | .NET NuGet package vulnerabilities | A03 |
+
+### CI/CD Workflow
+
+Copy `.github/workflows/security-scan.yml` to your repo. It runs automatically on:
+- Every push to `main`/`master`
+- Every pull request
+- Weekly schedule (catches newly disclosed vulnerabilities)
+
+The workflow uploads SARIF results to GitHub Security tab when GitHub Advanced Security is available.
 
 ## Standards Reference
 
