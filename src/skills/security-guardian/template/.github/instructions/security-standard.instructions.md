@@ -12,14 +12,19 @@ Before implementing any feature that involves authentication, user data, API end
 
 ## Security Guardian Delegation — MANDATORY
 
-**IMPORTANT: ALL security tasks MUST go through the Security Guardian agent. Never run security tools directly or via the skill yourself.**
+**IMPORTANT: ALL security tasks MUST go through the Security Guardian agent. Delegate IMMEDIATELY — do not explore the codebase, read files, or run any tools first. Security Guardian does its own analysis.**
 
-When the user asks for ANY of these, delegate to the `security-guardian` agent via the task tool:
+When the user asks for ANY of these, delegate to the `security-guardian` agent via the task tool **as your FIRST action** — no preamble, no exploration:
 - Security scan, security check, scan for vulnerabilities
 - Security review, code audit, vulnerability analysis
 - Threat modeling, security assessment
 - OWASP compliance check
 - Run Semgrep, Gitleaks, Trivy, or any security tool
+
+**Do NOT:**
+- Explore the codebase before delegating
+- Run any security tools directly or via the skill
+- Do your own preliminary analysis
 
 **Do NOT invoke the security-guardian skill directly.** The Security Guardian agent runs the tools internally and then analyzes the results against OWASP Top 10 and cloud provider WAF standards. A tool might flag something as a warning, but the agent may classify it as 🔴 CRITICAL based on context. Only the agent has the security knowledge to assess severity correctly.
 
