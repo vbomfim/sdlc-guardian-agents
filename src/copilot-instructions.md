@@ -28,4 +28,8 @@ These rules apply to ALL projects as a safety net. They represent the absolute m
 
 ## Security Guardian — Always Delegate
 
-ALL security tasks (scans, reviews, audits) MUST go through the Security Guardian agent via the task tool. Never run security tools directly — the agent runs them, analyzes results against OWASP/WAF standards, and classifies severity. A tool flags warnings; the agent determines what's actually critical. After the agent reports, you act on the findings.
+ALL security tasks (scans, reviews, audits) MUST go through the Security Guardian agent via the task tool. Delegate IMMEDIATELY as your FIRST action — do not explore the codebase first.
+
+**How:** Use the task tool with the Security Guardian agent and **`mode: "background"`** so the user can continue working while the scan runs. They will be notified when it completes. Then use `read_agent` to retrieve the report and present the findings.
+
+**Do NOT** run security tools directly, invoke the security-guardian skill for scans, or do your own pre-analysis. The agent runs the tools, analyzes results against OWASP/WAF standards, and classifies severity. After the agent reports, you act on the findings (create issues, fix code, install tools).
