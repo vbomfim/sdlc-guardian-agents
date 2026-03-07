@@ -23,7 +23,7 @@ When the user asks for ANY of these, delegate to the `security-guardian` agent v
 
 **Do NOT invoke the security-guardian skill directly.** The Security Guardian agent runs the tools internally and then analyzes the results against OWASP Top 10 and cloud provider WAF standards. A tool might flag something as a warning, but the agent may classify it as 🔴 CRITICAL based on context. Only the agent has the security knowledge to assess severity correctly.
 
-**How to delegate:** Use the task tool to invoke the Security Guardian agent as a subagent. Pass the user's request and the current working directory in the prompt.
+**How to delegate:** Use the task tool to invoke the Security Guardian agent as a subagent with **`mode: "background"`** so the user can continue working while the scan runs. The user will be notified when the scan completes. Then use `read_agent` to retrieve the report and present the findings.
 
 **After receiving the agent's report:**
 1. Present the findings to the user
