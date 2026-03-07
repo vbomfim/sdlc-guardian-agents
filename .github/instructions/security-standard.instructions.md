@@ -6,6 +6,10 @@ applyTo: "**/*.{ts,tsx,js,jsx,mjs,cjs,cs,rs,py,java,go,rb,php,swift,kt,scala}"
 
 These rules apply automatically to all code files. They are the always-on guardrails that complement the Security Guardian agent.
 
+## Proactive Security Requirement
+
+Before implementing any feature that involves authentication, user data, API endpoints, file handling, or external services: **stop and ask the user security-clarifying questions** about the aspects they didn't mention. Do not assume the user has considered authentication, authorization, input validation, encryption, error handling, or data isolation. Use secure defaults for anything the user cannot answer, and state what you chose.
+
 ## Critical Rules (MUST follow — violations are blockers)
 
 ### Never Hardcode Secrets `[OWASP-A04]` `[AZURE-WAF]` `[AWS-WAF]`
