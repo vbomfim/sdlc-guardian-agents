@@ -1,243 +1,279 @@
-# Security Guardian — Usage Guide
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/%F0%9F%9B%A1%EF%B8%8F_SDLC-Guardian_Agents-00D4AA?style=for-the-badge&labelColor=1a1a2e&logo=githubcopilot&logoColor=white">
+    <img alt="SDLC Guardian Agents" src="https://img.shields.io/badge/%F0%9F%9B%A1%EF%B8%8F_SDLC-Guardian_Agents-00D4AA?style=for-the-badge&labelColor=1a1a2e&logo=githubcopilot&logoColor=white">
+  </picture>
+</p>
 
-## What Is This?
+<h1 align="center">SDLC Guardian Agents</h1>
 
-Security Guardian is a Copilot CLI custom agent that acts as a security persona across your projects. It enforces consistent security standards grounded in:
+<p align="center">
+  <b>Opinionated AI agents that enforce software engineering standards across your entire development lifecycle.</b>
+</p>
 
-- **OWASP Top 10 (2025)** — the industry standard for application security
-- **Azure Well-Architected Framework** — Microsoft's 5-pillar cloud architecture guidance
-- **AWS Well-Architected Framework** — Amazon's cloud security and reliability best practices
-- **Google Cloud Architecture Framework** — Google's security, privacy, and compliance guidance
+<p align="center">
+  <img src="https://img.shields.io/badge/OWASP-Top_10_2025-orange?style=flat-square" alt="OWASP">
+  <img src="https://img.shields.io/badge/Google-Engineering_Practices-blue?style=flat-square" alt="Google">
+  <img src="https://img.shields.io/badge/Azure-Well--Architected-0078D4?style=flat-square" alt="Azure WAF">
+  <img src="https://img.shields.io/badge/AWS-Well--Architected-FF9900?style=flat-square" alt="AWS WAF">
+  <img src="https://img.shields.io/badge/Clean_Code-SOLID-green?style=flat-square" alt="Clean Code">
+  <img src="https://img.shields.io/badge/TDD-Test_First-red?style=flat-square" alt="TDD">
+  <img src="https://img.shields.io/badge/SRE-SLI%2FSLO-purple?style=flat-square" alt="SRE">
+</p>
 
-Every rule is tagged with its source (`[OWASP-A0X]`, `[AZURE-WAF]`, `[AWS-WAF]`, `[GCP-AF]`, `[CUSTOM]`) so you always know *why* a rule exists.
+---
+
+## Why This Exists
+
+AI coding assistants know how to write code. But **writing code is not the problem** — writing code that's consistent, secure, tested, observable, and maintainable across teams and projects is.
+
+Every experienced engineer has seen it:
+- Feature specs that miss security, observability, or edge cases
+- Code that works but ignores the architecture patterns already in the codebase
+- Unit tests that exist but integration and E2E tests that don't
+- Security reviews that happen after the PR, not before the design
+- Different projects by the same team following completely different standards
+
+**SDLC Guardian Agents solve this by embedding industry standards directly into the AI's workflow.** Instead of relying on developers to remember every best practice, the agents enforce them automatically — every time, every project.
+
+### The Philosophy
+
+AI has absorbed knowledge from thousands of engineering organizations — Google's engineering practices, Microsoft's SDL, OWASP security standards, Clean Code principles, SRE observability patterns. But this knowledge is passive — it only surfaces when explicitly asked.
+
+**We make it active.** Five specialized agents, each an expert in one phase of the SDLC, each enforcing standards from the world's best engineering organizations. They don't just suggest — they audit, research, scan, and produce structured, actionable output.
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                        SDLC Guardian Agents                              │
+│                                                                          │
+│  "I want to build     "Implement      "Write        "Check      "Review  │
+│   user uploads"        this ticket"    tests"        security"   code"   │
+│        │                    │             │              │          │     │
+│        ▼                    ▼             ▼              ▼          ▼     │
+│   ┌─────────┐        ┌──────────┐   ┌────────┐   ┌──────────┐ ┌───────┐ │
+│   │   PO    │        │Developer │   │   QA   │   │ Security │ │ Code  │ │
+│   │Guardian │───────▶│ Guardian │──▶│Guardian│──▶│ Guardian │▶│Review │ │
+│   │         │        │          │   │        │   │          │ │Guard. │ │
+│   └─────────┘        └──────────┘   └────────┘   └──────────┘ └───────┘ │
+│    Research &          TDD: test     Integration   OWASP scans  Linters  │
+│    13-section          first, then   E2E, API      + manual     + design │
+│    ticket              implement     contract      review       review   │
+│                                                                          │
+│  Standards: INVEST │ SOLID │ OWASP │ Google SRE │ Clean Code │ WAF      │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## The Five Guardians
+
+### 🎯 Product Owner Guardian
+**Role:** Process enforcer and specification writer
+
+Takes vague feature requests and produces comprehensive, developer-ready tickets through research. Audits projects for missing documentation. Scaffolds standard project docs.
+
+| What it does | Standards |
+|---|---|
+| Writes 13-section feature specs (user story, API design, security, observability, data model, ...) | INVEST criteria, BDD Given/When/Then |
+| Researches codebase, GitHub, and web before writing | — |
+| Audits projects against 25-item health checklist | Google Eng Practices, SRE |
+| Scaffolds README, ARCHITECTURE, CONTRIBUTING, SECURITY, ADRs | GitHub Community Health |
+
+**Trigger:** *"I want to build X"*, *"create a ticket"*, *"audit this project"*, *"scaffold project docs"*
+
+### 👨‍💻 Developer Guardian
+**Role:** TDD-first implementation
+
+The only agent that writes production code. Follows existing architecture patterns, writes unit tests before implementation, and pre-checks against Security and Code Review standards before handing off.
+
+| What it does | Standards |
+|---|---|
+| TDD: writes failing tests → implements → refactors | TDD, Kent Beck |
+| Follows existing codebase patterns and conventions | Clean Code, SOLID |
+| Pre-complies with Security + Code Review standards | OWASP, Google Eng |
+| Writes documentation alongside code | — |
+
+**Trigger:** *"implement this"*, *"build this"*, *"code this up"*, *"refactor"*
+
+### 🧪 QA Guardian
+**Role:** Testing beyond unit tests
+
+Writes integration, E2E, API contract, and performance tests. Traces every test to acceptance criteria. Finds coverage gaps the Developer missed. Unit tests are Developer scope — QA handles everything above.
+
+| What it does | Standards |
+|---|---|
+| Integration, E2E, API contract, performance tests | Testing Trophy, Test Pyramid |
+| Traces tests to PO ticket acceptance criteria | BDD, Given/When/Then |
+| Coverage gap analysis | — |
+| Edge case specialist (boundary, concurrent, error paths) | — |
+
+**Trigger:** *"write tests"*, *"test this"*, *"coverage analysis"*, *"E2E tests"*
+
+### 🛡️ Security Guardian
+**Role:** Security auditor with automated scanning
+
+Runs a deterministic security scan pipeline (Semgrep, Gitleaks, Trivy, dependency audits), then does manual code review. Classifies findings by OWASP category and severity. A tool might flag a warning — the agent determines if it's actually critical.
+
+| What it does | Standards |
+|---|---|
+| Automated scans: Semgrep, Gitleaks, Trivy, dep audits | OWASP Top 10 2025 |
+| Manual security review for logic flaws | Azure, AWS, GCP Well-Architected |
+| Proactive requirements refinement (asks security questions before coding) | Microsoft SDL |
+| Structured handoff report with source citations | — |
+
+**Trigger:** *"check for security"*, *"security review"*, *"scan for vulnerabilities"*
+
+### 📋 Code Review Guardian
+**Role:** Code quality and design auditor
+
+Runs language-specific linters, then reviews for architecture, design patterns, naming, performance, and documentation quality. Cites Google Engineering Practices, Microsoft guidelines, and Clean Code for every finding.
+
+| What it does | Standards |
+|---|---|
+| Parallel linters: ESLint, Pylint+Ruff, Clippy, dotnet, Checkstyle | — |
+| 7 review domains: quality, design, testing, naming, errors, performance, docs | Google Eng Practices |
+| SOLID principle validation | Clean Code, SOLID |
+| PR size and review quality checks | Microsoft Code Review |
+
+**Trigger:** *"review my code"*, *"check code quality"*, *"lint"*
+
+---
 
 ## Quick Start
 
-### Option A: Install from zip (for end users)
+### Install (one command)
 
 ```bash
-unzip security-guardian.zip -d ~/.copilot/
+unzip sdlc-guardian-agents.zip -d ~/.copilot/
 ```
 
-That's it. Global security baseline is active, and the skill is ready.
-
-### Option B: Install from source (for contributors)
+Or from source:
 
 ```bash
-cd ~/dev/security-guardian-template
+git clone https://github.com/vbomfim/sdlc-guardian-agents.git
+cd sdlc-guardian-agents
 ./package.sh --install
 ```
 
-### 2. Adopt into a repository
+### Use
 
-Open Copilot CLI in your project and say **"adopt security guardian"**, or manually:
-
-The file `~/.copilot/copilot-instructions.md` applies to ALL projects on your machine automatically. It provides minimal security rules as a safety net.
-
-### 3. Launch Copilot CLI in your project
+Open Copilot CLI in any project:
 
 ```bash
-cd /path/to/your-repo
 copilot
 ```
 
-## How to Use the Agent
+The agents are active immediately. Just describe what you need:
 
-### Invoking Security Guardian
+| You say | Agent responds |
+|---------|---------------|
+| *"I want to add user file uploads"* | PO Guardian researches, writes 13-section ticket |
+| *"implement ticket #42"* | Developer Guardian: TDD → unit tests → code |
+| *"write integration tests"* | QA Guardian: tests from acceptance criteria |
+| *"check for security"* | Security Guardian: scans + manual review |
+| *"review my code"* | Code Review Guardian: linters + design review |
+| *"audit this project"* | PO Guardian: 25-item health checklist |
 
-Use the `/agent` command in Copilot CLI to browse and select the Security Guardian agent. Once selected, it will act as your security expert.
+### Install Security Scanning Tools
 
-### Three Operating Modes
-
-When you invoke the agent, tell it which mode you need:
-
-#### Design Review
-Ask Security Guardian to review your architecture or design documents.
-
-```
-Review the architecture in ARCHITECTURE.md for security risks.
-Focus on data flow, trust boundaries, and access control design.
-```
-
-Output: A structured threat model with findings rated by severity, tagged with standards, and including specific recommendations.
-
-#### Code Review
-Ask Security Guardian to review code changes.
-
-```
-Review the changes in src/auth/ for security vulnerabilities.
+```bash
+bash ~/.copilot/skills/security-guardian/setup.sh        # Install tools
+bash ~/.copilot/skills/security-guardian/setup.sh --scan  # Run scans
+bash ~/.copilot/skills/security-guardian/install-hooks.sh # Git hooks
 ```
 
-Or review a diff:
-```
-Review the current git diff for security issues.
-```
-
-Output: A security checklist with findings mapped to OWASP categories, exact file/line references, and fix guidance.
-
-#### Implementation Guidance
-Ask Security Guardian to help you write secure code.
-
-```
-Help me implement JWT authentication for this Express API.
-Use the secure patterns from our security standard.
-```
-
-Output: Production-ready code with security best practices baked in, tagged with the standards each pattern satisfies.
-
-## How Auto-Applied Rules Work
-
-The file `.github/instructions/security-standard.instructions.md` has a YAML frontmatter:
-
-```yaml
----
-applyTo: "**/*.{ts,tsx,js,jsx,mjs,cjs,cs,rs,py,java,go,rb,php,swift,kt,scala}"
----
-```
-
-This means its rules are **automatically included** whenever Copilot CLI works with code files matching those patterns — no need to invoke the agent. These are the always-on guardrails.
-
-## Customizing Rules
-
-### Adding Project-Specific Rules
-
-Add `[CUSTOM]` rules in your project's `AGENTS.md` or in a new instructions file:
-
-```markdown
-# File: .github/instructions/project-security.instructions.md
----
-applyTo: "src/**/*.ts"
 ---
 
-### [CUSTOM] Per-User Database Isolation
-- Each user MUST get an isolated database: `db_user_<hash(user_id)>`
-- Backend derives DB name from JWT token hash
-- Justification: Privacy-first architecture for GDPR compliance
-```
+## How It Works
 
-### Relaxing a Rule
+### Auto-Delegation
 
-If a project needs to relax an OWASP rule, document the justification:
-
-```markdown
-### [CUSTOM] Relaxed CORS for Development API
-- Allow wildcard CORS on `/api/dev/*` endpoints ONLY
-- Overrides: [OWASP-A02] strict CORS policy
-- Justification: Internal dev tooling, not production-facing
-- Mitigations: Network-level access control, separate deployment
-```
-
-## File Structure
-
-### Source (this repo)
+You talk to the **default Copilot agent** normally. Based on your request, it automatically delegates to the right Guardian as a background task. You keep working — the Guardian reports back when done.
 
 ```
-security-guardian-template/
-├── src/                                          ← Mirrors ~/.copilot/ layout
-│   ├── copilot-instructions.md                   ← Global security baseline
-│   └── skills/security-guardian/
-│       ├── SKILL.md                              ← Copilot CLI skill definition
-│       ├── setup.sh                              ← Install tools + scan
-│       ├── install-hooks.sh                      ← Git hook installer
-│       ├── hooks/pre-push                        ← Pre-push enforcement hook
-│       └── template/                             ← Files copied into repos
-│           ├── README.md
-│           └── .github/
-│               ├── agents/security-guardian.agent.md
-│               ├── instructions/security-standard.instructions.md
-│               └── workflows/security-scan.yml
-├── package.sh                                    ← Build zip / install / uninstall
-└── README.md                                     ← This file
+You: "check for security"
+Default agent: "🛡️ Security Guardian scanning in background..."
+You: (keep working on other things)
+[notification] Security Guardian completed
+Default agent: "Found 3 issues. Want me to create GitHub issues?"
 ```
 
-### After install (`~/.copilot/`)
+### Standards Enforcement
+
+Every finding, requirement, and recommendation cites its source:
+
+| Tag | Standard |
+|-----|----------|
+| `[OWASP-A01]`–`[OWASP-A10]` | OWASP Top 10 (2025) |
+| `[AZURE-WAF]` | Azure Well-Architected Framework |
+| `[AWS-WAF]` | AWS Well-Architected Framework |
+| `[GCP-AF]` | Google Cloud Architecture Framework |
+| `[GOOGLE-ENG]` | Google Engineering Practices |
+| `[MS-REVIEW]` | Microsoft Code Review Guidelines |
+| `[CLEAN-CODE]` | Clean Code (Robert C. Martin) |
+| `[SOLID]` | SOLID Principles |
+| `[INVEST]` | INVEST Criteria for user stories |
+| `[GOOGLE-SRE]` | Google SRE (SLIs, SLOs, error budgets) |
+| `[TDD]` | Test-Driven Development |
+| `[BDD]` | Behavior-Driven Development |
+| `[CUSTOM]` | Project-specific rules |
+
+### Consistency Across Projects
+
+The agents live at `~/.copilot/` (user-level), so **every project on your machine gets the same standards automatically**. One install, consistent enforcement everywhere.
+
+---
+
+## Architecture
 
 ```
 ~/.copilot/
-├── copilot-instructions.md                       ← Active globally
-└── skills/security-guardian/                     ← Skill + tools + templates
+├── agents/                              ← Agent definitions
+│   ├── security-guardian.agent.md
+│   ├── code-review-guardian.agent.md
+│   ├── po-guardian.agent.md
+│   ├── dev-guardian.agent.md
+│   └── qa-guardian.agent.md
+├── instructions/                        ← Auto-delegation rules
+│   ├── security-guardian.instructions.md
+│   ├── code-review-guardian.instructions.md
+│   ├── po-guardian.instructions.md
+│   ├── dev-guardian.instructions.md
+│   └── qa-guardian.instructions.md
+└── skills/                              ← Operational tools
+    ├── security-guardian/               ← Semgrep, Gitleaks, Trivy
+    │   ├── setup.sh
+    │   ├── install-hooks.sh
+    │   └── hooks/pre-push
+    └── code-review-guardian/            ← ESLint, Pylint, Clippy
+        └── setup.sh
 ```
 
-### After adopting into a repo
-
-```
-your-repo/
-├── .github/
-│   ├── agents/security-guardian.agent.md          ← /agent → Security Guardian
-│   ├── instructions/security-standard.instructions.md  ← Auto-applied rules
-│   └── workflows/security-scan.yml               ← CI/CD enforcement
-├── tools/
-│   ├── setup.sh                                  ← Tool installer + scanner
-│   ├── install-hooks.sh                          ← Git hook installer
-│   └── hooks/pre-push                            ← Warns/blocks on stale scans
-└── AGENTS.md                                     ← [CUSTOM] rules (optional)
-```
-
-## Automated Security Tools
-
-Security Guardian includes a setup script and CI/CD workflow to enforce rules with real tools.
-
-### Quick Start
+### For Contributors
 
 ```bash
-# Install security tools (auto-detects your project's languages)
-./tools/setup.sh
+git clone https://github.com/vbomfim/sdlc-guardian-agents.git
+cd sdlc-guardian-agents
 
-# Check what's already installed
-./tools/setup.sh --check
+# Edit agents in src/
+# Build and install
+./package.sh --install
 
-# Run a full security scan
-./tools/setup.sh --scan
+# Package for distribution
+./package.sh
+
+# Uninstall
+./package.sh --uninstall
 ```
 
-### What Gets Installed
+---
 
-| Tool | What It Does | OWASP Rules |
-|------|-------------|-------------|
-| **Semgrep** | Static analysis (SAST) — finds injection, auth issues, misconfig | A01–A10 |
-| **Gitleaks** | Detects hardcoded secrets in source code | A04 |
-| **Trivy** | Scans dependencies, containers, and IaC for vulnerabilities | A02, A03 |
-| **npm audit** | Node.js dependency vulnerabilities | A03 |
-| **cargo audit + deny** | Rust crate vulnerabilities and license compliance | A03 |
-| **pip-audit + bandit + safety** | Python dependency and code security | A03, A05 |
-| **dotnet list --vulnerable** | .NET NuGet package vulnerabilities | A03 |
+## License
 
-### CI/CD Workflow
+MIT
 
-Copy `.github/workflows/security-scan.yml` to your repo. It runs automatically on:
-- Every push to `main`/`master`
-- Every pull request
-- Weekly schedule (catches newly disclosed vulnerabilities)
+---
 
-The workflow uploads SARIF results to GitHub Security tab when GitHub Advanced Security is available.
-
-### Git Hook Enforcement
-
-Install the pre-push hook to get local feedback before your code even reaches CI:
-
-```bash
-./tools/install-hooks.sh
-```
-
-**How it works:**
-
-| Pushing to... | Scan is stale? | Behavior |
-|---------------|---------------|----------|
-| Feature branch | Yes | ⚠️ **WARNING** — push proceeds, but you're reminded to scan |
-| Feature branch | No | ✅ Push proceeds silently |
-| `main`/`master` | Yes | 🚫 **BLOCKED** — push rejected until you run a scan |
-| `main`/`master` | No | ✅ Push proceeds |
-
-The scan timestamp is recorded automatically when `./tools/setup.sh --scan` passes. If you commit new code after a scan, the hook detects the scan is stale and notifies you.
-
-**Enforcement chain:** Local hook (warn/block) → CI workflow (required check) → PR merge gate
-
-## Standards Reference
-
-| Tag | Standard | Link |
-|-----|----------|------|
-| `[OWASP-A01]`–`[OWASP-A10]` | OWASP Top 10 (2025) | https://owasp.org/Top10/2025/ |
-| `[AZURE-WAF]` | Azure Well-Architected Framework | https://learn.microsoft.com/en-us/azure/well-architected/ |
-| `[AWS-WAF]` | AWS Well-Architected Framework | https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html |
-| `[GCP-AF]` | Google Cloud Architecture Framework | https://cloud.google.com/architecture/framework |
-| `[CUSTOM]` | Project-specific rules | Defined in your repo |
+<p align="center">
+  <i>Built with <a href="https://docs.github.com/copilot">GitHub Copilot CLI</a> — enforcing the standards that make great software.</i>
+</p>
