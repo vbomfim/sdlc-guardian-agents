@@ -63,7 +63,7 @@
   </text>
 
   <!-- Tagline -->
-  <text x="310" y="220" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#58a6ff" letter-spacing="1">
+  <text x="310" y="220" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#58a6ff" letter-spacing="0.5">
     Components so well-defined, any piece can be rewritten in isolation
   </text>
 
