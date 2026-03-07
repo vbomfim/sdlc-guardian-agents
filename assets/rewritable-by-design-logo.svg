@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" fill="none">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00D4AA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0088CC;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6B6B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF8E53;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00D4AA;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#0088CC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6C5CE7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="300" rx="20" fill="#0d1117"/>
+
+  <!-- Hexagonal component blocks (representing modular architecture) -->
+  <!-- Component 1 - solid (stable) -->
+  <g transform="translate(80, 100)">
+    <polygon points="40,0 80,23 80,69 40,92 0,69 0,23" fill="url(#grad1)" opacity="0.9"/>
+    <text x="40" y="52" text-anchor="middle" fill="#0d1117" font-family="system-ui" font-size="14" font-weight="bold">API</text>
+  </g>
+
+  <!-- Component 2 - being rewritten (animated dashed border) -->
+  <g transform="translate(170, 55)">
+    <polygon points="40,0 80,23 80,69 40,92 0,69 0,23" fill="url(#grad2)" opacity="0.85"/>
+    <polygon points="40,0 80,23 80,69 40,92 0,69 0,23" fill="none" stroke="#FFD93D" stroke-width="2.5" stroke-dasharray="8,4">
+      <animate attributeName="stroke-dashoffset" values="0;24" dur="2s" repeatCount="indefinite"/>
+    </polygon>
+    <text x="40" y="48" text-anchor="middle" fill="#0d1117" font-family="system-ui" font-size="11" font-weight="bold">RE</text>
+    <text x="40" y="62" text-anchor="middle" fill="#0d1117" font-family="system-ui" font-size="11" font-weight="bold">WRITE</text>
+  </g>
+
+  <!-- Component 3 - solid (stable) -->
+  <g transform="translate(170, 145)">
+    <polygon points="40,0 80,23 80,69 40,92 0,69 0,23" fill="url(#grad1)" opacity="0.9"/>
+    <text x="40" y="52" text-anchor="middle" fill="#0d1117" font-family="system-ui" font-size="14" font-weight="bold">DB</text>
+  </g>
+
+  <!-- Connection lines (interfaces/ports) -->
+  <line x1="160" y1="146" x2="170" y2="120" stroke="#00D4AA" stroke-width="2" opacity="0.6"/>
+  <line x1="160" y1="146" x2="170" y2="168" stroke="#00D4AA" stroke-width="2" opacity="0.6"/>
+
+  <!-- Port dots (interface points) -->
+  <circle cx="160" cy="146" r="4" fill="#00D4AA"/>
+  <circle cx="170" cy="120" r="4" fill="#FFD93D"/>
+  <circle cx="170" cy="168" r="4" fill="#00D4AA"/>
+
+  <!-- Circular rewrite arrow around component 2 -->
+  <path d="M 225 60 A 35 35 0 1 1 195 55" fill="none" stroke="#FFD93D" stroke-width="2" opacity="0.7"/>
+  <polygon points="195,50 195,60 203,53" fill="#FFD93D" opacity="0.7"/>
+
+  <!-- Main text -->
+  <text x="310" y="120" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="800" fill="url(#grad3)" letter-spacing="-1">
+    Rewritable
+  </text>
+  <text x="310" y="175" font-family="system-ui, -apple-system, sans-serif" font-size="42" font-weight="300" fill="#8b949e" letter-spacing="8">
+    by Design
+  </text>
+
+  <!-- Tagline -->
+  <text x="310" y="220" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#58a6ff" letter-spacing="1">
+    Components so well-defined, any piece can be rewritten in isolation
+  </text>
+
+  <!-- Small architectural labels -->
+  <g transform="translate(310, 245)" font-family="system-ui" font-size="11" fill="#484f58">
+    <rect x="0" y="0" width="80" height="20" rx="4" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+    <text x="40" y="14" text-anchor="middle" fill="#8b949e">Hexagonal</text>
+
+    <rect x="90" y="0" width="90" height="20" rx="4" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+    <text x="135" y="14" text-anchor="middle" fill="#8b949e">Clean Arch</text>
+
+    <rect x="190" y="0" width="110" height="20" rx="4" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+    <text x="245" y="14" text-anchor="middle" fill="#8b949e">Contract-First</text>
+
+    <rect x="310" y="0" width="60" height="20" rx="4" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+    <text x="340" y="14" text-anchor="middle" fill="#8b949e">SOLID</text>
+
+    <rect x="380" y="0" width="55" height="20" rx="4" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+    <text x="407" y="14" text-anchor="middle" fill="#8b949e">BDD</text>
+  </g>
+</svg>
