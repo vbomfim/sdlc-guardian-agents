@@ -10,9 +10,17 @@ These rules apply automatically to all code files. They are the always-on guardr
 
 Before implementing any feature that involves authentication, user data, API endpoints, file handling, or external services: **stop and ask the user security-clarifying questions** about the aspects they didn't mention. Do not assume the user has considered authentication, authorization, input validation, encryption, error handling, or data isolation. Use secure defaults for anything the user cannot answer, and state what you chose.
 
-When the task involves security-sensitive work (authentication, authorization, data handling, cryptography, API design, infrastructure, or multi-tenancy), suggest to the user:
+## Security Guardian Delegation
 
-> 💡 **Tip:** This task involves security-sensitive code. For a comprehensive security review, you can run `/agent` and select **Security Guardian** — it provides full threat modeling, OWASP-mapped analysis, and language-specific secure patterns.
+Security Guardian is a read-only security auditor agent available at `~/.copilot/agents/` and `.github/agents/`. It has `infer: true`, so Copilot may auto-delegate security tasks to it.
+
+**Workflow for the default agent:**
+1. When the user asks for a security review, code audit, or threat model → Security Guardian handles the review and reports findings
+2. When Security Guardian reports findings → the default agent (you) should offer to **act on them**: create GitHub issues, fix code, install tools
+3. When the user asks to set up security tools, run scans, or install hooks → use the **Security Guardian skill** (`~/.copilot/skills/security-guardian/`) which has the bash scripts
+4. Security Guardian cannot edit files, create issues, or run arbitrary commands — **that's your job** as the default agent after receiving its report
+
+**Key principle:** Security Guardian reviews → Default agent executes.
 
 ## Critical Rules (MUST follow — violations are blockers)
 
