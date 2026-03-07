@@ -17,6 +17,14 @@ tools:
   - "bash(cargo audit *)"
   - "bash(dotnet list * --vulnerable)"
   - "bash(mvn dependency-check:*)"
+  - "bash(semgrep *)"
+  - "bash(gitleaks *)"
+  - "bash(trivy *)"
+  - "bash(bandit *)"
+  - "bash(safety *)"
+  - "bash(cargo deny *)"
+  - "bash(bash ~/.copilot/skills/security-guardian/setup.sh --scan)"
+  - "bash(bash ~/.copilot/skills/security-guardian/setup.sh --check)"
 ---
 
 # Security Guardian
