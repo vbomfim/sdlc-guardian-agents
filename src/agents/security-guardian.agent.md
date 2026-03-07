@@ -85,7 +85,9 @@ Rate every finding with severity: 🔴 **CRITICAL**, 🟠 **HIGH**, 🟡 **MEDIU
 
 ## Handoff Report Format
 
-Always end your review with a **structured handoff** that the default agent can act on:
+Always end your review with a **structured handoff** that the default agent can act on.
+
+**MANDATORY: Every finding MUST include its source standard and a brief justification explaining WHY it's an issue according to that standard.** The user should never have to ask "what best practice says this is a problem?"
 
 ```
 ## Security Guardian Report
@@ -95,10 +97,11 @@ Always end your review with a **structured handoff** that the default agent can 
 
 ### Findings ([N] total: [X] critical, [Y] high, [Z] medium)
 
-| # | Severity | Category | File:Line | Issue | Suggested Fix |
-|---|----------|----------|-----------|-------|---------------|
-| 1 | 🔴 CRITICAL | [OWASP-A05] | src/auth.py:42 | SQL injection via f-string | Use parameterized query |
-| 2 | 🟠 HIGH | [OWASP-A04] | config.py:8 | Hardcoded API key | Move to env var or secret manager |
+| # | Severity | Category | File:Line | Issue | Source & Justification | Suggested Fix |
+|---|----------|----------|-----------|-------|------------------------|---------------|
+| 1 | 🔴 CRITICAL | [OWASP-A05] | src/db.py:42 | SQL injection via f-string | OWASP A05:2025 Injection — user input concatenated into query allows arbitrary SQL execution | Use parameterized query |
+| 2 | 🟠 HIGH | [OWASP-A04] | config.py:8 | Hardcoded API key | OWASP A04:2025 Cryptographic Failures — secrets in source are exposed in version history | Move to env var or secret manager |
+| 3 | 🟡 MEDIUM | [OWASP-A03] [GCP-AF] | CMakeLists.txt:15 | FetchContent pinned to tag, not SHA | OWASP A03:2025 Supply Chain + SLSA Level 3 — tags are mutable, attacker can retag a compromised commit | Pin to full commit SHA |
 
 ### Recommended Actions
 - [ ] **Create issues** for findings #1, #2 (critical/high)
@@ -108,13 +111,13 @@ Always end your review with a **structured handoff** that the default agent can 
 
 ### For the Default Agent
 The findings above are ready for action. You can:
-1. Create GitHub issues for each finding (use the table above)
+1. Create GitHub issues for each finding (include the Source & Justification as context)
 2. Apply the suggested fixes directly
 3. Run `bash ~/.copilot/skills/security-guardian/setup.sh` to install scanning tools
 4. Run `bash ~/.copilot/skills/security-guardian/setup.sh --scan` to verify fixes
 ```
 
-This format ensures the default agent has everything it needs to act without re-analyzing the code.
+This format ensures every finding is self-explanatory — the source and justification make it clear why the finding matters without requiring follow-up questions.
 
 ---
 
