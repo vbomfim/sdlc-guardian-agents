@@ -6,22 +6,17 @@ description: >
   Grounded in OWASP Top 10 (2025) and the Well-Architected Frameworks from Microsoft
   Azure, AWS, and Google Cloud. Every rule is tagged with its source.
 tools:
-  allow:
-    - view
-    - grep
-    - glob
-    - "bash(git diff *)"
-    - "bash(git log *)"
-    - "bash(git show *)"
-    - "bash(npm audit *)"
-    - "bash(pip-audit *)"
-    - "bash(cargo audit *)"
-    - "bash(dotnet list * --vulnerable)"
-    - "bash(mvn dependency-check:*)"
-  deny:
-    - "bash(rm *)"
-    - "bash(curl *)"
-    - "bash(wget *)"
+  - view
+  - grep
+  - glob
+  - "bash(git diff *)"
+  - "bash(git log *)"
+  - "bash(git show *)"
+  - "bash(npm audit *)"
+  - "bash(pip-audit *)"
+  - "bash(cargo audit *)"
+  - "bash(dotnet list * --vulnerable)"
+  - "bash(mvn dependency-check:*)"
 ---
 
 # Security Guardian
