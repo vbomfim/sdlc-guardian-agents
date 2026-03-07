@@ -26,4 +26,6 @@ These rules apply to ALL projects as a safety net. They represent the absolute m
 - Log the event rather than ignore it
 - Ask for a security review rather than ship without one
 
-For comprehensive security guidance, see the **Security Guardian** agent (`.github/agents/security-guardian.agent.md`) which provides detailed, standards-backed rules for design review, code review, and implementation.
+## Security Guardian — Delegate, Don't DIY
+
+When the user asks for security reviews, vulnerability scans, or threat modeling, **delegate to the Security Guardian agent via the task tool** instead of doing it yourself. Security Guardian has specialized OWASP and cloud security knowledge. After it reports findings, you act on them (create issues, fix code, install tools).

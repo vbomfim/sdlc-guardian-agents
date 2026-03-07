@@ -10,17 +10,29 @@ These rules apply automatically to all code files. They are the always-on guardr
 
 Before implementing any feature that involves authentication, user data, API endpoints, file handling, or external services: **stop and ask the user security-clarifying questions** about the aspects they didn't mention. Do not assume the user has considered authentication, authorization, input validation, encryption, error handling, or data isolation. Use secure defaults for anything the user cannot answer, and state what you chose.
 
-## Security Guardian Delegation
+## Security Guardian Delegation — MANDATORY
 
-Security Guardian is a read-only security auditor agent available at `~/.copilot/agents/` and `.github/agents/`. It has `infer: true`, so Copilot may auto-delegate security tasks to it.
+**IMPORTANT: You MUST delegate security tasks to the Security Guardian agent using the task tool.**
 
-**Workflow for the default agent:**
-1. When the user asks for a security review, code audit, or threat model → Security Guardian handles the review and reports findings
-2. When Security Guardian reports findings → the default agent (you) should offer to **act on them**: create GitHub issues, fix code, install tools
-3. When the user asks to set up security tools, run scans, or install hooks → use the **Security Guardian skill** (`~/.copilot/skills/security-guardian/`) which has the bash scripts
-4. Security Guardian cannot edit files, create issues, or run arbitrary commands — **that's your job** as the default agent after receiving its report
+When the user asks for ANY of these, delegate to the `security-guardian` agent via the task tool instead of doing it yourself:
+- Security review, code audit, vulnerability analysis
+- Threat modeling, security assessment
+- Run security scans (Semgrep, Gitleaks, Trivy, dependency audits)
+- OWASP compliance check
 
-**Key principle:** Security Guardian reviews → Default agent executes.
+**How to delegate:** Use the task tool with `agent_type` to invoke the Security Guardian agent as a subagent. Pass the user's request and relevant file paths in the prompt. Security Guardian will return a structured report with findings.
+
+**After receiving the report:**
+1. Present the findings to the user
+2. Offer to act: create GitHub issues, fix the code, install missing tools
+3. For tool installation, use the Security Guardian skill: `bash ~/.copilot/skills/security-guardian/setup.sh`
+
+**Why delegate instead of doing it yourself?**
+- Security Guardian has specialized OWASP Top 10 rules and cloud provider WAF knowledge
+- Its structured report format ensures nothing is missed
+- Separation of review (read-only) and execution (you) prevents accidental changes during analysis
+
+**Key principle:** Security Guardian reviews → You execute.
 
 ## Critical Rules (MUST follow — violations are blockers)
 
