@@ -14,10 +14,6 @@
 ---
 
 <p align="center">
-  <code>💡 Idea → 🏗️ Architecture → 📦 Components → 🔄 Rewritable</code>
-</p>
-
-<p align="center">
   <img src="assets/rewritable-by-design-logo.svg" alt="Rewritable by Design" width="700">
 </p>
 
