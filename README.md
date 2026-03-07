@@ -140,7 +140,10 @@ your-repo/
 │   └── workflows/
 │       └── security-scan.yml             ← CI/CD automated enforcement
 ├── tools/
-│   └── setup.sh                          ← Tool installer (run once per machine)
+│   ├── setup.sh                          ← Tool installer + scanner
+│   ├── install-hooks.sh                  ← Git hook installer
+│   └── hooks/
+│       └── pre-push                      ← Warns/blocks if scan is stale
 └── AGENTS.md                        ← Project-specific overrides (optional)
 ```
 
@@ -181,6 +184,27 @@ Copy `.github/workflows/security-scan.yml` to your repo. It runs automatically o
 - Weekly schedule (catches newly disclosed vulnerabilities)
 
 The workflow uploads SARIF results to GitHub Security tab when GitHub Advanced Security is available.
+
+### Git Hook Enforcement
+
+Install the pre-push hook to get local feedback before your code even reaches CI:
+
+```bash
+./tools/install-hooks.sh
+```
+
+**How it works:**
+
+| Pushing to... | Scan is stale? | Behavior |
+|---------------|---------------|----------|
+| Feature branch | Yes | ⚠️ **WARNING** — push proceeds, but you're reminded to scan |
+| Feature branch | No | ✅ Push proceeds silently |
+| `main`/`master` | Yes | 🚫 **BLOCKED** — push rejected until you run a scan |
+| `main`/`master` | No | ✅ Push proceeds |
+
+The scan timestamp is recorded automatically when `./tools/setup.sh --scan` passes. If you commit new code after a scan, the hook detects the scan is stale and notifies you.
+
+**Enforcement chain:** Local hook (warn/block) → CI workflow (required check) → PR merge gate
 
 ## Standards Reference
 

@@ -345,9 +345,13 @@ run_scan() {
   if [ $exit_code -eq 0 ]; then
     echo ""
     success "All security scans passed!"
+    # Record timestamp for pre-push hook
+    date +%s > "${dir}/.security-scan-timestamp"
+    success "Scan timestamp recorded (.security-scan-timestamp)"
   else
     echo ""
     warn "Some security issues found — review the output above"
+    warn "Scan timestamp NOT updated (fix issues and re-scan)"
   fi
 
   return $exit_code
