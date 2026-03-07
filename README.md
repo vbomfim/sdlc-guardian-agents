@@ -27,11 +27,7 @@
 
 ## Rewritable by Design
 
-<p align="center">
-  <img src="assets/rewritable-by-design-logo.svg" alt="Rewritable by Design" width="700">
-</p>
-
-> *In the AI era, code is cheap to generate but expensive when tangled. The goal is components so well-defined that any single piece can be rewritten without understanding the entire system.*
+> *Boundaries and contracts are permanent. Implementations are replaceable.*
 
 This is the foundational principle behind every Guardian agent. AI can generate, refactor, or rewrite code — but only when components have **clear boundaries, defined interfaces, and behavior-based specifications**.
 
