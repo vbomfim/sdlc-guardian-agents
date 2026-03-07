@@ -14,12 +14,16 @@
 ---
 
 <p align="center">
+  <code>💡 Idea → 🏗️ Architecture → 📦 Components → 🔄 Rewritable</code>
+</p>
+
+<p align="center">
   <img src="assets/rewritable-by-design-logo.svg" alt="Rewritable by Design" width="700">
 </p>
 
-**Rewritable by Design** is an architectural principle for the AI era: build software where every component can be replaced without understanding the whole system.
+Everything starts with an **idea** 💡 — what you want to build. The idea is the intent, the feature, the goal.
 
-You start with an **idea** — what you want to build. The idea is the intent, the feature, the goal. **Components** are how the software organizes itself to fulfill that idea. When you prompt AI with an idea, a well-designed architecture lets it naturally unfold into components — each with a clear boundary, a defined contract, and a single responsibility.
+The **architecture** channels that idea into **components** — each with a clear boundary, a defined contract, and a single responsibility. When you prompt AI with an idea, a well-designed architecture lets it naturally unfold into these components.
 
 This is what makes AI-assisted development work. The idea flows in, and the architecture channels it into bounded, replaceable pieces. If one piece doesn't work, you rewrite it. The rest of the system never knows. If a better approach emerges tomorrow, you swap the component — the contract stays, the implementation changes.
 
