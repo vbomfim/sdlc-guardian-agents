@@ -46,19 +46,18 @@ When invoked as a subagent, infer the mode from context and produce a structured
 
 **IMPORTANT: Always run the full scan pipeline. No skipping, no reordering.**
 
+The scan runs in two phases for speed:
+
 ### Step 1: Run the full scan (MANDATORY — always run this first)
 ```bash
 bash ~/.copilot/skills/security-guardian/setup.sh --scan
 ```
 
-This runs the following tools in fixed order, every time:
-1. Semgrep (SAST — injection, auth, misconfig)
-2. Gitleaks (hardcoded secrets)
-3. npm audit (Node.js dependencies, if project applies)
-4. cargo audit (Rust dependencies, if project applies)
-5. pip-audit (Python dependencies, if project applies)
-6. bandit (Python SAST, if project applies)
-7. dotnet list --vulnerable (.NET dependencies, if project applies)
+**Phase 1 — Core scans (PARALLEL):**
+- Semgrep, Gitleaks, and Trivy run simultaneously
+
+**Phase 2 — Language audits (SEQUENTIAL):**
+- npm audit, cargo audit, pip-audit, bandit, dotnet (only for detected languages)
 
 If a tool is not installed, the script reports it. Do NOT skip the scan — always run it.
 
