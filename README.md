@@ -11,18 +11,6 @@
   <b>Opinionated AI agents that enforce software engineering standards across your entire development lifecycle.</b>
 </p>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/OWASP-Top_10_2025-orange?style=flat-square" alt="OWASP">
-  <img src="https://img.shields.io/badge/Google-Engineering_Practices-blue?style=flat-square" alt="Google">
-  <img src="https://img.shields.io/badge/Azure-Well--Architected-0078D4?style=flat-square" alt="Azure WAF">
-  <img src="https://img.shields.io/badge/AWS-Well--Architected-FF9900?style=flat-square" alt="AWS WAF">
-  <img src="https://img.shields.io/badge/Clean_Code-SOLID-green?style=flat-square" alt="Clean Code">
-  <img src="https://img.shields.io/badge/TDD-Test_First-red?style=flat-square" alt="TDD">
-  <img src="https://img.shields.io/badge/SRE-SLI%2FSLO-purple?style=flat-square" alt="SRE">
-  <img src="https://img.shields.io/badge/Hexagonal-Ports_%26_Adapters-teal?style=flat-square" alt="Hexagonal">
-  <img src="https://img.shields.io/badge/Contract--First-API_Design-gold?style=flat-square" alt="Contract-First">
-</p>
-
 ---
 
 <p align="center">
