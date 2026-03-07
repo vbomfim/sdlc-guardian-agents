@@ -10,18 +10,18 @@ tools:
     - view
     - grep
     - glob
-    - bash(git diff *)
-    - bash(git log *)
-    - bash(git show *)
-    - bash(npm audit *)
-    - bash(pip-audit *)
-    - bash(cargo audit *)
-    - bash(dotnet list * --vulnerable)
-    - bash(mvn dependency-check:*)
+    - "bash(git diff *)"
+    - "bash(git log *)"
+    - "bash(git show *)"
+    - "bash(npm audit *)"
+    - "bash(pip-audit *)"
+    - "bash(cargo audit *)"
+    - "bash(dotnet list * --vulnerable)"
+    - "bash(mvn dependency-check:*)"
   deny:
-    - bash(rm *)
-    - bash(curl *)
-    - bash(wget *)
+    - "bash(rm *)"
+    - "bash(curl *)"
+    - "bash(wget *)"
 ---
 
 # Security Guardian
