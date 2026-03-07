@@ -24,7 +24,8 @@ package() {
   mkdir -p "$DIST_DIR"
 
   cd "$SRC_DIR"
-  zip -r "$DIST_DIR/security-guardian.zip" . -x ".*"
+  # Exclude copilot-instructions.md from zip — install script merges it safely
+  zip -r "$DIST_DIR/security-guardian.zip" . -x ".*" -x "copilot-instructions.md"
   cd "$SCRIPT_DIR"
 
   local size
@@ -32,9 +33,9 @@ package() {
   echo ""
   echo -e "${GREEN}✔${NC}  Package created: ${BOLD}dist/security-guardian.zip${NC} ($size)"
   echo ""
-  echo -e "  To distribute: share ${CYAN}dist/security-guardian.zip${NC}"
-  echo -e "  To install:    ${CYAN}unzip dist/security-guardian.zip -d ~/.copilot/${NC}"
-  echo -e "  Or run:        ${CYAN}./package.sh --install${NC}"
+  echo -e "  To install:"
+  echo -e "    ${CYAN}unzip dist/security-guardian.zip -d ~/.copilot/${NC}   (safe — won't touch copilot-instructions.md)"
+  echo -e "    ${CYAN}./package.sh --install${NC}                           (recommended — merges global baseline)"
 }
 
 install() {
@@ -43,16 +44,56 @@ install() {
 
   # Ensure target exists
   mkdir -p "$TARGET_DIR/skills/security-guardian"
+  mkdir -p "$TARGET_DIR/agents"
 
-  # Copy everything from src/ to ~/.copilot/
-  cp -r "$SRC_DIR"/* "$TARGET_DIR/"
+  # ── Install agent ──
+  cp "$SRC_DIR/agents/security-guardian.agent.md" "$TARGET_DIR/agents/"
+
+  # ── Install skill (safe — own directory, no conflicts) ──
+  cp -r "$SRC_DIR/skills/security-guardian/"* "$TARGET_DIR/skills/security-guardian/"
 
   # Ensure scripts are executable
   chmod +x "$TARGET_DIR/skills/security-guardian/setup.sh"
   chmod +x "$TARGET_DIR/skills/security-guardian/install-hooks.sh"
   chmod +x "$TARGET_DIR/skills/security-guardian/hooks/pre-push"
 
-  echo -e "${GREEN}✔${NC}  Global baseline installed:  ~/.copilot/copilot-instructions.md"
+  # ── Merge global baseline (NEVER overwrite existing instructions) ──
+  local MARKER="# ── Security Guardian Baseline ──"
+  local INSTRUCTIONS="$TARGET_DIR/copilot-instructions.md"
+  local BASELINE="$SRC_DIR/copilot-instructions.md"
+
+  if [ -f "$INSTRUCTIONS" ]; then
+    if grep -q "$MARKER" "$INSTRUCTIONS" 2>/dev/null; then
+      # Already installed — replace the security section
+      # Remove old section (from marker to end-marker)
+      sed -i.bak "/$MARKER/,/# ── End Security Guardian ──/d" "$INSTRUCTIONS"
+      rm -f "${INSTRUCTIONS}.bak"
+      # Append fresh
+      echo "" >> "$INSTRUCTIONS"
+      echo "$MARKER" >> "$INSTRUCTIONS"
+      cat "$BASELINE" >> "$INSTRUCTIONS"
+      echo "" >> "$INSTRUCTIONS"
+      echo "# ── End Security Guardian ──" >> "$INSTRUCTIONS"
+      echo -e "${GREEN}✔${NC}  Global baseline updated:    ~/.copilot/copilot-instructions.md (merged, existing content preserved)"
+    else
+      # File exists but no security baseline — append
+      echo "" >> "$INSTRUCTIONS"
+      echo "$MARKER" >> "$INSTRUCTIONS"
+      cat "$BASELINE" >> "$INSTRUCTIONS"
+      echo "" >> "$INSTRUCTIONS"
+      echo "# ── End Security Guardian ──" >> "$INSTRUCTIONS"
+      echo -e "${GREEN}✔${NC}  Global baseline appended:   ~/.copilot/copilot-instructions.md (your existing instructions preserved)"
+    fi
+  else
+    # No file — create with markers
+    echo "$MARKER" > "$INSTRUCTIONS"
+    cat "$BASELINE" >> "$INSTRUCTIONS"
+    echo "" >> "$INSTRUCTIONS"
+    echo "# ── End Security Guardian ──" >> "$INSTRUCTIONS"
+    echo -e "${GREEN}✔${NC}  Global baseline created:    ~/.copilot/copilot-instructions.md"
+  fi
+
+  echo -e "${GREEN}✔${NC}  Agent installed:            ~/.copilot/agents/security-guardian.agent.md"
   echo -e "${GREEN}✔${NC}  Skill installed:            ~/.copilot/skills/security-guardian/"
   echo -e "${GREEN}✔${NC}  Repo template available:    ~/.copilot/skills/security-guardian/template/"
   echo ""
