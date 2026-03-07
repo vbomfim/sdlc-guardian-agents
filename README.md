@@ -21,26 +21,42 @@
   <img src="assets/rewritable-by-design-logo.svg" alt="Rewritable by Design" width="700">
 </p>
 
-Everything starts with an **idea** 💡 — what you want to build. The idea is the intent, the feature, the goal.
+### Abstract
 
-The **architecture** channels that idea into **components** — each with a clear boundary, a defined contract, and a single responsibility. When you prompt AI with an idea, a well-designed architecture lets it naturally unfold into these components.
+**Rewritable by Design** is an architectural principle for AI-assisted software development. It establishes that software systems should be composed of components with well-defined boundaries and stable contracts, such that any individual component can be replaced, rewritten, or regenerated without requiring changes to — or knowledge of — the rest of the system.
 
-This is what makes AI-assisted development work. The idea flows in, and the architecture channels it into bounded, replaceable pieces. If one piece doesn't work, you rewrite it. The rest of the system never knows. If a better approach emerges tomorrow, you swap the component — the contract stays, the implementation changes.
+### Motivation
 
-Without this structure, ideas become tangled code. With it, ideas become components that are self-contained enough to be understood, tested, and rewritten in isolation.
+Software development is undergoing a fundamental shift. AI agents can now generate, refactor, and rewrite code at unprecedented speed. However, this capability is only effective when the AI can operate within a clearly defined scope. A component with ambiguous boundaries, leaked dependencies, or shared state cannot be safely rewritten — by a human or an AI — without risking cascading side effects across the system.
 
-**The principle is simple:** boundaries and contracts are permanent. Implementations are replaceable.
+Traditional architectural principles — cohesion, coupling, separation of concerns — have always advocated for modularity. **Rewritable by Design takes these principles to their practical conclusion:** if a component cannot be rewritten from its interface definition and behavioral tests alone, its boundary is insufficiently defined.
 
-| Principle | What It Means | Standard |
-|-----------|--------------|----------|
-| **Contract-first** | Interface exists before implementation — the contract is the source of truth | Hexagonal / Ports & Adapters |
-| **Single responsibility** | One component, one reason to change — if you need "and" to describe it, split it | SOLID (SRP) |
-| **No leaked dependencies** | Components don't import from sibling internals — only through defined interfaces | Clean Architecture (Dependency Rule) |
-| **Behavior-specified** | Tests describe WHAT it does, not HOW — tests survive rewrites | BDD / Spec-Driven Development |
-| **Bounded scope** | Clear boundary, explicit inputs/outputs, own data model | DDD Bounded Contexts |
-| **Independently deployable** | Can be replaced without redeploying the system | Composable Architecture |
+### The Idea-First Model
 
-### Architecture Patterns That Enable This
+Everything begins with an **idea** — the intent, the feature, the problem to be solved. The idea exists independently of implementation.
+
+A well-designed architecture serves as the channel through which ideas become components. When a developer — or an AI agent — receives an idea, the architecture determines how that idea decomposes into bounded, contractually-defined units of work. Each unit has:
+
+- A **boundary** that defines what is inside and what is outside its scope
+- A **contract** (interface) that specifies how it communicates with the rest of the system
+- A **behavioral specification** (tests) that describes what it does, not how it does it
+
+The implementation within each unit is disposable. It can be written today, rewritten tomorrow, and replaced entirely next quarter — provided the contract and behavior remain satisfied.
+
+### Core Principles
+
+| Principle | Definition | Theoretical Basis |
+|-----------|-----------|-------------------|
+| **Contract-first** | The interface is defined before implementation. The contract is the source of truth, not the code. | Hexagonal Architecture (Cockburn), Ports & Adapters |
+| **Single responsibility** | Each component has exactly one reason to change. If describing it requires "and", it should be split. | SOLID — Single Responsibility Principle (Martin) |
+| **No leaked dependencies** | Components interact exclusively through defined interfaces. No component imports from a sibling's internal modules. | Clean Architecture — Dependency Rule (Martin) |
+| **Behavior-specified** | Tests describe observable behavior, not implementation details. Tests must survive a complete rewrite of the component. | Behavior-Driven Development (North), Spec-Driven Development |
+| **Bounded scope** | Each component owns its data model and has explicit inputs and outputs. No shared database tables or global state across boundaries. | Domain-Driven Design — Bounded Contexts (Evans) |
+| **Independently replaceable** | A component can be replaced without modifying or redeploying any other component in the system. | Composable Architecture, Microservices Principles |
+
+### Architectural Foundations
+
+Rewritable by Design draws from and synthesizes three established architectural patterns:
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -63,15 +79,17 @@ Without this structure, ideas become tangled code. With it, ideas become compone
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-### How Each Guardian Enforces This
+### Enforcement Through SDLC Guardian Agents
 
-| Guardian | How It Enforces Rewritability |
-|----------|------------------------------|
-| **PO Guardian** | Tickets must define component boundary, interface contract, and behavior specs before implementation starts |
-| **Developer Guardian** | Code must follow ports & adapters, interface-first development, no cross-component imports |
-| **QA Guardian** | Tests must be behavior-based (survive rewrites) and include contract tests for interfaces |
-| **Security Guardian** | Validates interface boundaries aren't bypassed, dependency direction is correct |
-| **Code Review Guardian** | Checks coupling/cohesion, boundary violations, leaked dependencies, component rewritability |
+The SDLC Guardian Agents operationalize these principles across the development lifecycle:
+
+| Phase | Guardian | Enforcement |
+|-------|----------|-------------|
+| Specification | **PO Guardian** | Tickets must define component boundary, interface contract, and behavioral acceptance criteria before implementation begins |
+| Implementation | **Developer Guardian** | Code must follow ports & adapters, interface-first development, and strict dependency direction (inward only) |
+| Testing | **QA Guardian** | Tests must be behavior-based (survive rewrites) and include contract tests that validate interface stability |
+| Security | **Security Guardian** | Validates that interface boundaries are not bypassed and that dependency direction does not expose core logic to untrusted adapters |
+| Quality | **Code Review Guardian** | Checks coupling/cohesion metrics, boundary violations, leaked dependencies, and component rewritability |
 
 ---
 
