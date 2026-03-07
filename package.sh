@@ -38,31 +38,42 @@ package() {
 }
 
 install() {
-  echo -e "${BOLD}${CYAN}🛡️  Installing Security Guardian to ~/.copilot/...${NC}"
+  echo -e "${BOLD}${CYAN}🛡️  Installing Guardians to ~/.copilot/...${NC}"
   echo ""
 
   # Ensure target dirs exist
   mkdir -p "$TARGET_DIR/skills/security-guardian"
+  mkdir -p "$TARGET_DIR/skills/code-review-guardian"
   mkdir -p "$TARGET_DIR/agents"
   mkdir -p "$TARGET_DIR/instructions"
 
-  # ── Install agent ──
+  # ── Install agents ──
   cp "$SRC_DIR/agents/security-guardian.agent.md" "$TARGET_DIR/agents/"
+  cp "$SRC_DIR/agents/code-review-guardian.agent.md" "$TARGET_DIR/agents/"
 
-  # ── Install instructions (own file — no merge needed) ──
+  # ── Install instructions ──
   cp "$SRC_DIR/instructions/security-guardian.instructions.md" "$TARGET_DIR/instructions/"
+  cp "$SRC_DIR/instructions/code-review-guardian.instructions.md" "$TARGET_DIR/instructions/"
 
-  # ── Install skill ──
+  # ── Install skills ──
   cp -r "$SRC_DIR/skills/security-guardian/"* "$TARGET_DIR/skills/security-guardian/"
+  cp -r "$SRC_DIR/skills/code-review-guardian/"* "$TARGET_DIR/skills/code-review-guardian/"
 
   # Ensure scripts are executable
   chmod +x "$TARGET_DIR/skills/security-guardian/setup.sh"
   chmod +x "$TARGET_DIR/skills/security-guardian/install-hooks.sh"
   chmod +x "$TARGET_DIR/skills/security-guardian/hooks/pre-push"
+  chmod +x "$TARGET_DIR/skills/code-review-guardian/setup.sh"
 
-  echo -e "${GREEN}✔${NC}  Instructions installed:     ~/.copilot/instructions/security-guardian.instructions.md"
-  echo -e "${GREEN}✔${NC}  Agent installed:            ~/.copilot/agents/security-guardian.agent.md"
-  echo -e "${GREEN}✔${NC}  Skill installed:            ~/.copilot/skills/security-guardian/"
+  echo -e "${BOLD}Security Guardian:${NC}"
+  echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/security-guardian.agent.md"
+  echo -e "${GREEN}✔${NC}  Instructions: ~/.copilot/instructions/security-guardian.instructions.md"
+  echo -e "${GREEN}✔${NC}  Skill:        ~/.copilot/skills/security-guardian/"
+  echo ""
+  echo -e "${BOLD}Code Review Guardian:${NC}"
+  echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/code-review-guardian.agent.md"
+  echo -e "${GREEN}✔${NC}  Instructions: ~/.copilot/instructions/code-review-guardian.instructions.md"
+  echo -e "${GREEN}✔${NC}  Skill:        ~/.copilot/skills/code-review-guardian/"
   echo -e "${GREEN}✔${NC}  Repo template available:    ~/.copilot/skills/security-guardian/template/"
   echo ""
   echo -e "${BOLD}You're set!${NC} Open Copilot CLI and:"
@@ -73,15 +84,17 @@ install() {
 }
 
 uninstall() {
-  echo -e "${BOLD}${YELLOW}🗑️  Uninstalling Security Guardian...${NC}"
+  echo -e "${BOLD}${YELLOW}🗑️  Uninstalling Guardians...${NC}"
   echo ""
 
-  [ -d "$TARGET_DIR/skills/security-guardian" ] && rm -rf "$TARGET_DIR/skills/security-guardian" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/skills/security-guardian/"
-  [ -f "$TARGET_DIR/agents/security-guardian.agent.md" ] && rm "$TARGET_DIR/agents/security-guardian.agent.md" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/agents/security-guardian.agent.md"
-  [ -f "$TARGET_DIR/instructions/security-guardian.instructions.md" ] && rm "$TARGET_DIR/instructions/security-guardian.instructions.md" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/instructions/security-guardian.instructions.md"
+  for guardian in security-guardian code-review-guardian; do
+    [ -d "$TARGET_DIR/skills/$guardian" ] && rm -rf "$TARGET_DIR/skills/$guardian" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/skills/$guardian/"
+    [ -f "$TARGET_DIR/agents/$guardian.agent.md" ] && rm "$TARGET_DIR/agents/$guardian.agent.md" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/agents/$guardian.agent.md"
+    [ -f "$TARGET_DIR/instructions/$guardian.instructions.md" ] && rm "$TARGET_DIR/instructions/$guardian.instructions.md" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/instructions/$guardian.instructions.md"
+  done
 
   echo ""
-  echo -e "${GREEN}Done.${NC} Repo-level files (.github/agents/, etc.) are untouched — remove per-repo if needed."
+  echo -e "${GREEN}Done.${NC} Repo-level files (.github/) are untouched — remove per-repo if needed."
 }
 
 case "${1:-}" in
