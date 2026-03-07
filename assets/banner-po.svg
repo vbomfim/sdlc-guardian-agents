@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 80" fill="none">
+  <rect width="600" height="80" rx="12" fill="#0d1117"/>
+  <rect x="0" y="0" width="6" height="80" rx="3" fill="#F59E0B"/>
+  <text x="30" y="38" font-family="system-ui" font-size="28" fill="#F59E0B">🎯</text>
+  <text x="70" y="38" font-family="system-ui" font-size="22" font-weight="800" fill="#e6edf3">Product Owner Guardian</text>
+  <text x="70" y="60" font-family="system-ui" font-size="13" fill="#8b949e">Research → Specify → Enforce process consistency across projects</text>
+</svg>

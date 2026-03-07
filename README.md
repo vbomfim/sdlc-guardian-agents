@@ -130,7 +130,8 @@ AI has absorbed knowledge from thousands of engineering organizations — Google
 ## The Five Guardians
 
 ### 🎯 Product Owner Guardian
-**Role:** Process enforcer and specification writer
+
+<img src="assets/banner-po.svg" alt="Product Owner Guardian" width="500">
 
 Takes vague feature requests and produces comprehensive, developer-ready tickets through research. Audits projects for missing documentation. Scaffolds standard project docs.
 
@@ -144,7 +145,8 @@ Takes vague feature requests and produces comprehensive, developer-ready tickets
 **Trigger:** *"I want to build X"*, *"create a ticket"*, *"audit this project"*, *"scaffold project docs"*
 
 ### 👨‍💻 Developer Guardian
-**Role:** TDD-first implementation
+
+<img src="assets/banner-dev.svg" alt="Developer Guardian" width="500">
 
 The only agent that writes production code. Follows existing architecture patterns, writes unit tests before implementation, and pre-checks against Security and Code Review standards before handing off.
 
@@ -158,7 +160,8 @@ The only agent that writes production code. Follows existing architecture patter
 **Trigger:** *"implement this"*, *"build this"*, *"code this up"*, *"refactor"*
 
 ### 🧪 QA Guardian
-**Role:** Testing beyond unit tests
+
+<img src="assets/banner-qa.svg" alt="QA Guardian" width="500">
 
 Writes integration, E2E, API contract, and performance tests. Traces every test to acceptance criteria. Finds coverage gaps the Developer missed. Unit tests are Developer scope — QA handles everything above.
 
@@ -172,7 +175,8 @@ Writes integration, E2E, API contract, and performance tests. Traces every test 
 **Trigger:** *"write tests"*, *"test this"*, *"coverage analysis"*, *"E2E tests"*
 
 ### 🛡️ Security Guardian
-**Role:** Security auditor with automated scanning
+
+<img src="assets/banner-security.svg" alt="Security Guardian" width="500">
 
 Runs a deterministic security scan pipeline (Semgrep, Gitleaks, Trivy, dependency audits), then does manual code review. Classifies findings by OWASP category and severity. A tool might flag a warning — the agent determines if it's actually critical.
 
@@ -186,7 +190,8 @@ Runs a deterministic security scan pipeline (Semgrep, Gitleaks, Trivy, dependenc
 **Trigger:** *"check for security"*, *"security review"*, *"scan for vulnerabilities"*
 
 ### 📋 Code Review Guardian
-**Role:** Code quality and design auditor
+
+<img src="assets/banner-codereview.svg" alt="Code Review Guardian" width="500">
 
 Runs language-specific linters, then reviews for architecture, design patterns, naming, performance, and documentation quality. Cites Google Engineering Practices, Microsoft guidelines, and Clean Code for every finding.
 
