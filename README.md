@@ -19,7 +19,65 @@
   <img src="https://img.shields.io/badge/Clean_Code-SOLID-green?style=flat-square" alt="Clean Code">
   <img src="https://img.shields.io/badge/TDD-Test_First-red?style=flat-square" alt="TDD">
   <img src="https://img.shields.io/badge/SRE-SLI%2FSLO-purple?style=flat-square" alt="SRE">
+  <img src="https://img.shields.io/badge/Hexagonal-Ports_%26_Adapters-teal?style=flat-square" alt="Hexagonal">
+  <img src="https://img.shields.io/badge/Contract--First-API_Design-gold?style=flat-square" alt="Contract-First">
 </p>
+
+---
+
+## Rewritable by Design
+
+> *In the AI era, code is cheap to generate but expensive when tangled. The goal is components so well-defined that any single piece can be rewritten without understanding the entire system.*
+
+This is the foundational principle behind every Guardian agent. AI can generate, refactor, or rewrite code — but only when components have **clear boundaries, defined interfaces, and behavior-based specifications**.
+
+### Why Components Must Be Rewritable
+
+Traditional monolithic thinking creates code where everything knows about everything. Changing one piece means understanding — and risking — the whole system. In the AI era, this is the bottleneck: an AI agent can rewrite a function in seconds, but only if it can reason about that function in isolation.
+
+**Rewritable components** solve this by ensuring:
+
+| Principle | What It Means | Standard |
+|-----------|--------------|----------|
+| **Contract-first** | Interface exists before implementation — the contract is the source of truth | Hexagonal / Ports & Adapters |
+| **Single responsibility** | One component, one reason to change — if you need "and" to describe it, split it | SOLID (SRP) |
+| **No leaked dependencies** | Components don't import from sibling internals — only through defined interfaces | Clean Architecture (Dependency Rule) |
+| **Behavior-specified** | Tests describe WHAT it does, not HOW — tests survive rewrites | BDD / Spec-Driven Development |
+| **Bounded scope** | Clear boundary, explicit inputs/outputs, own data model | DDD Bounded Contexts |
+| **Independently deployable** | Can be replaced without redeploying the system | Composable Architecture |
+
+### Architecture Patterns That Enable This
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                    Hexagonal Architecture                        │
+│                                                                  │
+│   ┌─────────────┐     ┌──────────────────┐     ┌─────────────┐  │
+│   │  REST API    │     │                  │     │  Database    │  │
+│   │  Adapter     │────▶│   CORE LOGIC     │◀────│  Adapter     │  │
+│   └─────────────┘     │   (Business      │     └─────────────┘  │
+│   ┌─────────────┐     │    Rules)         │     ┌─────────────┐  │
+│   │  CLI         │     │                  │     │  Queue       │  │
+│   │  Adapter     │────▶│   Depends on     │◀────│  Adapter     │  │
+│   └─────────────┘     │   PORTS only     │     └─────────────┘  │
+│                        └──────────────────┘                      │
+│                         ▲              ▲                         │
+│                    [Port: In]     [Port: Out]                    │
+│                    (Interface)    (Interface)                    │
+│                                                                  │
+│   Adapters are REWRITABLE — core logic never changes             │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### How Each Guardian Enforces This
+
+| Guardian | How It Enforces Rewritability |
+|----------|------------------------------|
+| **PO Guardian** | Tickets must define component boundary, interface contract, and behavior specs before implementation starts |
+| **Developer Guardian** | Code must follow ports & adapters, interface-first development, no cross-component imports |
+| **QA Guardian** | Tests must be behavior-based (survive rewrites) and include contract tests for interfaces |
+| **Security Guardian** | Validates interface boundaries aren't bypassed, dependency direction is correct |
+| **Code Review Guardian** | Checks coupling/cohesion, boundary violations, leaked dependencies, component rewritability |
 
 ---
 

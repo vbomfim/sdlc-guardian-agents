@@ -68,6 +68,13 @@ After the automated scan, review the code for issues tools cannot detect:
 - Missing security controls
 - Data flow and trust boundary violations
 
+#### Component Boundary Security `[OWASP-A01]` `[CLEAN-ARCH]`
+Also verify that component boundaries are not bypassed for security:
+- **Interface bypass** — is any component accessing another's internals instead of going through the defined interface? This often bypasses auth/validation
+- **Dependency direction** — do dependencies point inward? Outward dependencies can leak core logic to untrusted adapters
+- **Data isolation** — does each component own its data? Shared databases across boundaries create cross-tenant and privilege escalation risks
+- **Trust boundaries** — does the interface between components enforce authentication/authorization, or does it trust blindly?
+
 ### Step 3: Produce the Handoff Report
 Combine ALL automated findings + manual findings into one structured report. Do not omit scan results.
 

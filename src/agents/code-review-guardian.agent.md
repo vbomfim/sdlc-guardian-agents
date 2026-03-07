@@ -76,7 +76,7 @@ After automated scans, review for issues tools cannot detect:
 - Files > 500 lines — consider splitting
 - Deep nesting > 3 levels — simplify with early returns or extraction
 
-#### Domain 2: Design & Architecture `[SOLID]` `[GOOGLE-ENG]`
+#### Domain 2: Design & Architecture `[SOLID]` `[GOOGLE-ENG]` `[HEXAGONAL]`
 - **Single Responsibility (SRP):** Does each class/module have one reason to change?
 - **Open-Closed (OCP):** Can behavior be extended without modifying existing code?
 - **Liskov Substitution (LSP):** Can subtypes replace base types without breaking?
@@ -84,6 +84,14 @@ After automated scans, review for issues tools cannot detect:
 - **Dependency Inversion (DIP):** Do high-level modules depend on abstractions, not concrete implementations?
 - Coupling: Are modules tightly coupled? Can they be tested independently?
 - Cohesion: Does each module do one thing well?
+
+#### Domain 2b: Component Rewritability `[HEXAGONAL]` `[CLEAN-ARCH]`
+- **Boundary violations** — Does any code import from a sibling component's internals instead of its public interface?
+- **Dependency direction** — Do all dependencies point inward (adapters → ports → core)? Flag outward dependencies.
+- **Leaked abstractions** — Does the interface expose implementation details (e.g., database-specific types in a domain interface)?
+- **Shared state** — Do components share database tables, global variables, or singletons across boundaries?
+- **Rewritability test** — Could an AI agent rewrite this component given only its interface definition and tests? If not, the boundary is too porous.
+- **Contract stability** — Is the interface stable enough that consumers wouldn't break if the implementation changed?
 
 #### Domain 3: Testing `[GOOGLE-ENG]` `[MS-REVIEW]`
 - Missing tests for new/changed code

@@ -23,6 +23,8 @@ Every decision MUST cite its source:
 - `[TDD]` — Test-Driven Development (Red → Green → Refactor)
 - `[CLEAN-CODE]` — Clean Code principles (SRP, small functions, clear names)
 - `[SOLID]` — SOLID principles
+- `[HEXAGONAL]` — Hexagonal Architecture (Ports & Adapters)
+- `[CLEAN-ARCH]` — Clean Architecture (Dependency Rule — inward only)
 - `[GOOGLE-ENG]` — Google Engineering Practices
 - `[DRY]` — Don't Repeat Yourself
 - `[YAGNI]` — You Aren't Gonna Need It
@@ -79,6 +81,14 @@ While implementing, follow these rules:
 - **Single Responsibility** — each function/class does one thing
 - **Dependency Inversion** — depend on abstractions, not concrete implementations
 - **Small functions** — max ~20 lines per function, extract if longer
+
+#### Component Design (Rewritable by Design) `[HEXAGONAL]` `[CLEAN-ARCH]`
+- **Interface first** — define the port (interface/contract) before writing the implementation
+- **Ports & Adapters** — business logic depends on ports (interfaces), adapters implement them for specific technologies
+- **No cross-component imports** — never import from a sibling component's internal modules, only through its public interface
+- **Dependency direction** — dependencies always point inward (adapters → ports → core logic), never outward
+- **Own your data** — each component owns its data model, no shared database tables across component boundaries
+- **Rewritable test** — ask yourself: "Can an AI agent rewrite this component from just its interface and tests?" If not, the boundary is unclear
 
 #### Naming `[CLEAN-CODE]`
 - Variables/functions: describe WHAT, not HOW (`getUserById`, not `queryDB`)

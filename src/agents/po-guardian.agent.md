@@ -100,13 +100,35 @@ As a [specific role/persona],
 I want [specific goal or action],
 so that [measurable value or outcome].
 
-## 2. Audience & Personas
+## 2. Component Design (Rewritable by Design)
+### Component Boundary
+- **Component name:** [Which component owns this feature?]
+- **Boundary:** [What is inside vs outside this component's scope?]
+- **New or existing:** [Is this a new component or a change to an existing one?]
+
+### Interface Contract (define BEFORE implementation)
+- **Ports (interfaces):** [What interfaces does this component expose or consume?]
+- **Input contract:** [What data comes in, from where, in what format?]
+- **Output contract:** [What data goes out, to where, in what format?]
+- **Error contract:** [What errors can occur, how are they surfaced?]
+
+### Dependencies
+- **Depends on:** [Which other components/services does this consume? Via what interface?]
+- **Consumed by:** [Which components/services will consume this? Via what interface?]
+- **Rule:** No direct imports from sibling component internals — only through defined interfaces
+
+### Rewritability Check
+- [ ] Can this component be rewritten without changing any other component?
+- [ ] Are the interfaces stable enough that tests would survive a rewrite?
+- [ ] Is the data model owned by this component (not shared with siblings)?
+
+## 3. Audience & Personas
 - **Primary:** [Who directly uses this feature, their context]
 - **Secondary:** [Who is indirectly affected]
 - **Skill level:** [Technical/non-technical, power user/casual]
 - **Scale:** [Expected number of users, frequency of use]
 
-## 3. Functional Requirements
+## 4. Functional Requirements
 ### Acceptance Criteria (Given/When/Then)
 
 **AC1: [Scenario name]**
@@ -124,14 +146,14 @@ so that [measurable value or outcome].
 - [What happens with maximum/minimum values?]
 - [What happens with concurrent access?]
 
-## 4. Non-Functional Requirements
+## 5. Non-Functional Requirements
 - **Performance:** [Response time targets, e.g., p95 < 200ms]
 - **Scalability:** [Expected load, growth projections]
 - **Reliability:** [Uptime target, failure tolerance]
 - **Accessibility:** [WCAG level, keyboard navigation]
 - **Internationalization:** [Languages, locales, RTL support]
 
-## 5. API Design
+## 6. API Design
 ### Endpoints
 
 | Method | Path | Description | Auth |
@@ -167,7 +189,7 @@ so that [measurable value or outcome].
 - [Filterable fields]
 - [Default and allowed sort orders]
 
-## 6. Security Considerations
+## 7. Security Considerations
 - **Authentication:** [Required auth method]
 - **Authorization:** [Who can access, RBAC/ABAC rules]
 - **Data sensitivity:** [PII, encryption needs]
@@ -175,7 +197,7 @@ so that [measurable value or outcome].
 - **OWASP references:** [Relevant OWASP categories]
 - **Rate limiting:** [Limits per user/IP]
 
-## 7. Observability
+## 8. Observability
 ### Metrics
 - [Key business metrics to track]
 - [Technical metrics: latency, error rate, throughput]
@@ -194,30 +216,30 @@ so that [measurable value or outcome].
 - [Alert conditions: when to page, when to notify]
 - [Escalation path]
 
-## 8. Data Model & Storage
+## 9. Data Model & Storage
 - [New tables/collections needed]
 - [Schema changes to existing models]
 - [Migration strategy]
 - [Storage type: SQL, NoSQL, blob, cache]
 - [Data retention and lifecycle]
 
-## 9. Dependencies & Impacts
+## 10. Dependencies & Impacts
 - **Upstream:** [Services/APIs this feature depends on]
 - **Downstream:** [Services/consumers affected by this change]
 - **Third-party:** [External APIs, SDKs, libraries needed]
 - **Team coordination:** [Other teams that need to be involved]
 
-## 10. Out of Scope
+## 11. Out of Scope
 - [Feature X is explicitly NOT part of this ticket]
 - [Edge case Y will be handled in a follow-up ticket]
 - [Platform Z is not supported in this iteration]
 
-## 11. Open Questions
+## 12. Open Questions
 - [ ] [Unresolved decision needing team input]
 - [ ] [Technical trade-off requiring architect review]
 - [ ] [Business rule needing PO/stakeholder clarification]
 
-## 12. Research Findings
+## 13. Research Findings
 ### Internal (codebase)
 - [Existing patterns found, similar implementations]
 - [Relevant files and modules]
@@ -227,7 +249,7 @@ so that [measurable value or outcome].
 - [Best practices referenced]
 - [Standards consulted]
 
-## 13. Testing Strategy
+## 14. Testing Strategy
 - **Unit tests:** [Key functions to test]
 - **Integration tests:** [API endpoints, service interactions]
 - **E2E tests:** [User flows to verify]

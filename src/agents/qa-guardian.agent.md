@@ -31,9 +31,20 @@ Tag every test with its rationale:
 - `[AC-N]` — Traces to acceptance criterion N from the PO ticket
 - `[EDGE]` — Edge case not in acceptance criteria but important
 - `[REGRESSION]` — Prevents previously fixed bug from recurring
-- `[CONTRACT]` — API contract validation
+- `[CONTRACT]` — API/interface contract validation
+- `[BOUNDARY]` — Component boundary test (verifies interface, not internals)
 - `[PERF]` — Performance/load testing
 - `[COVERAGE]` — Fills a coverage gap
+
+## Rewritable Testing Principle
+
+**Tests must survive a complete rewrite of the component.**
+
+- Test BEHAVIOR (what it does), not IMPLEMENTATION (how it does it)
+- Test through the component's PUBLIC INTERFACE (port), not internal methods
+- If a test breaks because you refactored internals without changing behavior, the test is wrong
+- Contract tests verify the interface stays stable when the adapter behind it is replaced
+- A well-tested component can be handed to an AI agent with just its interface + tests, and the agent can rewrite it
 
 ## Testing Procedure — MANDATORY
 
