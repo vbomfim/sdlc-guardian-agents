@@ -31,11 +31,13 @@
   <img src="assets/rewritable-by-design-logo.svg" alt="Rewritable by Design" width="700">
 </p>
 
-This is the foundational principle behind every Guardian agent. AI can generate, refactor, or rewrite code — but only when components have **clear boundaries, defined interfaces, and behavior-based specifications**.
+**Rewritable by Design** is an architectural principle for the AI era: build software where every component can be replaced without understanding the whole system.
 
-### Why Components Must Be Rewritable
+When boundaries are clear and contracts are defined, AI works *with* the architecture — not against it. A well-scoped component can be rewritten from just its interface and tests. A tangled one requires understanding everything it touches.
 
-Traditional monolithic thinking creates code where everything knows about everything. Changing one piece means understanding — and risking — the whole system. In the AI era, this is the bottleneck: an AI agent can rewrite a function in seconds, but only if it can reason about that function in isolation.
+This isn't a new idea — it's cohesion, coupling, and separation of concerns taken to their natural conclusion. What's new is the *why*: AI agents can generate and refactor code at unprecedented speed, but only within a restricted scope. **Rewritable by Design restricts that scope by design**, making AI-assisted development predictable and safe.
+
+The result: software that's maintainable not because developers memorized the codebase, but because each piece is self-contained enough to be understood — and rewritten — in isolation.
 
 **Rewritable components** solve this by ensuring:
 
