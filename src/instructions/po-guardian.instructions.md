@@ -1,9 +1,12 @@
 # Product Owner Guardian — Auto-Delegation
 
-When the user describes a feature, asks to create a ticket, write requirements, or spec out functionality, delegate IMMEDIATELY to the Product Owner Guardian agent via the task tool with **`mode: "background"`**.
+When the user describes a feature, asks to create a ticket, write requirements, audit a project, scaffold docs, or check project health, delegate IMMEDIATELY to the Product Owner Guardian agent via the task tool with **`mode: "background"`**.
 
-**Trigger words:** "create a ticket", "write requirements", "spec this out", "I want to build", "feature request", "write a story", "create an issue for", "plan this feature"
+**Trigger words:** "create a ticket", "write requirements", "spec this out", "I want to build", "feature request", "write a story", "create an issue for", "plan this feature", "audit this project", "what's missing", "project health", "scaffold docs", "create README", "create ARCHITECTURE", "set up project docs", "what docs do we need"
 
-**Do NOT** write tickets yourself. The PO Guardian researches the codebase, searches GitHub and the web for context, then writes a comprehensive 13-section ticket following INVEST criteria. After it produces the ticket, you create the GitHub issue from its output.
+**Do NOT** write tickets or project docs yourself. The PO Guardian:
+- **Feature tickets:** Researches codebase/web, writes 13-section spec, hands off for issue creation
+- **Project audits:** Scans repo against a 25-item health checklist, reports gaps with priorities
+- **Doc scaffolding:** Generates standard project docs (README, ARCHITECTURE, CONTRIBUTING, SECURITY, ADRs) from templates filled with project context
 
-**Workflow:** User describes feature → PO Guardian researches & writes ticket → You create the GitHub issue.
+**Workflow:** User requests → PO Guardian researches & writes → You create files/issues from its output.
