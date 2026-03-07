@@ -297,55 +297,113 @@ check_tools() {
 
 run_scan() {
   header "Running Security Scan"
+  info "Deterministic pipeline — fixed order, every time"
+  echo ""
 
   local dir="${PROJECT_DIR:-.}"
   local exit_code=0
+  local tools_run=0
+  local tools_missing=0
 
-  # Semgrep
+  # ── 1. Semgrep (SAST) ──
   if command_exists semgrep; then
-    info "Running Semgrep (OWASP rules)..."
+    info "[1/7] Semgrep (SAST — OWASP rules)..."
     semgrep scan --config=auto --severity ERROR --severity WARNING "$dir" 2>/dev/null || exit_code=1
+    tools_run=$((tools_run + 1))
+  else
+    warn "[1/7] Semgrep — NOT INSTALLED (run setup.sh to install)"
+    tools_missing=$((tools_missing + 1))
   fi
 
-  # Gitleaks
+  # ── 2. Gitleaks (Secrets) ──
   if command_exists gitleaks; then
-    info "Running Gitleaks (secret detection)..."
+    info "[2/7] Gitleaks (secret detection)..."
     gitleaks detect --source="$dir" --no-banner 2>/dev/null || exit_code=1
+    tools_run=$((tools_run + 1))
+  else
+    warn "[2/7] Gitleaks — NOT INSTALLED (run setup.sh to install)"
+    tools_missing=$((tools_missing + 1))
   fi
 
-  # Language-specific audits
+  # ── 3. Trivy (Vulnerability scanner) ──
+  if command_exists trivy; then
+    info "[3/7] Trivy (filesystem vulnerability scan)..."
+    trivy fs --severity CRITICAL,HIGH "$dir" 2>/dev/null || exit_code=1
+    tools_run=$((tools_run + 1))
+  else
+    warn "[3/7] Trivy — NOT INSTALLED (run setup.sh to install)"
+    tools_missing=$((tools_missing + 1))
+  fi
+
+  # ── 4-7. Language-specific audits ──
   local langs
   langs=$(detect_languages)
 
-  if [[ " $langs " == *" nodejs "* ]] && [ -f "$dir/package-lock.json" ]; then
-    info "Running npm audit..."
-    (cd "$dir" && npm audit --audit-level=moderate 2>/dev/null) || exit_code=1
+  # 4. Node.js
+  if [[ " $langs " == *" nodejs "* ]]; then
+    if [ -f "$dir/package-lock.json" ]; then
+      info "[4/7] npm audit (Node.js dependencies)..."
+      (cd "$dir" && npm audit --audit-level=moderate 2>/dev/null) || exit_code=1
+      tools_run=$((tools_run + 1))
+    else
+      warn "[4/7] npm audit — no package-lock.json found"
+    fi
   fi
 
-  if [[ " $langs " == *" rust "* ]] && command_exists cargo-audit; then
-    info "Running cargo audit..."
-    (cd "$dir" && cargo audit 2>/dev/null) || exit_code=1
+  # 5. Rust
+  if [[ " $langs " == *" rust "* ]]; then
+    if command_exists cargo-audit; then
+      info "[5/7] cargo audit (Rust dependencies)..."
+      (cd "$dir" && cargo audit 2>/dev/null) || exit_code=1
+      tools_run=$((tools_run + 1))
+    else
+      warn "[5/7] cargo audit — NOT INSTALLED"
+      tools_missing=$((tools_missing + 1))
+    fi
   fi
 
-  if [[ " $langs " == *" python "* ]] && command_exists pip-audit; then
-    info "Running pip-audit..."
-    (cd "$dir" && pip-audit 2>/dev/null) || exit_code=1
+  # 6. Python
+  if [[ " $langs " == *" python "* ]]; then
+    if command_exists pip-audit; then
+      info "[6/7] pip-audit (Python dependencies)..."
+      (cd "$dir" && pip-audit 2>/dev/null) || exit_code=1
+      tools_run=$((tools_run + 1))
+    else
+      warn "[6/7] pip-audit — NOT INSTALLED"
+      tools_missing=$((tools_missing + 1))
+    fi
+    if command_exists bandit; then
+      info "[6/7] bandit (Python SAST)..."
+      (cd "$dir" && bandit -r . -ll --quiet 2>/dev/null) || exit_code=1
+      tools_run=$((tools_run + 1))
+    else
+      warn "[6/7] bandit — NOT INSTALLED"
+      tools_missing=$((tools_missing + 1))
+    fi
   fi
 
-  if [[ " $langs " == *" python "* ]] && command_exists bandit; then
-    info "Running bandit..."
-    (cd "$dir" && bandit -r . -ll --quiet 2>/dev/null) || exit_code=1
+  # 7. .NET
+  if [[ " $langs " == *" dotnet "* ]]; then
+    if command_exists dotnet; then
+      info "[7/7] dotnet list --vulnerable (.NET dependencies)..."
+      (cd "$dir" && dotnet list package --vulnerable 2>/dev/null) || exit_code=1
+      tools_run=$((tools_run + 1))
+    fi
   fi
 
-  if [[ " $langs " == *" dotnet "* ]] && command_exists dotnet; then
-    info "Running dotnet vulnerable package check..."
-    (cd "$dir" && dotnet list package --vulnerable 2>/dev/null) || exit_code=1
+  # ── Summary ──
+  echo ""
+  echo "────────────────────────────────────────"
+  echo "  Tools run: $tools_run | Missing: $tools_missing"
+  echo "────────────────────────────────────────"
+
+  if [ $tools_missing -gt 0 ]; then
+    warn "Run './tools/setup.sh' or 'bash ~/.copilot/skills/security-guardian/setup.sh' to install missing tools"
   fi
 
   if [ $exit_code -eq 0 ]; then
     echo ""
     success "All security scans passed!"
-    # Record timestamp for pre-push hook
     date +%s > "${dir}/.security-scan-timestamp"
     success "Scan timestamp recorded (.security-scan-timestamp)"
   else

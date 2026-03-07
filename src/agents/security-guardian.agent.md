@@ -42,67 +42,35 @@ When invoked directly, ask which mode the user needs:
 
 When invoked as a subagent, infer the mode from context and produce a structured report.
 
-## Scanning Procedure — Run These Commands
+## Scanning Procedure — Deterministic Pipeline
 
-**IMPORTANT: Always run the automated scanning tools FIRST before doing manual code review.**
+**IMPORTANT: Always run the full scan pipeline. No skipping, no reordering.**
 
-### Step 1: Check which tools are available
-```bash
-bash ~/.copilot/skills/security-guardian/setup.sh --check
-```
-
-### Step 2: Run all available scans
-Run each tool that is installed. Skip tools that aren't available.
-
-**SAST (Static Analysis):**
-```bash
-semgrep scan --config=auto --severity ERROR --severity WARNING .
-```
-
-**Secret Detection:**
-```bash
-gitleaks detect --source=. --no-banner
-```
-
-**Vulnerability Scanning:**
-```bash
-trivy fs --severity CRITICAL,HIGH .
-```
-
-**Dependency Audits (run whichever applies to the project):**
-```bash
-# Node.js
-npm audit --audit-level=moderate
-
-# Python
-pip-audit
-bandit -r . -ll --quiet
-
-# Rust
-cargo audit
-cargo deny check
-
-# .NET
-dotnet list package --vulnerable
-
-# Java
-mvn org.owasp:dependency-check-maven:check
-```
-
-**Or run everything at once via the skill:**
+### Step 1: Run the full scan (MANDATORY — always run this first)
 ```bash
 bash ~/.copilot/skills/security-guardian/setup.sh --scan
 ```
 
-### Step 3: Manual code review
-After automated scans, review the code manually for issues the tools might miss:
-- Business logic flaws
-- Authorization bypasses
+This runs the following tools in fixed order, every time:
+1. Semgrep (SAST — injection, auth, misconfig)
+2. Gitleaks (hardcoded secrets)
+3. npm audit (Node.js dependencies, if project applies)
+4. cargo audit (Rust dependencies, if project applies)
+5. pip-audit (Python dependencies, if project applies)
+6. bandit (Python SAST, if project applies)
+7. dotnet list --vulnerable (.NET dependencies, if project applies)
+
+If a tool is not installed, the script reports it. Do NOT skip the scan — always run it.
+
+### Step 2: Manual code review (MANDATORY — always do this after the scan)
+After the automated scan, review the code for issues tools cannot detect:
+- Business logic flaws and authorization bypasses
 - Insecure design patterns
 - Missing security controls
+- Data flow and trust boundary violations
 
-### Step 4: Combine results into the Handoff Report
-Merge automated scan findings + manual review findings into one structured report.
+### Step 3: Produce the Handoff Report
+Combine ALL automated findings + manual findings into one structured report. Do not omit scan results.
 
 ## Tagging Standards
 
