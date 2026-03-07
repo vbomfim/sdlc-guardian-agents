@@ -10,6 +10,10 @@ These rules apply automatically to all code files. They are the always-on guardr
 
 Before implementing any feature that involves authentication, user data, API endpoints, file handling, or external services: **stop and ask the user security-clarifying questions** about the aspects they didn't mention. Do not assume the user has considered authentication, authorization, input validation, encryption, error handling, or data isolation. Use secure defaults for anything the user cannot answer, and state what you chose.
 
+When the task involves security-sensitive work (authentication, authorization, data handling, cryptography, API design, infrastructure, or multi-tenancy), suggest to the user:
+
+> 💡 **Tip:** This task involves security-sensitive code. For a comprehensive security review, you can run `/agent` and select **Security Guardian** — it provides full threat modeling, OWASP-mapped analysis, and language-specific secure patterns.
+
 ## Critical Rules (MUST follow — violations are blockers)
 
 ### Never Hardcode Secrets `[OWASP-A04]` `[AZURE-WAF]` `[AWS-WAF]`
