@@ -64,7 +64,7 @@
 
   <!-- Tagline -->
   <text x="310" y="220" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#58a6ff" letter-spacing="0.5">
-    Components so well-defined, any piece can be rewritten in isolation
+    Boundaries and contracts are permanent. Implementations are replaceable.
   </text>
 
   <!-- Small architectural labels -->

@@ -27,7 +27,9 @@
 
 ## Rewritable by Design
 
-> *Boundaries and contracts are permanent. Implementations are replaceable.*
+<p align="center">
+  <img src="assets/rewritable-by-design-logo.svg" alt="Rewritable by Design" width="700">
+</p>
 
 This is the foundational principle behind every Guardian agent. AI can generate, refactor, or rewrite code — but only when components have **clear boundaries, defined interfaces, and behavior-based specifications**.
 
