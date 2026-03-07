@@ -83,6 +83,8 @@ Traditional monolithic thinking creates code where everything knows about everyt
 
 ---
 
+# SDLC Guardian Agents
+
 ## Why This Exists
 
 AI coding assistants know how to write code. But **writing code is not the problem** — writing code that's consistent, secure, tested, observable, and maintainable across teams and projects is.
