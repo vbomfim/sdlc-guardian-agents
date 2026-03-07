@@ -24,8 +24,7 @@ package() {
   mkdir -p "$DIST_DIR"
 
   cd "$SRC_DIR"
-  # Exclude copilot-instructions.md from zip — install script merges it safely
-  zip -r "$DIST_DIR/security-guardian.zip" . -x ".*" -x "copilot-instructions.md"
+  zip -r "$DIST_DIR/security-guardian.zip" . -x ".*"
   cd "$SCRIPT_DIR"
 
   local size
@@ -42,14 +41,18 @@ install() {
   echo -e "${BOLD}${CYAN}🛡️  Installing Security Guardian to ~/.copilot/...${NC}"
   echo ""
 
-  # Ensure target exists
+  # Ensure target dirs exist
   mkdir -p "$TARGET_DIR/skills/security-guardian"
   mkdir -p "$TARGET_DIR/agents"
+  mkdir -p "$TARGET_DIR/instructions"
 
   # ── Install agent ──
   cp "$SRC_DIR/agents/security-guardian.agent.md" "$TARGET_DIR/agents/"
 
-  # ── Install skill (safe — own directory, no conflicts) ──
+  # ── Install instructions (own file — no merge needed) ──
+  cp "$SRC_DIR/instructions/security-guardian.instructions.md" "$TARGET_DIR/instructions/"
+
+  # ── Install skill ──
   cp -r "$SRC_DIR/skills/security-guardian/"* "$TARGET_DIR/skills/security-guardian/"
 
   # Ensure scripts are executable
@@ -57,42 +60,7 @@ install() {
   chmod +x "$TARGET_DIR/skills/security-guardian/install-hooks.sh"
   chmod +x "$TARGET_DIR/skills/security-guardian/hooks/pre-push"
 
-  # ── Merge global baseline (NEVER overwrite existing instructions) ──
-  local MARKER="# ── Security Guardian Baseline ──"
-  local INSTRUCTIONS="$TARGET_DIR/copilot-instructions.md"
-  local BASELINE="$SRC_DIR/copilot-instructions.md"
-
-  if [ -f "$INSTRUCTIONS" ]; then
-    if grep -q "$MARKER" "$INSTRUCTIONS" 2>/dev/null; then
-      # Already installed — replace the security section
-      # Remove old section (from marker to end-marker)
-      sed -i.bak "/$MARKER/,/# ── End Security Guardian ──/d" "$INSTRUCTIONS"
-      rm -f "${INSTRUCTIONS}.bak"
-      # Append fresh
-      echo "" >> "$INSTRUCTIONS"
-      echo "$MARKER" >> "$INSTRUCTIONS"
-      cat "$BASELINE" >> "$INSTRUCTIONS"
-      echo "" >> "$INSTRUCTIONS"
-      echo "# ── End Security Guardian ──" >> "$INSTRUCTIONS"
-      echo -e "${GREEN}✔${NC}  Global baseline updated:    ~/.copilot/copilot-instructions.md (merged, existing content preserved)"
-    else
-      # File exists but no security baseline — append
-      echo "" >> "$INSTRUCTIONS"
-      echo "$MARKER" >> "$INSTRUCTIONS"
-      cat "$BASELINE" >> "$INSTRUCTIONS"
-      echo "" >> "$INSTRUCTIONS"
-      echo "# ── End Security Guardian ──" >> "$INSTRUCTIONS"
-      echo -e "${GREEN}✔${NC}  Global baseline appended:   ~/.copilot/copilot-instructions.md (your existing instructions preserved)"
-    fi
-  else
-    # No file — create with markers
-    echo "$MARKER" > "$INSTRUCTIONS"
-    cat "$BASELINE" >> "$INSTRUCTIONS"
-    echo "" >> "$INSTRUCTIONS"
-    echo "# ── End Security Guardian ──" >> "$INSTRUCTIONS"
-    echo -e "${GREEN}✔${NC}  Global baseline created:    ~/.copilot/copilot-instructions.md"
-  fi
-
+  echo -e "${GREEN}✔${NC}  Instructions installed:     ~/.copilot/instructions/security-guardian.instructions.md"
   echo -e "${GREEN}✔${NC}  Agent installed:            ~/.copilot/agents/security-guardian.agent.md"
   echo -e "${GREEN}✔${NC}  Skill installed:            ~/.copilot/skills/security-guardian/"
   echo -e "${GREEN}✔${NC}  Repo template available:    ~/.copilot/skills/security-guardian/template/"
@@ -108,15 +76,9 @@ uninstall() {
   echo -e "${BOLD}${YELLOW}🗑️  Uninstalling Security Guardian...${NC}"
   echo ""
 
-  if [ -d "$TARGET_DIR/skills/security-guardian" ]; then
-    rm -rf "$TARGET_DIR/skills/security-guardian"
-    echo -e "${GREEN}✔${NC}  Removed ~/.copilot/skills/security-guardian/"
-  fi
-
-  if [ -f "$TARGET_DIR/copilot-instructions.md" ]; then
-    echo -e "${YELLOW}⚠${NC}  Kept ~/.copilot/copilot-instructions.md (may contain your customizations)"
-    echo "   Delete manually if you want a clean removal."
-  fi
+  [ -d "$TARGET_DIR/skills/security-guardian" ] && rm -rf "$TARGET_DIR/skills/security-guardian" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/skills/security-guardian/"
+  [ -f "$TARGET_DIR/agents/security-guardian.agent.md" ] && rm "$TARGET_DIR/agents/security-guardian.agent.md" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/agents/security-guardian.agent.md"
+  [ -f "$TARGET_DIR/instructions/security-guardian.instructions.md" ] && rm "$TARGET_DIR/instructions/security-guardian.instructions.md" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/instructions/security-guardian.instructions.md"
 
   echo ""
   echo -e "${GREEN}Done.${NC} Repo-level files (.github/agents/, etc.) are untouched — remove per-repo if needed."
