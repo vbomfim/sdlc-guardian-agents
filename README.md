@@ -50,31 +50,6 @@ The implementation within each unit is disposable. It can be written today, rewr
 | **Bounded scope** | Each component owns its data model and has explicit inputs and outputs. No shared database tables or global state across boundaries. | Domain-Driven Design — Bounded Contexts (Evans) |
 | **Independently replaceable** | A component can be replaced without modifying or redeploying any other component in the system. | Composable Architecture, Microservices Principles |
 
-### Architectural Foundations
-
-Rewritable by Design draws from and synthesizes three established architectural patterns:
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                    Hexagonal Architecture                        │
-│                                                                  │
-│   ┌─────────────┐     ┌──────────────────┐     ┌─────────────┐  │
-│   │  REST API    │     │                  │     │  Database    │  │
-│   │  Adapter     │────▶│   CORE LOGIC     │◀────│  Adapter     │  │
-│   └─────────────┘     │   (Business      │     └─────────────┘  │
-│   ┌─────────────┐     │    Rules)         │     ┌─────────────┐  │
-│   │  CLI         │     │                  │     │  Queue       │  │
-│   │  Adapter     │────▶│   Depends on     │◀────│  Adapter     │  │
-│   └─────────────┘     │   PORTS only     │     └─────────────┘  │
-│                        └──────────────────┘                      │
-│                         ▲              ▲                         │
-│                    [Port: In]     [Port: Out]                    │
-│                    (Interface)    (Interface)                    │
-│                                                                  │
-│   Adapters are REWRITABLE — core logic never changes             │
-└──────────────────────────────────────────────────────────────────┘
-```
-
 ### Enforcement Through SDLC Guardian Agents
 
 The SDLC Guardian Agents operationalize these principles across the development lifecycle:
