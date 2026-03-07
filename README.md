@@ -13,21 +13,24 @@ Every rule is tagged with its source (`[OWASP-A0X]`, `[AZURE-WAF]`, `[AWS-WAF]`,
 
 ## Quick Start
 
-### 1. Copy into your repository
+### Option A: Install from zip (for end users)
 
 ```bash
-# From the security-guardian-template directory
-cp -r .github/agents/ /path/to/your-repo/.github/agents/
-cp -r .github/instructions/ /path/to/your-repo/.github/instructions/
+unzip security-guardian.zip -d ~/.copilot/
 ```
 
-Or copy individual files:
+That's it. Global security baseline is active, and the skill is ready.
+
+### Option B: Install from source (for contributors)
+
 ```bash
-cp .github/agents/security-guardian.agent.md /path/to/your-repo/.github/agents/
-cp .github/instructions/security-standard.instructions.md /path/to/your-repo/.github/instructions/
+cd ~/dev/security-guardian-template
+./package.sh --install
 ```
 
-### 2. The global baseline is already installed
+### 2. Adopt into a repository
+
+Open Copilot CLI in your project and say **"adopt security guardian"**, or manually:
 
 The file `~/.copilot/copilot-instructions.md` applies to ALL projects on your machine automatically. It provides minimal security rules as a safety net.
 
@@ -124,27 +127,50 @@ If a project needs to relax an OWASP rule, document the justification:
 - Mitigations: Network-level access control, separate deployment
 ```
 
-## File Structure Summary
+## File Structure
+
+### Source (this repo)
+
+```
+security-guardian-template/
+├── src/                                          ← Mirrors ~/.copilot/ layout
+│   ├── copilot-instructions.md                   ← Global security baseline
+│   └── skills/security-guardian/
+│       ├── SKILL.md                              ← Copilot CLI skill definition
+│       ├── setup.sh                              ← Install tools + scan
+│       ├── install-hooks.sh                      ← Git hook installer
+│       ├── hooks/pre-push                        ← Pre-push enforcement hook
+│       └── template/                             ← Files copied into repos
+│           ├── README.md
+│           └── .github/
+│               ├── agents/security-guardian.agent.md
+│               ├── instructions/security-standard.instructions.md
+│               └── workflows/security-scan.yml
+├── package.sh                                    ← Build zip / install / uninstall
+└── README.md                                     ← This file
+```
+
+### After install (`~/.copilot/`)
 
 ```
 ~/.copilot/
-└── copilot-instructions.md          ← Global baseline (all projects)
+├── copilot-instructions.md                       ← Active globally
+└── skills/security-guardian/                     ← Skill + tools + templates
+```
 
+### After adopting into a repo
+
+```
 your-repo/
 ├── .github/
-│   ├── agents/
-│   │   └── security-guardian.agent.md    ← The agent (invoke via /agent)
-│   ├── instructions/
-│   │   ├── security-standard.instructions.md  ← Auto-applied rules
-│   │   └── project-security.instructions.md   ← [CUSTOM] rules (optional)
-│   └── workflows/
-│       └── security-scan.yml             ← CI/CD automated enforcement
+│   ├── agents/security-guardian.agent.md          ← /agent → Security Guardian
+│   ├── instructions/security-standard.instructions.md  ← Auto-applied rules
+│   └── workflows/security-scan.yml               ← CI/CD enforcement
 ├── tools/
-│   ├── setup.sh                          ← Tool installer + scanner
-│   ├── install-hooks.sh                  ← Git hook installer
-│   └── hooks/
-│       └── pre-push                      ← Warns/blocks if scan is stale
-└── AGENTS.md                        ← Project-specific overrides (optional)
+│   ├── setup.sh                                  ← Tool installer + scanner
+│   ├── install-hooks.sh                          ← Git hook installer
+│   └── hooks/pre-push                            ← Warns/blocks on stale scans
+└── AGENTS.md                                     ← [CUSTOM] rules (optional)
 ```
 
 ## Automated Security Tools
