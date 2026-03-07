@@ -346,8 +346,10 @@ run_scan() {
       (cd "$dir" && npm audit --audit-level=moderate 2>/dev/null) || exit_code=1
       tools_run=$((tools_run + 1))
     else
-      warn "[4/7] npm audit — no package-lock.json found"
+      info "[4/7] npm audit — skipped (no package-lock.json)"
     fi
+  else
+    info "[4/7] npm audit — skipped (not a Node.js project)"
   fi
 
   # 5. Rust
@@ -357,9 +359,11 @@ run_scan() {
       (cd "$dir" && cargo audit 2>/dev/null) || exit_code=1
       tools_run=$((tools_run + 1))
     else
-      warn "[5/7] cargo audit — NOT INSTALLED"
+      warn "[5/7] cargo audit — NOT INSTALLED (Rust project detected but cargo-audit missing)"
       tools_missing=$((tools_missing + 1))
     fi
+  else
+    info "[5/7] cargo audit — skipped (not a Rust project)"
   fi
 
   # 6. Python
@@ -369,7 +373,7 @@ run_scan() {
       (cd "$dir" && pip-audit 2>/dev/null) || exit_code=1
       tools_run=$((tools_run + 1))
     else
-      warn "[6/7] pip-audit — NOT INSTALLED"
+      warn "[6/7] pip-audit — NOT INSTALLED (Python project detected but pip-audit missing)"
       tools_missing=$((tools_missing + 1))
     fi
     if command_exists bandit; then
@@ -377,9 +381,11 @@ run_scan() {
       (cd "$dir" && bandit -r . -ll --quiet 2>/dev/null) || exit_code=1
       tools_run=$((tools_run + 1))
     else
-      warn "[6/7] bandit — NOT INSTALLED"
+      warn "[6/7] bandit — NOT INSTALLED (Python project detected but bandit missing)"
       tools_missing=$((tools_missing + 1))
     fi
+  else
+    info "[6/7] pip-audit + bandit — skipped (not a Python project)"
   fi
 
   # 7. .NET
@@ -388,7 +394,12 @@ run_scan() {
       info "[7/7] dotnet list --vulnerable (.NET dependencies)..."
       (cd "$dir" && dotnet list package --vulnerable 2>/dev/null) || exit_code=1
       tools_run=$((tools_run + 1))
+    else
+      warn "[7/7] dotnet — NOT INSTALLED (.NET project detected but dotnet CLI missing)"
+      tools_missing=$((tools_missing + 1))
     fi
+  else
+    info "[7/7] dotnet audit — skipped (not a .NET project)"
   fi
 
   # ── Summary ──
