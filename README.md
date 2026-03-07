@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-<h1 align="center">SDLC Guardian Agents</h1>
+<h1 align="center">SDLC Guardian Agents for GitHub Copilot</h1>
 
 <p align="center">
   <b>Opinionated AI agents that enforce software engineering standards across your entire development lifecycle.</b>
