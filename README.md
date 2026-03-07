@@ -19,13 +19,13 @@
 
 **Rewritable by Design** is an architectural principle for the AI era: build software where every component can be replaced without understanding the whole system.
 
-When you prompt AI to write code, the granularity of your prompt naturally maps to a component. You might ask for an entire service, a single module, or just a function — and in each case, the AI produces a self-contained piece. **This is how software wants to be built now.** The prompt *is* the component boundary.
+You start with an **idea** — what you want to build. The idea is the intent, the feature, the goal. **Components** are how the software organizes itself to fulfill that idea. When you prompt AI with an idea, a well-designed architecture lets it naturally unfold into components — each with a clear boundary, a defined contract, and a single responsibility.
 
-If your architecture already reflects this — clear interfaces, single responsibilities, behavior-specified contracts — then AI-assisted development becomes a natural unfolding: you prompt the component, the AI implements it within the boundary, the tests verify the contract. If it doesn't work, you rewrite it. The rest of the system never knows.
+This is what makes AI-assisted development work. The idea flows in, and the architecture channels it into bounded, replaceable pieces. If one piece doesn't work, you rewrite it. The rest of the system never knows. If a better approach emerges tomorrow, you swap the component — the contract stays, the implementation changes.
 
-If your architecture *doesn't* reflect this — if components leak into each other, share state, or require understanding the whole system to change one piece — then AI becomes dangerous. It can't reason about scope it can't see, and changes ripple unpredictably.
+Without this structure, ideas become tangled code. With it, ideas become components that are self-contained enough to be understood, tested, and rewritten in isolation.
 
-**The principle is simple:** design components so that prompting their implementation is all it takes. Boundaries and contracts are permanent. Implementations are replaceable.
+**The principle is simple:** boundaries and contracts are permanent. Implementations are replaceable.
 
 | Principle | What It Means | Standard |
 |-----------|--------------|----------|
