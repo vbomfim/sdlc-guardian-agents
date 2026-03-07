@@ -1,14 +1,17 @@
 ---
 name: security-guardian
 description: >
-  Security Guardian skill for setting up, running, and validating security tools
-  across projects. Use this skill when the user asks to set up security tools,
-  run a security scan, check security tool status, install git hooks for security
-  enforcement, or adopt the Security Guardian agent in a repository. Automates
-  the full security tooling lifecycle.
+  Security Guardian skill for setting up and installing security tools.
+  Use this skill ONLY when the user asks to install security tools, check
+  tool status, install git hooks, or adopt Security Guardian into a repo.
+  Do NOT use this skill for running scans or security reviews — those MUST
+  go through the Security Guardian agent via the task tool, which runs the
+  tools and analyzes the results with OWASP expertise.
 ---
 
 # Security Guardian Skill
+
+Handles security tool **installation and setup** only. For scanning and reviews, the Security Guardian agent is used instead — it runs the tools and classifies findings with OWASP/WAF severity.
 
 Automates security tool setup, scanning, and enforcement for any project.
 This is the operational companion to the Security Guardian agent — the agent

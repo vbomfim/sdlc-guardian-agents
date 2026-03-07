@@ -12,27 +12,25 @@ Before implementing any feature that involves authentication, user data, API end
 
 ## Security Guardian Delegation — MANDATORY
 
-**IMPORTANT: You MUST delegate security tasks to the Security Guardian agent using the task tool.**
+**IMPORTANT: ALL security tasks MUST go through the Security Guardian agent. Never run security tools directly or via the skill yourself.**
 
-When the user asks for ANY of these, delegate to the `security-guardian` agent via the task tool instead of doing it yourself:
+When the user asks for ANY of these, delegate to the `security-guardian` agent via the task tool:
+- Security scan, security check, scan for vulnerabilities
 - Security review, code audit, vulnerability analysis
 - Threat modeling, security assessment
-- Run security scans (Semgrep, Gitleaks, Trivy, dependency audits)
 - OWASP compliance check
+- Run Semgrep, Gitleaks, Trivy, or any security tool
 
-**How to delegate:** Use the task tool with `agent_type` to invoke the Security Guardian agent as a subagent. Pass the user's request and relevant file paths in the prompt. Security Guardian will return a structured report with findings.
+**Do NOT invoke the security-guardian skill directly.** The Security Guardian agent runs the tools internally and then analyzes the results against OWASP Top 10 and cloud provider WAF standards. A tool might flag something as a warning, but the agent may classify it as 🔴 CRITICAL based on context. Only the agent has the security knowledge to assess severity correctly.
 
-**After receiving the report:**
+**How to delegate:** Use the task tool to invoke the Security Guardian agent as a subagent. Pass the user's request and the current working directory in the prompt.
+
+**After receiving the agent's report:**
 1. Present the findings to the user
 2. Offer to act: create GitHub issues, fix the code, install missing tools
-3. For tool installation, use the Security Guardian skill: `bash ~/.copilot/skills/security-guardian/setup.sh`
+3. For tool installation only (not scanning), use: `bash ~/.copilot/skills/security-guardian/setup.sh`
 
-**Why delegate instead of doing it yourself?**
-- Security Guardian has specialized OWASP Top 10 rules and cloud provider WAF knowledge
-- Its structured report format ensures nothing is missed
-- Separation of review (read-only) and execution (you) prevents accidental changes during analysis
-
-**Key principle:** Security Guardian reviews → You execute.
+**Key principle:** Tool flags → Agent classifies → You execute.
 
 ## Critical Rules (MUST follow — violations are blockers)
 

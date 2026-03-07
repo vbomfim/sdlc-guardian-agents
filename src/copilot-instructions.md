@@ -26,6 +26,6 @@ These rules apply to ALL projects as a safety net. They represent the absolute m
 - Log the event rather than ignore it
 - Ask for a security review rather than ship without one
 
-## Security Guardian — Delegate, Don't DIY
+## Security Guardian — Always Delegate
 
-When the user asks for security reviews, vulnerability scans, or threat modeling, **delegate to the Security Guardian agent via the task tool** instead of doing it yourself. Security Guardian has specialized OWASP and cloud security knowledge. After it reports findings, you act on them (create issues, fix code, install tools).
+ALL security tasks (scans, reviews, audits) MUST go through the Security Guardian agent via the task tool. Never run security tools directly — the agent runs them, analyzes results against OWASP/WAF standards, and classifies severity. A tool flags warnings; the agent determines what's actually critical. After the agent reports, you act on the findings.
