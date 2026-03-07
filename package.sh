@@ -24,17 +24,17 @@ package() {
   mkdir -p "$DIST_DIR"
 
   cd "$SRC_DIR"
-  zip -r "$DIST_DIR/security-guardian.zip" . -x ".*"
+  zip -r "$DIST_DIR/sdlc-guardian-agents.zip" . -x ".*"
   cd "$SCRIPT_DIR"
 
   local size
-  size=$(ls -lh "$DIST_DIR/security-guardian.zip" | awk '{print $5}')
+  size=$(ls -lh "$DIST_DIR/sdlc-guardian-agents.zip" | awk '{print $5}')
   echo ""
-  echo -e "${GREEN}✔${NC}  Package created: ${BOLD}dist/security-guardian.zip${NC} ($size)"
+  echo -e "${GREEN}✔${NC}  Package created: ${BOLD}dist/sdlc-guardian-agents.zip${NC} ($size)"
   echo ""
   echo -e "  To install:"
-  echo -e "    ${CYAN}unzip dist/security-guardian.zip -d ~/.copilot/${NC}   (safe — won't touch copilot-instructions.md)"
-  echo -e "    ${CYAN}./package.sh --install${NC}                           (recommended — merges global baseline)"
+  echo -e "    ${CYAN}unzip dist/sdlc-guardian-agents.zip -d ~/.copilot/${NC}"
+  echo -e "    ${CYAN}./package.sh --install${NC}                           (recommended)"
 }
 
 install() {
