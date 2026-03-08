@@ -61,6 +61,52 @@ The SDLC Guardian Agents operationalize these principles across the development 
 | Testing | **QA Guardian** | Tests must be behavior-based (survive rewrites) and include contract tests that validate interface stability |
 | Security | **Security Guardian** | Validates that interface boundaries are not bypassed and that dependency direction does not expose core logic to untrusted adapters |
 | Quality | **Code Review Guardian** | Checks coupling/cohesion metrics, boundary violations, leaked dependencies, and component rewritability |
+| Infrastructure | **Platform Guardian** | Validates cluster security, network policies, resource configuration, and CIS Benchmark compliance |
+| Operations | **Delivery Guardian** | Reviews deployment strategy, observability, SLI/SLO definitions, BCDR plans, and incident response readiness |
+
+### Automatic Workflow Orchestration
+
+The Guardians are not invoked manually — the default Copilot agent enforces the pipeline automatically through quality gates:
+
+```
+💡 Idea
+  │
+  ├─ No ticket? → 🎯 PO Guardian creates specification (auto)
+  │
+  ▼
+🎯 Specification exists
+  │
+  ▼
+👨‍💻 Developer Guardian implements (TDD + unit tests)
+  │
+  │ ── Post-Implementation Gate (auto-triggered, parallel) ──
+  │
+  ├─── 🧪 QA Guardian ──────────────┐
+  ├─── 🛡️ Security Guardian ────────┤  background, simultaneous
+  ├─── 📋 Code Review Guardian ─────┘
+  │
+  ▼
+  Combined results → fix critical/high findings
+  │
+  │ ── Pre-Deployment Gate (auto-triggered) ──
+  │
+  ├─── ⚙️ Platform Guardian ────────┐  if K8s manifests changed
+  ├─── 🚀 Delivery Guardian ────────┘  if deployment config changed
+  │
+  ▼
+✅ PR → Merge → Deploy
+```
+
+**Four quality gates, enforced automatically:**
+
+| Gate | When | What happens |
+|------|------|-------------|
+| **Pre-Implementation** | User asks to implement without a ticket | PO Guardian invoked to create specification first |
+| **Post-Implementation** | Developer Guardian completes | QA + Security + Code Review invoked in parallel automatically |
+| **Pre-Merge** | User asks to create PR or merge | Verify all reviews passed; invoke missing Guardians if needed |
+| **Pre-Deployment** | User asks to deploy | Platform + Delivery Guardians verify infrastructure and operations readiness |
+
+The user never needs to remember which Guardian to invoke. The workflow enforces it.
 
 ---
 
