@@ -44,6 +44,7 @@ install() {
   # Ensure target dirs exist
   mkdir -p "$TARGET_DIR/skills/security-guardian"
   mkdir -p "$TARGET_DIR/skills/code-review-guardian"
+  mkdir -p "$TARGET_DIR/skills/platform-guardian"
   mkdir -p "$TARGET_DIR/agents"
   mkdir -p "$TARGET_DIR/instructions"
 
@@ -53,6 +54,8 @@ install() {
   cp "$SRC_DIR/agents/po-guardian.agent.md" "$TARGET_DIR/agents/"
   cp "$SRC_DIR/agents/dev-guardian.agent.md" "$TARGET_DIR/agents/"
   cp "$SRC_DIR/agents/qa-guardian.agent.md" "$TARGET_DIR/agents/"
+  cp "$SRC_DIR/agents/platform-guardian.agent.md" "$TARGET_DIR/agents/"
+  cp "$SRC_DIR/agents/delivery-guardian.agent.md" "$TARGET_DIR/agents/"
 
   # ── Install instructions ──
   cp "$SRC_DIR/instructions/security-guardian.instructions.md" "$TARGET_DIR/instructions/"
@@ -60,16 +63,20 @@ install() {
   cp "$SRC_DIR/instructions/po-guardian.instructions.md" "$TARGET_DIR/instructions/"
   cp "$SRC_DIR/instructions/dev-guardian.instructions.md" "$TARGET_DIR/instructions/"
   cp "$SRC_DIR/instructions/qa-guardian.instructions.md" "$TARGET_DIR/instructions/"
+  cp "$SRC_DIR/instructions/platform-guardian.instructions.md" "$TARGET_DIR/instructions/"
+  cp "$SRC_DIR/instructions/delivery-guardian.instructions.md" "$TARGET_DIR/instructions/"
 
   # ── Install skills ──
   cp -r "$SRC_DIR/skills/security-guardian/"* "$TARGET_DIR/skills/security-guardian/"
   cp -r "$SRC_DIR/skills/code-review-guardian/"* "$TARGET_DIR/skills/code-review-guardian/"
+  cp -r "$SRC_DIR/skills/platform-guardian/"* "$TARGET_DIR/skills/platform-guardian/"
 
   # Ensure scripts are executable
   chmod +x "$TARGET_DIR/skills/security-guardian/setup.sh"
   chmod +x "$TARGET_DIR/skills/security-guardian/install-hooks.sh"
   chmod +x "$TARGET_DIR/skills/security-guardian/hooks/pre-push"
   chmod +x "$TARGET_DIR/skills/code-review-guardian/setup.sh"
+  chmod +x "$TARGET_DIR/skills/platform-guardian/setup.sh"
 
   echo -e "${BOLD}Security Guardian:${NC}"
   echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/security-guardian.agent.md"
@@ -93,6 +100,15 @@ install() {
   echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/qa-guardian.agent.md"
   echo -e "${GREEN}✔${NC}  Instructions: ~/.copilot/instructions/qa-guardian.instructions.md"
   echo ""
+  echo -e "${BOLD}Platform Guardian:${NC}"
+  echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/platform-guardian.agent.md"
+  echo -e "${GREEN}✔${NC}  Instructions: ~/.copilot/instructions/platform-guardian.instructions.md"
+  echo -e "${GREEN}✔${NC}  Skill:        ~/.copilot/skills/platform-guardian/"
+  echo ""
+  echo -e "${BOLD}Delivery Guardian:${NC}"
+  echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/delivery-guardian.agent.md"
+  echo -e "${GREEN}✔${NC}  Instructions: ~/.copilot/instructions/delivery-guardian.instructions.md"
+  echo ""
   echo -e "${BOLD}You're set!${NC} Open Copilot CLI and:"
   echo -e "  • Global security rules are ${GREEN}already active${NC}"
   echo -e "  • Say ${CYAN}\"set up security\"${NC} to install tools"
@@ -104,7 +120,7 @@ uninstall() {
   echo -e "${BOLD}${YELLOW}🗑️  Uninstalling Guardians...${NC}"
   echo ""
 
-  for guardian in security-guardian code-review-guardian po-guardian dev-guardian qa-guardian; do
+  for guardian in security-guardian code-review-guardian po-guardian dev-guardian qa-guardian platform-guardian delivery-guardian; do
     [ -d "$TARGET_DIR/skills/$guardian" ] && rm -rf "$TARGET_DIR/skills/$guardian" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/skills/$guardian/"
     [ -f "$TARGET_DIR/agents/$guardian.agent.md" ] && rm "$TARGET_DIR/agents/$guardian.agent.md" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/agents/$guardian.agent.md"
     [ -f "$TARGET_DIR/instructions/$guardian.instructions.md" ] && rm "$TARGET_DIR/instructions/$guardian.instructions.md" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/instructions/$guardian.instructions.md"

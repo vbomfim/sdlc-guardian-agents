@@ -87,24 +87,23 @@ AI coding assistants generate code effectively. What they do not inherently enfo
 Five agents, each encoding the standards of recognized industry authorities, each operating at a specific phase of the lifecycle:
 
 ```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                                                                          │
-│   💡 Idea                                                                │
-│     │                                                                    │
-│     ▼                                                                    │
-│   ┌─────────┐        ┌──────────┐   ┌────────┐   ┌──────────┐ ┌───────┐ │
-│   │   PO    │        │Developer │   │   QA   │   │ Security │ │ Code  │ │
-│   │Guardian │───────▶│ Guardian │──▶│Guardian│──▶│ Guardian │▶│Review │ │
-│   │         │        │          │   │        │   │          │ │Guard. │ │
-│   └─────────┘        └──────────┘   └────────┘   └──────────┘ └───────┘ │
-│   Specification      Implementation  Verification  Security    Quality   │
-│                                                                          │
-└──────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                    │
+│   💡 Idea                                                                          │
+│     │                                                                              │
+│     ▼                                                                              │
+│   ┌─────────┐  ┌──────────┐  ┌────────┐  ┌──────────┐  ┌───────┐  ┌────────────┐  │
+│   │   PO    │  │Developer │  │   QA   │  │ Security │  │ Code  │  │ Platform & │  │
+│   │Guardian │─▶│ Guardian │─▶│Guardian│─▶│ Guardian │─▶│Review │─▶│ Delivery   │  │
+│   └─────────┘  └──────────┘  └────────┘  └──────────┘  └───────┘  └────────────┘  │
+│   Specify       Implement    Verify       Secure        Quality    Deploy & Run    │
+│                                                                                    │
+└────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## The Five Guardians
+## The Seven Guardians
 
 <img src="assets/banner-po.svg" alt="Product Owner Guardian" width="500">
 
@@ -171,6 +170,33 @@ The quality auditor. Runs language-specific linters in parallel, then reviews fo
 
 **Trigger:** *"review my code"*, *"check code quality"*, *"lint"*
 
+<img src="assets/banner-platform.svg" alt="Platform Guardian" width="500">
+
+Kubernetes platform security and infrastructure auditor. Scans cluster configuration with kube-bench, kube-score, polaris, kubeaudit, and trivy. Audits RBAC, pod security standards, network policies, resource management, and CIS Benchmark compliance.
+
+| Capability | Standards |
+|---|---|
+| Automated scanning: kube-bench, kube-score, polaris, kubeaudit, trivy | CIS Kubernetes Benchmark |
+| RBAC, pod security, managed identity, container registry validation | OWASP K8s Security, Pod Security Standards |
+| Network policies, ingress, service mesh, TLS configuration | NIST SP 800-190 |
+| Resource requests/limits, HPA/VPA, PDBs, compliance | Azure/AWS Well-Architected |
+
+**Trigger:** *"audit cluster"*, *"check k8s security"*, *"CIS benchmark"*, *"network policies"*
+
+<img src="assets/banner-delivery.svg" alt="Delivery Guardian" width="500">
+
+Deployment and operations specialist. Reviews deployment strategies (blue-green, canary, A/B), CI/CD pipelines, observability stack (Prometheus, Grafana, Azure Monitor), SLI/SLO definitions, BCDR plans, and testing environments (chaos, fuzz, load, penetration).
+
+| Capability | Standards |
+|---|---|
+| Multi-environment deployment: blue-green, canary, A/B, Argo Rollouts | Kubernetes Deployment, GitOps |
+| CI/CD pipeline audit: stages, quality gates, automated rollback | Twelve-Factor App |
+| Observability: Prometheus, Grafana, Azure Monitor, distributed tracing | Google SRE |
+| SLI/SLO definitions, burn-rate alerting, BCDR with failover plans | Google SRE, Well-Architected |
+| Testing: chaos engineering, fuzz, penetration, load (k6), regression | Principles of Chaos Engineering |
+
+**Trigger:** *"review deployment"*, *"check pipeline"*, *"setup monitoring"*, *"define SLOs"*, *"BCDR plan"*
+
 ---
 
 ## Getting Started
@@ -206,6 +232,8 @@ The agents activate immediately. Describe what you need in natural language:
 | *"write integration tests"* | QA Guardian | Tests traced to acceptance criteria |
 | *"check for security"* | Security Guardian | Scan results with OWASP classification |
 | *"review my code"* | Code Review Guardian | Linter results with design analysis |
+| *"audit cluster security"* | Platform Guardian | CIS Benchmark + K8s security audit |
+| *"review deployment pipeline"* | Delivery Guardian | CI/CD, observability, BCDR analysis |
 | *"audit this project"* | PO Guardian | 25-item project health checklist |
 
 ### Security Tooling Setup
@@ -269,19 +297,25 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
 │   ├── dev-guardian.agent.md
 │   ├── qa-guardian.agent.md
 │   ├── security-guardian.agent.md
-│   └── code-review-guardian.agent.md
+│   ├── code-review-guardian.agent.md
+│   ├── platform-guardian.agent.md
+│   └── delivery-guardian.agent.md
 ├── instructions/                        ← Auto-delegation rules
 │   ├── po-guardian.instructions.md
 │   ├── dev-guardian.instructions.md
 │   ├── qa-guardian.instructions.md
 │   ├── security-guardian.instructions.md
-│   └── code-review-guardian.instructions.md
+│   ├── code-review-guardian.instructions.md
+│   ├── platform-guardian.instructions.md
+│   └── delivery-guardian.instructions.md
 └── skills/                              ← Operational tooling
     ├── security-guardian/               ← Semgrep, Gitleaks, Trivy
     │   ├── setup.sh
     │   ├── install-hooks.sh
     │   └── hooks/pre-push
-    └── code-review-guardian/            ← ESLint, Pylint, Clippy
+    ├── code-review-guardian/            ← ESLint, Pylint, Clippy
+    │   └── setup.sh
+    └── platform-guardian/               ← kube-bench, kube-score, polaris
         └── setup.sh
 ```
 
