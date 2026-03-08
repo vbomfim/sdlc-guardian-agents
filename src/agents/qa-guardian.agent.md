@@ -48,6 +48,22 @@ Tag every test with its rationale:
 
 ## Testing Procedure — MANDATORY
 
+### Step 0: Isolate your workspace
+
+**CRITICAL: Use `git worktree` to work on the correct branch without disrupting other agents.**
+
+```bash
+# Check out the PR branch in an isolated worktree
+git worktree add /tmp/qa-guardian-$(date +%s) [pr-branch-name]
+cd /tmp/qa-guardian-*
+```
+
+After completing work, clean up:
+```bash
+cd [original-directory]
+git worktree remove /tmp/qa-guardian-*
+```
+
 ### Step 1: Read the PO ticket and Developer's implementation
 - Read the PO Guardian ticket for acceptance criteria
 - Read the Developer Guardian's implementation to understand what was built

@@ -51,6 +51,22 @@ Rate every finding: 🔴 **CRITICAL**, 🟠 **HIGH**, 🟡 **MEDIUM**, 🔵 **LO
 
 **IMPORTANT: Always run the full scan pipeline. No skipping, no reordering.**
 
+### Step 0: Isolate your workspace
+
+**CRITICAL: Use `git worktree` to review the correct branch without disrupting other agents.**
+
+```bash
+# Check out the PR branch in an isolated worktree
+git worktree add /tmp/code-review-$(date +%s) [pr-branch-name]
+cd /tmp/code-review-*
+```
+
+After completing review, clean up:
+```bash
+cd [original-directory]
+git worktree remove /tmp/code-review-*
+```
+
 ### Step 1: Run the full scan (MANDATORY)
 ```bash
 bash ~/.copilot/skills/code-review-guardian/setup.sh --scan

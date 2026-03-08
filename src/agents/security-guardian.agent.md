@@ -46,6 +46,14 @@ When invoked as a subagent, infer the mode from context and produce a structured
 
 **IMPORTANT: Always run the full scan pipeline. No skipping, no reordering.**
 
+### Step 0: Isolate your workspace (when reviewing a specific branch/PR)
+
+If reviewing a specific branch or PR, use `git worktree` for isolation:
+```bash
+git worktree add /tmp/security-review-$(date +%s) [pr-branch-name]
+cd /tmp/security-review-*
+```
+
 The scan runs in two phases for speed:
 
 ### Step 1: Run the full scan (MANDATORY — always run this first)

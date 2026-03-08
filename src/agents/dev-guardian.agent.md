@@ -34,6 +34,25 @@ Every decision MUST cite its source:
 
 **Follow this order every time. No skipping.**
 
+### Step 0: Isolate your workspace
+
+**CRITICAL: Always use `git worktree` to create an isolated checkout before making changes.** This prevents conflicts with other agents or the user's current work.
+
+```bash
+# Create an isolated worktree for this task
+git worktree add /tmp/dev-guardian-$(date +%s) -b feature/[branch-name] main
+cd /tmp/dev-guardian-*  # work here, not in the main checkout
+```
+
+After completing work:
+```bash
+# Clean up the worktree
+cd [original-directory]
+git worktree remove /tmp/dev-guardian-*
+```
+
+**Why:** Multiple agents may run in parallel on the same repo. Without worktree isolation, `git checkout` in one agent breaks file state for another. Worktrees give each agent its own directory with its own branch — no conflicts.
+
 ### Step 1: Understand the ticket
 - Read the PO Guardian ticket (GitHub issue or spec)
 - Identify acceptance criteria — these become your test cases
