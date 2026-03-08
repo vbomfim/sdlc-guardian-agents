@@ -68,7 +68,7 @@ The SDLC Guardian Agents operationalize these principles across the development 
 
 ## Overview
 
-SDLC Guardian Agents are a suite of five specialized AI agents for [GitHub Copilot CLI](https://docs.github.com/copilot), each responsible for a distinct phase of the software development lifecycle. They enforce industry standards automatically, ensuring consistent quality across projects and teams.
+SDLC Guardian Agents are a suite of seven specialized AI agents for [GitHub Copilot CLI](https://docs.github.com/copilot), each responsible for a distinct phase of the software development lifecycle. They enforce industry standards automatically, ensuring consistent quality across projects and teams.
 
 The agents operate on a delegation model: the default Copilot agent recognizes the user's intent and delegates to the appropriate Guardian as a background task. The user continues working and is notified when the Guardian completes its analysis. The default agent then acts on the Guardian's findings — creating issues, applying fixes, or committing code.
 
@@ -84,7 +84,7 @@ AI coding assistants generate code effectively. What they do not inherently enfo
 
 ### The Solution
 
-Five agents, each encoding the standards of recognized industry authorities, each operating at a specific phase of the lifecycle:
+Seven agents, each encoding the standards of recognized industry authorities, each operating at a specific phase of the lifecycle:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────┐
