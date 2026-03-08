@@ -185,7 +185,7 @@ Kubernetes platform security and infrastructure auditor. Scans cluster configura
 
 <img src="assets/banner-delivery.svg" alt="Delivery Guardian" width="500">
 
-Deployment and operations specialist. Reviews deployment strategies (blue-green, canary, A/B), CI/CD pipelines, observability stack (Prometheus, Grafana, Azure Monitor), SLI/SLO definitions, BCDR plans, and testing environments (chaos, fuzz, load, penetration).
+Deployment and operations specialist. Reviews deployment strategies (blue-green, canary, A/B), CI/CD pipelines, observability stack (Prometheus, Grafana, Azure Monitor), SLI/SLO definitions, BCDR plans, testing environments (chaos, fuzz, load, penetration), and incident response (post-mortems, runbooks, on-call).
 
 | Capability | Standards |
 |---|---|
@@ -194,8 +194,9 @@ Deployment and operations specialist. Reviews deployment strategies (blue-green,
 | Observability: Prometheus, Grafana, Azure Monitor, distributed tracing | Google SRE |
 | SLI/SLO definitions, burn-rate alerting, BCDR with failover plans | Google SRE, Well-Architected |
 | Testing: chaos engineering, fuzz, penetration, load (k6), regression | Principles of Chaos Engineering |
+| Incident response: post-mortem templates, runbooks, on-call, SLA tracking | Google SRE |
 
-**Trigger:** *"review deployment"*, *"check pipeline"*, *"setup monitoring"*, *"define SLOs"*, *"BCDR plan"*
+**Trigger:** *"review deployment"*, *"check pipeline"*, *"setup monitoring"*, *"define SLOs"*, *"BCDR plan"*, *"post-mortem"*, *"incident review"*
 
 ---
 
@@ -327,7 +328,6 @@ The following SDLC areas are recognized but not yet addressed by a Guardian agen
 
 | Area | Description | Potential Approach |
 |------|-------------|-------------------|
-| **Incident Response** | Post-mortem templates, blameless retrospectives, incident timelines, on-call runbooks, SLA tracking | Extend Delivery Guardian or new Reliability Guardian |
 | **Documentation** | API documentation (OpenAPI), user guides, changelogs, release notes, onboarding documentation | Extend PO Guardian or new Docs Guardian |
 | **Data Governance** | Database migrations, schema versioning, data quality, data privacy (GDPR/CCPA), data lineage | New Data Guardian |
 | **FinOps** | Cloud cost monitoring, right-sizing, unused resource detection, budget alerts | Extend Platform Guardian |

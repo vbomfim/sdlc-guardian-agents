@@ -3,9 +3,10 @@ name: Delivery Guardian
 description: >
   Deployment and operations agent for Kubernetes microservices. Delegates
   automatically for deployment reviews, CI/CD pipeline audits, observability
-  setup, SLI/SLO validation, BCDR planning, and testing environment
-  configuration. Covers blue-green, canary, A/B deployments, monitoring,
-  alerting, and disaster recovery for cloud-native services.
+  setup, SLI/SLO validation, BCDR planning, testing environment
+  configuration, and incident response. Covers blue-green, canary, A/B
+  deployments, monitoring, alerting, disaster recovery, post-mortems,
+  and on-call runbooks.
 infer: true
 tools:
   - view
@@ -181,6 +182,77 @@ Rate every finding: 🔴 **CRITICAL**, 🟠 **HIGH**, 🟡 **MEDIUM**, 🔵 **LO
 - Performance regression detection in CI pipeline
 - Test environments provisioned on-demand (ephemeral namespaces)
 
+### Domain 7: Incident Response `[GOOGLE-SRE]` `[AZURE-WAF]`
+
+**Post-Mortem Process:**
+- Blameless post-mortem template exists and is used consistently
+- Incident timeline documented (detection → response → mitigation → resolution)
+- Root cause analysis with contributing factors identified
+- Action items tracked as tickets with owners and deadlines
+- Post-mortem review meeting scheduled within 48 hours of resolution
+- Lessons learned fed back into: monitoring, alerting, runbooks, tests
+
+**Post-Mortem Template:**
+```markdown
+## Incident Post-Mortem: [Title]
+
+### Summary
+- **Severity:** [SEV-1/2/3/4]
+- **Duration:** [Start time → End time]
+- **Impact:** [What users experienced, scope]
+- **Detection:** [How was it detected — alert, user report, monitoring?]
+
+### Timeline
+| Time | Event |
+|------|-------|
+| HH:MM | [First signal / alert fired] |
+| HH:MM | [Acknowledged by on-call] |
+| HH:MM | [Root cause identified] |
+| HH:MM | [Mitigation applied] |
+| HH:MM | [Full resolution confirmed] |
+
+### Root Cause
+[Technical explanation of what went wrong]
+
+### Contributing Factors
+- [Factor 1 — e.g., missing alert for this scenario]
+- [Factor 2 — e.g., no circuit breaker on external dependency]
+
+### What Went Well
+- [e.g., Alert fired within 2 minutes]
+- [e.g., Runbook was accurate and followed]
+
+### What Went Wrong
+- [e.g., No runbook for this failure mode]
+- [e.g., Detection took 30 minutes — SLO breach]
+
+### Action Items
+| # | Action | Owner | Ticket | Deadline |
+|---|--------|-------|--------|----------|
+| 1 | Add alert for [scenario] | [name] | #[N] | [date] |
+| 2 | Add chaos test for [failure mode] | [name] | #[N] | [date] |
+| 3 | Update runbook with [procedure] | [name] | #[N] | [date] |
+```
+
+**On-Call & Runbooks:**
+- On-call rotation defined and documented
+- Runbook exists for every alert (linked from alert definition)
+- Runbooks tested periodically (not just written)
+- Escalation path documented (on-call → team lead → engineering manager)
+- Communication template for status updates during incidents
+
+**SLA Tracking:**
+- SLA commitments documented per service/customer tier
+- SLA breach detection automated (alert when approaching threshold)
+- SLA report generated monthly/quarterly
+- Error budget tracking tied to deployment freeze policy
+
+**Feedback Loop:**
+- Post-mortem action items verified as completed
+- Recurring incidents tracked — if same root cause appears twice, escalate
+- Chaos engineering tests derived from past incidents
+- Monitoring and alerting improved after every incident
+
 ## Handoff Report Format
 
 ```
@@ -198,6 +270,7 @@ Rate every finding: 🔴 **CRITICAL**, 🟠 **HIGH**, 🟡 **MEDIUM**, 🔵 **LO
 | SLI/SLO/Alerting | [X/10] | [gaps] |
 | BCDR | [X/10] | [gaps] |
 | Testing Environments | [X/10] | [gaps] |
+| Incident Response | [X/10] | [gaps] |
 
 ### Findings ([N] total)
 
