@@ -123,7 +123,7 @@ The Guardians are not invoked manually — the default Copilot agent enforces th
 |------|------|-------------|
 | **Pre-Implementation** | User asks to implement without a ticket | PO Guardian invoked to create specification first |
 | **Post-Implementation** | Developer Guardian completes | QA + Security + Code Review invoked in parallel automatically |
-| **Pre-Merge** | User asks to create PR or merge | Verify all reviews passed; invoke missing Guardians if needed |
+| **Pre-Merge** | All Guardian reviews pass + CI checks pass | Default agent presents combined results; user confirms merge approval |
 | **Pre-Deployment** | User asks to deploy | Platform + Delivery Guardians verify infrastructure and operations readiness |
 
 The user never needs to remember which Guardian to invoke. The workflow enforces it.

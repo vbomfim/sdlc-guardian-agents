@@ -50,15 +50,18 @@ Default agent: "Implementation done. Running review pipeline..."
 
 ## Pre-Merge Gate
 
-**Before creating a PR or merging to main, verify all reviews passed.**
+**After all Guardian reviews pass and CI checks pass, present results and ask for merge confirmation.**
 
-When the user asks to create a PR, merge, or push to main:
-1. Check: did QA, Security, and Code Review Guardians run on this code?
-2. If **yes** and no unresolved critical/high findings → proceed
-3. If **no** → invoke the missing Guardians before proceeding
-4. If **unresolved findings** → remind the user of outstanding issues
+The Developer Guardian creates the PR and pushes to the ticket branch. The pre-merge gate is NOT about creating the PR — it's about confirming the merge after everything passes:
 
-Say: "Security Guardian found 2 high issues that haven't been addressed. Want to fix them before the PR?"
+1. All Guardian reviews (QA, Security, Code Review) completed
+2. All remote CI checks pass (build, tests, security scans)
+3. No unresolved critical/high findings
+4. Present the combined report to the user
+5. User confirms: **merge approved**
+
+If any Guardian review is missing or has unresolved findings, say:
+> "All CI checks pass, but Security Guardian has 2 high findings unresolved. Address them before merging?"
 
 ## Pre-Deployment Gate
 
