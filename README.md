@@ -50,9 +50,29 @@ The implementation within each unit is disposable. It can be written today, rewr
 | **Bounded scope** | Each component owns its data model and has explicit inputs and outputs. No shared database tables or global state across boundaries. | Domain-Driven Design — Bounded Contexts (Evans) |
 | **Independently replaceable** | A component can be replaced without modifying or redeploying any other component in the system. | Composable Architecture, Microservices Principles |
 
+---
+
+# SDLC Guardian Agents
+
+## Overview
+
+SDLC Guardian Agents are a suite of seven specialized AI agents for [GitHub Copilot CLI](https://docs.github.com/copilot), each responsible for a distinct phase of the software development lifecycle. They enforce industry standards automatically, ensuring consistent quality across projects and teams.
+
+The agents operate on a delegation model: the default Copilot agent recognizes the user's intent and delegates to the appropriate Guardian as a background task. The user continues working and is notified when the Guardian completes its analysis. The default agent then acts on the Guardian's findings — creating issues, applying fixes, or committing code.
+
+### The Problem
+
+AI coding assistants generate code effectively. What they do not inherently enforce is *consistency* — across projects, across teams, across the lifecycle. Without structured guidance:
+
+- Feature specifications miss security, observability, or edge cases
+- Code is written without following the architecture patterns already in the codebase
+- Unit tests exist but integration and end-to-end tests do not
+- Security reviews occur after implementation, not before design
+- Different projects by the same team follow different standards
+
 ### Enforcement Through SDLC Guardian Agents
 
-The SDLC Guardian Agents operationalize these principles across the development lifecycle:
+Seven agents, each encoding the standards of recognized industry authorities, operationalize these principles across the development lifecycle:
 
 | Phase | Guardian | Enforcement |
 |-------|----------|-------------|
@@ -107,45 +127,6 @@ The Guardians are not invoked manually — the default Copilot agent enforces th
 | **Pre-Deployment** | User asks to deploy | Platform + Delivery Guardians verify infrastructure and operations readiness |
 
 The user never needs to remember which Guardian to invoke. The workflow enforces it.
-
----
-
-# SDLC Guardian Agents
-
-## Overview
-
-SDLC Guardian Agents are a suite of seven specialized AI agents for [GitHub Copilot CLI](https://docs.github.com/copilot), each responsible for a distinct phase of the software development lifecycle. They enforce industry standards automatically, ensuring consistent quality across projects and teams.
-
-The agents operate on a delegation model: the default Copilot agent recognizes the user's intent and delegates to the appropriate Guardian as a background task. The user continues working and is notified when the Guardian completes its analysis. The default agent then acts on the Guardian's findings — creating issues, applying fixes, or committing code.
-
-### The Problem
-
-AI coding assistants generate code effectively. What they do not inherently enforce is *consistency* — across projects, across teams, across the lifecycle. Without structured guidance:
-
-- Feature specifications miss security, observability, or edge cases
-- Code is written without following the architecture patterns already in the codebase
-- Unit tests exist but integration and end-to-end tests do not
-- Security reviews occur after implementation, not before design
-- Different projects by the same team follow different standards
-
-### The Solution
-
-Seven agents, each encoding the standards of recognized industry authorities, each operating at a specific phase of the lifecycle:
-
-```
-┌────────────────────────────────────────────────────────────────────────────────────┐
-│                                                                                    │
-│   💡 Idea                                                                          │
-│     │                                                                              │
-│     ▼                                                                              │
-│   ┌─────────┐  ┌──────────┐  ┌────────┐  ┌──────────┐  ┌───────┐  ┌────────────┐  │
-│   │   PO    │  │Developer │  │   QA   │  │ Security │  │ Code  │  │ Platform & │  │
-│   │Guardian │─▶│ Guardian │─▶│Guardian│─▶│ Guardian │─▶│Review │─▶│ Delivery   │  │
-│   └─────────┘  └──────────┘  └────────┘  └──────────┘  └───────┘  └────────────┘  │
-│   Specify       Implement    Verify       Secure        Quality    Deploy & Run    │
-│                                                                                    │
-└────────────────────────────────────────────────────────────────────────────────────┘
-```
 
 ---
 
