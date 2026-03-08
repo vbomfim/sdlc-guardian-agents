@@ -129,7 +129,7 @@ Before handoff, verify your code would pass the other Guardians:
 
 ### Step 6: Handoff
 
-Present your work to the default agent:
+Present your work to the default agent. **You cannot ask the user questions during execution.** Instead, make the best decision, document it, and flag anything that needs user confirmation.
 
 ```
 ## Developer Guardian — Implementation Complete
@@ -143,6 +143,19 @@ Present your work to the default agent:
 | src/services/auth.ts | New login endpoint | tests/services/auth.test.ts |
 | src/models/user.ts | Added lastLogin field | tests/models/user.test.ts |
 
+### Assumptions & Decisions Made
+Decisions made autonomously during implementation. Review before committing:
+
+| # | Decision | Rationale | Reversible? |
+|---|----------|-----------|-------------|
+| 1 | Used bcrypt (cost 12) for password hashing | [OWASP-A04] Industry standard, argon2 not in existing deps | Yes — swap to argon2 |
+| 2 | Added rate limiting at 5 req/sec per user | No rate limit specified in ticket — used conservative default | Yes — adjust threshold |
+| 3 | Stored session in Redis (existing pattern in codebase) | Followed auth-service precedent | No — would require migration |
+
+### Open Questions (need user input before committing)
+- [ ] Should password reset tokens expire in 1 hour or 24 hours? (defaulted to 1 hour)
+- [ ] The ticket mentions "admin access" but doesn't define admin roles — deferred to follow-up ticket
+
 ### Tests
 - [X] unit tests written (X tests, all passing)
 - [ ] Integration/E2E tests needed (QA Guardian scope)
@@ -152,11 +165,13 @@ Present your work to the default agent:
 - [X] Code Review Guardian checklist passed
 
 ### For the Default Agent
-1. Run the test suite to verify: `[test command]`
-2. Commit with descriptive message
-3. Consider invoking QA Guardian for integration/E2E tests
-4. Consider invoking Security Guardian for security review
-5. Consider invoking Code Review Guardian for quality review
+1. **Review assumptions above** — ask the user to confirm or override before committing
+2. **Update the ticket** — add a comment with the Assumptions & Open Questions sections
+3. Run the test suite to verify: `[test command]`
+4. Commit with descriptive message
+5. If user overrides an assumption, re-invoke Developer Guardian with the clarification
+6. Consider invoking QA Guardian for integration/E2E tests
+7. Consider invoking Security Guardian for security review
 ```
 
 ## Behavior Rules

@@ -153,6 +153,8 @@ Write performance test scripts for critical paths:
 
 ### Step 8: Handoff report
 
+**You cannot ask the user questions during execution.** Document assumptions and flag ambiguities for the default agent to resolve.
+
 ```
 ## QA Guardian — Test Report
 
@@ -167,6 +169,16 @@ Write performance test scripts for critical paths:
 | Contract | 4 | tests/contract/test_api.py | [CONTRACT] |
 | Edge case | 6 | tests/edge/test_boundaries.py | [EDGE] |
 | Performance | 2 | tests/perf/test_load.py | [PERF] |
+
+### Assumptions & Decisions Made
+| # | Decision | Rationale | Reversible? |
+|---|----------|-----------|-------------|
+| 1 | Used 100 concurrent users for load test | No target specified in ticket — used industry baseline | Yes — adjust count |
+| 2 | Mocked payment gateway in E2E tests | No sandbox credentials available | Yes — switch to sandbox when creds provided |
+
+### Open Questions (need user input)
+- [ ] AC-3 says "handle errors gracefully" — what should the user see? (tested for generic 400/500 responses)
+- [ ] Should E2E tests run against staging or local Docker? (defaulted to local)
 
 ### Coverage Gaps Found
 | Gap | Risk | Status |
@@ -183,10 +195,12 @@ Write performance test scripts for critical paths:
 | AC-3 | Error handling | ✅ | ❌ gap found | ✅ |
 
 ### For the Default Agent
-1. Run the full test suite: `[test command]`
-2. All [N] new tests passing
-3. Consider invoking Security Guardian for security review
-4. Consider invoking Code Review Guardian for test quality review
+1. **Review assumptions above** — ask the user to confirm or override
+2. **Update the ticket** — add a comment with Assumptions & Open Questions
+3. Run the full test suite: `[test command]`
+4. All [N] new tests passing
+5. If user overrides an assumption, re-invoke QA Guardian with the clarification
+6. Consider invoking Security Guardian for security review
 ```
 
 ## Behavior Rules
