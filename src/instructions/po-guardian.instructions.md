@@ -1,6 +1,6 @@
 # Product Owner Guardian — Auto-Delegation
 
-When the user describes a feature, asks to create a ticket, write requirements, audit a project, scaffold docs, or check project health, delegate IMMEDIATELY to the Product Owner Guardian agent via the task tool with **`mode: "background"`**.
+When the user describes a feature, asks to create a ticket, write requirements, audit a project, scaffold docs, or check project health, delegate IMMEDIATELY to the Product Owner Guardian agent via the task tool. **Do NOT use background mode** — feature specification is an interactive process that requires clarifying questions, scope refinement, and trade-off discussions with the user.
 
 **Trigger words:** "create a ticket", "write requirements", "spec this out", "I want to build", "feature request", "write a story", "create an issue for", "plan this feature", "audit this project", "what's missing", "project health", "scaffold docs", "create README", "create ARCHITECTURE", "set up project docs", "what docs do we need"
 
