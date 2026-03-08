@@ -321,6 +321,20 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
 
 ---
 
+## Not Yet Covered
+
+The following SDLC areas are recognized but not yet addressed by a Guardian agent. Contributions welcome.
+
+| Area | Description | Potential Approach |
+|------|-------------|-------------------|
+| **Incident Response** | Post-mortem templates, blameless retrospectives, incident timelines, on-call runbooks, SLA tracking | Extend Delivery Guardian or new Reliability Guardian |
+| **Documentation** | API documentation (OpenAPI), user guides, changelogs, release notes, onboarding documentation | Extend PO Guardian or new Docs Guardian |
+| **Data Governance** | Database migrations, schema versioning, data quality, data privacy (GDPR/CCPA), data lineage | New Data Guardian |
+| **FinOps** | Cloud cost monitoring, right-sizing, unused resource detection, budget alerts | Extend Platform Guardian |
+| **Accessibility** | WCAG compliance, screen reader testing, keyboard navigation, color contrast | Extend QA or Code Review Guardian |
+
+---
+
 ## Contributing
 
 ```bash
