@@ -270,13 +270,7 @@ The agents activate immediately. Describe what you need in natural language:
 
 ### Verify Tool Availability
 
-```bash
-bash ~/.copilot/skills/security-guardian/run.sh --check       # Security tools
-bash ~/.copilot/skills/code-review-guardian/run.sh --check     # Linters
-bash ~/.copilot/skills/platform-guardian/run.sh --check        # K8s tools
-```
-
-See [PREREQUISITES.md](PREREQUISITES.md) for installing any missing tools.
+The agents check for required tools before scanning. If anything is missing, they'll ask you to install it. See [PREREQUISITES.md](PREREQUISITES.md) for installation commands per platform.
 
 ---
 
@@ -343,12 +337,12 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
 │   ├── platform-guardian.instructions.md
 │   └── delivery-guardian.instructions.md
 └── skills/                              ← Operational tooling
-    ├── security-guardian/               ← Semgrep, Gitleaks, Trivy
-    │   └── run.sh
-    ├── code-review-guardian/            ← ESLint, Pylint, Clippy
-    │   └── run.sh
-    └── platform-guardian/               ← kube-bench, kube-score, polaris
-        └── run.sh
+    ├── security-guardian/               ← Tool definitions
+    │   └── SKILL.md
+    ├── code-review-guardian/            ← Tool definitions
+    │   └── SKILL.md
+    └── platform-guardian/               ← Tool definitions
+        └── SKILL.md
 ```
 
 ---

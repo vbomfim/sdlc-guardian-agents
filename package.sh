@@ -67,15 +67,10 @@ install() {
   cp "$SRC_DIR/instructions/delivery-guardian.instructions.md" "$TARGET_DIR/instructions/"
   cp "$SRC_DIR/instructions/sdlc-workflow.instructions.md" "$TARGET_DIR/instructions/"
 
-  # ── Install skills (runners only — no install scripts) ──
+  # ── Install skills (tool definitions only — no scripts) ──
   cp -r "$SRC_DIR/skills/security-guardian/"* "$TARGET_DIR/skills/security-guardian/"
   cp -r "$SRC_DIR/skills/code-review-guardian/"* "$TARGET_DIR/skills/code-review-guardian/"
   cp -r "$SRC_DIR/skills/platform-guardian/"* "$TARGET_DIR/skills/platform-guardian/"
-
-  # Ensure run scripts are executable
-  chmod +x "$TARGET_DIR/skills/security-guardian/run.sh"
-  chmod +x "$TARGET_DIR/skills/code-review-guardian/run.sh"
-  chmod +x "$TARGET_DIR/skills/platform-guardian/run.sh"
 
   echo -e "${BOLD}Security Guardian:${NC}"
   echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/security-guardian.agent.md"

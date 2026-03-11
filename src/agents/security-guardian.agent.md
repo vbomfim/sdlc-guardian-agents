@@ -56,28 +56,19 @@ The scan runs in two phases for speed:
 
 ### Step 0.5: Check tool availability
 
-Before scanning, verify required tools are installed:
-```bash
-bash ~/.copilot/skills/security-guardian/run.sh --check
+Before scanning, check that required tools are installed by running their version commands:
+
+```
+semgrep --version        # REQUIRED
+gitleaks version         # REQUIRED
+trivy --version          # Optional — needed for container/IaC projects
 ```
 
-**If required tools are missing, STOP and ask the user to install them.** Do not skip required scans. Reference PREREQUISITES.md for installation instructions.
-
-Required tools (must have):
-- **Semgrep** — SAST analysis
-- **Gitleaks** — secret detection
-
-Optional tools (language-dependent):
-- Trivy, npm audit, pip-audit, bandit, cargo audit, dotnet — only required if the project uses that language/platform
+**If required tools (Semgrep, Gitleaks) are missing, STOP and ask the user to install them.** Reference PREREQUISITES.md for installation instructions. Do not skip required scans.
 
 ### Step 1: Run the full scan (MANDATORY — always run this first)
 
-Run the scan pipeline via the skill:
-```bash
-bash ~/.copilot/skills/security-guardian/run.sh --scan
-```
-
-Or run each tool directly if the skill is not available:
+Run scan commands directly. Phase 1 (core scans) in parallel, Phase 2 (language audits) sequentially.
 
 ```bash
 # SAST (Static Analysis)

@@ -1,24 +1,46 @@
 ---
 name: platform-guardian-tools
 description: >
-  Runs Kubernetes security scanning tools and checks availability.
-  Use when the Platform Guardian agent needs to audit cluster configuration.
-  Does NOT install anything — see PREREQUISITES.md for installation.
+  Kubernetes security tool definitions. Tells the Platform Guardian agent
+  which tools to check and run. Does NOT install anything.
+  See PREREQUISITES.md for installation.
 ---
 
 # Platform Guardian Tools
 
-Runs K8s audit tools. Does **not** install anything.
-See [PREREQUISITES.md](../../PREREQUISITES.md) for tool installation.
+## Required Tools (must have — stop and ask user to install if missing)
 
-## Commands
+| Tool | Check Command | Purpose |
+|------|--------------|---------|
+| kubectl | `kubectl version --client` | Kubernetes cluster access |
+| kube-bench | `kube-bench version` | CIS Benchmark compliance |
+| Trivy | `trivy --version` | IaC and image vulnerability scanning |
 
-### Check which tools are available
-```bash
-bash ~/.copilot/skills/platform-guardian/run.sh --check
+## Recommended Tools (valuable — note if missing but don't block)
+
+| Tool | Check Command | Purpose |
+|------|--------------|---------|
+| kube-score | `kube-score version` | Workload best practices |
+| Polaris | `polaris version` | Configuration validation |
+| kubeaudit | `kubeaudit version` | Security audit |
+| Helm | `helm version` | Chart management |
+
+## Scan Commands (run in parallel)
+
+```
+# CIS Benchmark
+kube-bench run --json
+
+# Workload best practices
+find . -name "*.yaml" -o -name "*.yml" | xargs kube-score score
+
+# Configuration validation
+polaris audit --audit-path . --format pretty
+
+# Security audit
+find . -name "*.yaml" -o -name "*.yml" | xargs -I{} kubeaudit all -f {}
+
+# IaC vulnerabilities
+trivy config --severity CRITICAL,HIGH .
 ```
 
-### Run K8s security scan pipeline
-```bash
-bash ~/.copilot/skills/platform-guardian/run.sh --scan
-```

@@ -67,21 +67,20 @@ git worktree remove /tmp/code-review-*
 
 ### Step 0.5: Check linter availability
 
-Before running, verify linters are installed for the project's languages:
-```bash
-bash ~/.copilot/skills/code-review-guardian/run.sh --check
+Before running, check that linters are installed for the detected languages:
+
+```
+eslint --version              # Required for JS/TS projects
+ruff --version                # Required for Python projects
+cargo clippy --version        # Required for Rust projects
+dotnet format --version       # Required for C# projects
 ```
 
 **If linters for the detected language are missing, STOP and ask the user to install them.** Reference PREREQUISITES.md. A project-relevant linter is required — not optional.
 
 ### Step 1: Run linters (MANDATORY)
 
-Run linters via the skill:
-```bash
-bash ~/.copilot/skills/code-review-guardian/run.sh --scan
-```
-
-Or run each linter directly if the skill is not available:
+Run linters directly for the detected project languages:
 
 ```bash
 # JavaScript/TypeScript

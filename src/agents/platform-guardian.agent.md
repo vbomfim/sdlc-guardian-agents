@@ -50,29 +50,22 @@ Rate every finding: 🔴 **CRITICAL**, 🟠 **HIGH**, 🟡 **MEDIUM**, 🔵 **LO
 
 ### Step 0.5: Check tool availability
 
-Before scanning, verify K8s audit tools are installed:
-```bash
-bash ~/.copilot/skills/platform-guardian/run.sh --check
+Before scanning, check that required K8s audit tools are installed:
+
+```
+kubectl version --client     # REQUIRED
+kube-bench version           # REQUIRED
+trivy --version              # REQUIRED
+kube-score version           # Recommended
+polaris version              # Recommended
+kubeaudit version            # Recommended
 ```
 
-**If required tools are missing, STOP and ask the user to install them.** Reference PREREQUISITES.md.
-
-Required tools (must have for K8s auditing):
-- **kubectl** — cluster access
-- **kube-bench** — CIS Benchmark compliance
-- **trivy** — vulnerability scanning
-
-Recommended tools (valuable but not blocking):
-- kube-score, polaris, kubeaudit — additional validation perspectives
+**If required tools (kubectl, kube-bench, trivy) are missing, STOP and ask the user to install them.** Reference PREREQUISITES.md.
 
 ### Step 1: Run automated scans (MANDATORY)
 
-Run the scan pipeline via the skill:
-```bash
-bash ~/.copilot/skills/platform-guardian/run.sh --scan
-```
-
-Or run each tool directly if the skill is not available:
+Run scan commands directly:
 
 ```bash
 # CIS Benchmark compliance
