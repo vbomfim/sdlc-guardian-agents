@@ -54,6 +54,22 @@ cd /tmp/security-review-*
 
 The scan runs in two phases for speed:
 
+### Step 0.5: Check tool availability
+
+Before scanning, verify required tools are installed:
+```bash
+bash ~/.copilot/skills/security-guardian/run.sh --check
+```
+
+**If required tools are missing, STOP and ask the user to install them.** Do not skip required scans. Reference PREREQUISITES.md for installation instructions.
+
+Required tools (must have):
+- **Semgrep** — SAST analysis
+- **Gitleaks** — secret detection
+
+Optional tools (language-dependent):
+- Trivy, npm audit, pip-audit, bandit, cargo audit, dotnet — only required if the project uses that language/platform
+
 ### Step 1: Run the full scan (MANDATORY — always run this first)
 
 Run the scan pipeline via the skill:

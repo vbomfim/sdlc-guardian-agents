@@ -37,13 +37,32 @@ detect_languages() {
 
 check_tools() {
   header "Code Review Tools Status"
-  for tool in eslint ruff pylint cargo-clippy dotnet; do
-    if command_exists "$tool" || ([ "$tool" = "cargo-clippy" ] && command_exists cargo); then
-      success "$tool: available"
-    else
-      warn "$tool: not found"
-    fi
-  done
+  local langs
+  langs=$(detect_languages)
+  local missing_required=0
+
+  echo -e "${BOLD}Detected languages:${NC} $langs"
+  echo ""
+
+  [[ " $langs " == *" nodejs "* ]] && {
+    if command_exists eslint || command_exists npx; then success "eslint: available"
+    else error "eslint: NOT FOUND [REQUIRED for JS/TS] — see PREREQUISITES.md"; missing_required=$((missing_required + 1)); fi
+  }
+  [[ " $langs " == *" python "* ]] && {
+    if command_exists ruff; then success "ruff: available"
+    else error "ruff: NOT FOUND [REQUIRED for Python] — see PREREQUISITES.md"; missing_required=$((missing_required + 1)); fi
+  }
+  [[ " $langs " == *" rust "* ]] && {
+    if command_exists cargo; then success "clippy: available (via cargo)"
+    else error "cargo: NOT FOUND [REQUIRED for Rust] — see PREREQUISITES.md"; missing_required=$((missing_required + 1)); fi
+  }
+  [[ " $langs " == *" dotnet "* ]] && {
+    if command_exists dotnet; then success "dotnet format: available"
+    else error "dotnet: NOT FOUND [REQUIRED for C#] — see PREREQUISITES.md"; missing_required=$((missing_required + 1)); fi
+  }
+
+  [ $missing_required -gt 0 ] && echo "" && error "$missing_required required linter(s) missing for detected languages"
+  return $missing_required
 }
 
 run_scan() {

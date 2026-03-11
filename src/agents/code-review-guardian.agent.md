@@ -65,6 +65,15 @@ cd [original-directory]
 git worktree remove /tmp/code-review-*
 ```
 
+### Step 0.5: Check linter availability
+
+Before running, verify linters are installed for the project's languages:
+```bash
+bash ~/.copilot/skills/code-review-guardian/run.sh --check
+```
+
+**If linters for the detected language are missing, STOP and ask the user to install them.** Reference PREREQUISITES.md. A project-relevant linter is required — not optional.
+
 ### Step 1: Run linters (MANDATORY)
 
 Run linters via the skill:

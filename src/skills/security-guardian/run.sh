@@ -38,24 +38,29 @@ detect_languages() {
 
 check_tools() {
   header "Security Tools Status"
+  local missing_required=0
 
-  echo -e "${BOLD}Core Tools:${NC}"
-  for tool in semgrep gitleaks trivy; do
+  echo -e "${BOLD}Required:${NC}"
+  for tool in semgrep gitleaks; do
     if command_exists "$tool"; then
       success "$tool: available"
     else
-      error "$tool: NOT FOUND — see PREREQUISITES.md"
+      error "$tool: NOT FOUND [REQUIRED] — see PREREQUISITES.md"
+      missing_required=$((missing_required + 1))
     fi
   done
 
-  echo -e "\n${BOLD}Language Tools:${NC}"
-  local langs
-  langs=$(detect_languages)
-  [[ " $langs " == *" nodejs "* ]] && { command_exists npm && success "npm audit: available" || warn "npm: not found"; }
-  [[ " $langs " == *" python "* ]] && { command_exists pip-audit && success "pip-audit: available" || warn "pip-audit: not found"; }
-  [[ " $langs " == *" python "* ]] && { command_exists bandit && success "bandit: available" || warn "bandit: not found"; }
-  [[ " $langs " == *" rust "* ]] && { command_exists cargo-audit && success "cargo-audit: available" || warn "cargo-audit: not found"; }
-  [[ " $langs " == *" dotnet "* ]] && { command_exists dotnet && success "dotnet: available" || warn "dotnet: not found"; }
+  echo -e "\n${BOLD}Optional (language-dependent):${NC}"
+  for tool in trivy npm pip-audit bandit cargo-audit dotnet; do
+    if command_exists "$tool"; then
+      success "$tool: available"
+    else
+      info "$tool: not found (install if your project needs it)"
+    fi
+  done
+
+  [ $missing_required -gt 0 ] && echo "" && error "$missing_required required tool(s) missing — install before scanning"
+  return $missing_required
 }
 
 run_scan() {

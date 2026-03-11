@@ -26,13 +26,29 @@ command_exists() { command -v "$1" &>/dev/null; }
 
 check_tools() {
   header "Platform Guardian Tools Status"
-  for tool in kube-bench kube-score polaris kubeaudit trivy kubectl helm; do
+  local missing_required=0
+
+  echo -e "${BOLD}Required:${NC}"
+  for tool in kubectl kube-bench trivy; do
     if command_exists "$tool"; then
       success "$tool: available"
     else
-      error "$tool: NOT FOUND — see PREREQUISITES.md"
+      error "$tool: NOT FOUND [REQUIRED] — see PREREQUISITES.md"
+      missing_required=$((missing_required + 1))
     fi
   done
+
+  echo -e "\n${BOLD}Recommended:${NC}"
+  for tool in kube-score polaris kubeaudit helm; do
+    if command_exists "$tool"; then
+      success "$tool: available"
+    else
+      info "$tool: not found (recommended but not blocking)"
+    fi
+  done
+
+  [ $missing_required -gt 0 ] && echo "" && error "$missing_required required tool(s) missing — install before scanning"
+  return $missing_required
 }
 
 run_scan() {
