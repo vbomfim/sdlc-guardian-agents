@@ -17,15 +17,13 @@
   <img src="assets/rewritable-by-design-logo.svg" alt="Rewritable by Design" width="700">
 </p>
 
-### Abstract
-
-**Rewritable by Design** is an architectural principle for AI-assisted software development. It establishes that software systems should be composed of components with well-defined boundaries and stable contracts, such that any individual component can be replaced, rewritten, or regenerated without requiring changes to — or knowledge of — the rest of the system.
-
 ### Motivation
 
 Software development is undergoing a fundamental shift. AI agents can now generate, refactor, and rewrite code at unprecedented speed. However, this capability is only effective when the AI can operate within a clearly defined scope. A component with ambiguous boundaries, leaked dependencies, or shared state cannot be safely rewritten — by a human or an AI — without risking cascading side effects across the system.
 
 Traditional architectural principles — cohesion, coupling, separation of concerns — have always advocated for modularity. **Rewritable by Design takes these principles to their practical conclusion:** if a component cannot be rewritten from its interface definition and behavioral tests alone, its boundary is insufficiently defined.
+
+**Rewritable by Design** establishes that software systems should be composed of components with well-defined boundaries and stable contracts, such that any individual component can be replaced, rewritten, or regenerated without requiring changes to — or knowledge of — the rest of the system.
 
 ### The Idea-First Model
 
