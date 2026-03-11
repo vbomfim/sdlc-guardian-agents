@@ -1,29 +1,24 @@
 ---
-name: platform-guardian
+name: platform-guardian-tools
 description: >
-  Platform Guardian skill for installing Kubernetes security scanning tools.
-  Use this skill ONLY when the user asks to install kube-bench, kube-score,
-  polaris, kubeaudit, or other K8s audit tools. Do NOT use for running
-  audits — those MUST go through the Platform Guardian agent.
+  Runs Kubernetes security scanning tools and checks availability.
+  Use when the Platform Guardian agent needs to audit cluster configuration.
+  Does NOT install anything — see PREREQUISITES.md for installation.
 ---
 
-# Platform Guardian Skill
+# Platform Guardian Tools
 
-Handles K8s security tool **installation** only. For audits, the Platform Guardian agent is used.
+Runs K8s audit tools. Does **not** install anything.
+See [PREREQUISITES.md](../../PREREQUISITES.md) for tool installation.
 
 ## Commands
 
-### Install tools
+### Check which tools are available
 ```bash
-bash ~/.copilot/skills/platform-guardian/setup.sh
+bash ~/.copilot/skills/platform-guardian/run.sh --check
 ```
 
-### Check installed tools
+### Run K8s security scan pipeline
 ```bash
-bash ~/.copilot/skills/platform-guardian/setup.sh --check
-```
-
-### Run scan pipeline
-```bash
-bash ~/.copilot/skills/platform-guardian/setup.sh --scan
+bash ~/.copilot/skills/platform-guardian/run.sh --scan
 ```

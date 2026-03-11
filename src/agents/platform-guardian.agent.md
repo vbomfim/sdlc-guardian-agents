@@ -20,8 +20,6 @@ tools:
   - "bash(helm *)"
   - "bash(kustomize *)"
   - "bash(az *)"
-  - "bash(bash ~/.copilot/skills/platform-guardian/setup.sh --scan)"
-  - "bash(bash ~/.copilot/skills/platform-guardian/setup.sh --check)"
 ---
 
 # Platform Guardian
@@ -51,8 +49,29 @@ Rate every finding: 🔴 **CRITICAL**, 🟠 **HIGH**, 🟡 **MEDIUM**, 🔵 **LO
 **IMPORTANT: Always run the full scan pipeline. No skipping.**
 
 ### Step 1: Run automated scans (MANDATORY)
+
+Run the scan pipeline via the skill:
 ```bash
-bash ~/.copilot/skills/platform-guardian/setup.sh --scan
+bash ~/.copilot/skills/platform-guardian/run.sh --scan
+```
+
+Or run each tool directly if the skill is not available:
+
+```bash
+# CIS Benchmark compliance
+kube-bench run --json
+
+# Workload best practices
+find . -name "*.yaml" -o -name "*.yml" | xargs kube-score score
+
+# Configuration validation
+polaris audit --audit-path . --format pretty
+
+# Security audit
+find . -name "*.yaml" -o -name "*.yml" | xargs -I{} kubeaudit all -f {}
+
+# IaC + image vulnerabilities
+trivy config --severity CRITICAL,HIGH .
 ```
 
 **Phase 1 — Security scanners (PARALLEL):**
@@ -193,7 +212,7 @@ bash ~/.copilot/skills/platform-guardian/setup.sh --scan
 1. **Review findings and assumptions** — ask user to confirm priorities
 2. **Update the ticket** — add findings and open questions
 3. Apply remediation for critical/high findings
-4. Re-run scan to verify fixes: `bash ~/.copilot/skills/platform-guardian/setup.sh --scan`
+4. Re-run scans to verify fixes
 ```
 
 ## References

@@ -1,39 +1,24 @@
 ---
-name: code-review-guardian
+name: code-review-guardian-tools
 description: >
-  Code Review Guardian skill for installing code quality linters.
-  Use this skill ONLY when the user asks to install linters, check
-  linter status, or set up code review tools. Do NOT use this skill
-  for running code reviews — those MUST go through the Code Review
-  Guardian agent via the task tool.
+  Runs code quality linters and checks availability.
+  Use when the Code Review Guardian agent needs to execute linters.
+  Does NOT install anything — see PREREQUISITES.md for installation.
 ---
 
-# Code Review Guardian Skill
+# Code Review Guardian Tools
 
-Handles linter **installation and setup** only. For code reviews, the Code Review Guardian agent is used instead — it runs the linters and analyzes results with Google/Microsoft/Clean Code expertise.
-
-## When to Use
-
-- User says "install linters", "set up code quality tools"
-- User says "check linter status", "what linters do I have?"
-
-## When NOT to Use
-
-- User says "review my code", "check code quality" → delegate to Code Review Guardian **agent**
+Runs linters. Does **not** install anything.
+See [PREREQUISITES.md](../../PREREQUISITES.md) for tool installation.
 
 ## Commands
 
-### Install linters
+### Check which linters are available
 ```bash
-bash ~/.copilot/skills/code-review-guardian/setup.sh
+bash ~/.copilot/skills/code-review-guardian/run.sh --check
 ```
 
-### Check installed linters
+### Run linters
 ```bash
-bash ~/.copilot/skills/code-review-guardian/setup.sh --check
-```
-
-### Install for all languages
-```bash
-bash ~/.copilot/skills/code-review-guardian/setup.sh --all
+bash ~/.copilot/skills/code-review-guardian/run.sh --scan
 ```

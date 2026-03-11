@@ -268,13 +268,15 @@ The agents activate immediately. Describe what you need in natural language:
 | *"review deployment pipeline"* | Delivery Guardian | CI/CD, observability, BCDR analysis |
 | *"audit this project"* | PO Guardian | 25-item project health checklist |
 
-### Security Tooling Setup
+### Verify Tool Availability
 
 ```bash
-bash ~/.copilot/skills/security-guardian/setup.sh            # Install scanning tools
-bash ~/.copilot/skills/security-guardian/setup.sh --scan      # Run deterministic scan pipeline
-bash ~/.copilot/skills/security-guardian/install-hooks.sh     # Install pre-push git hooks
+bash ~/.copilot/skills/security-guardian/run.sh --check       # Security tools
+bash ~/.copilot/skills/code-review-guardian/run.sh --check     # Linters
+bash ~/.copilot/skills/platform-guardian/run.sh --check        # K8s tools
 ```
+
+See [PREREQUISITES.md](PREREQUISITES.md) for installing any missing tools.
 
 ---
 
@@ -342,13 +344,11 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
 │   └── delivery-guardian.instructions.md
 └── skills/                              ← Operational tooling
     ├── security-guardian/               ← Semgrep, Gitleaks, Trivy
-    │   ├── setup.sh
-    │   ├── install-hooks.sh
-    │   └── hooks/pre-push
+    │   └── run.sh
     ├── code-review-guardian/            ← ESLint, Pylint, Clippy
-    │   └── setup.sh
+    │   └── run.sh
     └── platform-guardian/               ← kube-bench, kube-score, polaris
-        └── setup.sh
+        └── run.sh
 ```
 
 ---

@@ -20,8 +20,6 @@ tools:
   - "bash(cargo clippy *)"
   - "bash(dotnet format *)"
   - "bash(checkstyle *)"
-  - "bash(bash ~/.copilot/skills/code-review-guardian/setup.sh --scan)"
-  - "bash(bash ~/.copilot/skills/code-review-guardian/setup.sh --check)"
 ---
 
 # Code Review Guardian
@@ -67,9 +65,31 @@ cd [original-directory]
 git worktree remove /tmp/code-review-*
 ```
 
-### Step 1: Run the full scan (MANDATORY)
+### Step 1: Run linters (MANDATORY)
+
+Run linters via the skill:
 ```bash
-bash ~/.copilot/skills/code-review-guardian/setup.sh --scan
+bash ~/.copilot/skills/code-review-guardian/run.sh --scan
+```
+
+Or run each linter directly if the skill is not available:
+
+```bash
+# JavaScript/TypeScript
+eslint . --no-error-on-unmatched-pattern --format compact
+
+# Python
+ruff check .
+pylint --disable=C0114,C0115,C0116 --score=yes $(find . -name "*.py" -not -path "*/venv/*" | head -20)
+
+# Rust
+cargo clippy --message-format=short
+
+# C#
+dotnet format --verify-no-changes --verbosity minimal
+
+# Java (Maven)
+mvn checkstyle:check -q
 ```
 
 **Phase 1 — Linters (PARALLEL):**

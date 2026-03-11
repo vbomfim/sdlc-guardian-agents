@@ -6,6 +6,6 @@ ALL code review tasks (quality checks, linting, design review, code analysis) MU
 
 **Trigger words:** "review code", "check code quality", "lint", "code review", "review my changes", "review this PR"
 
-**Do NOT** run linters directly, invoke the code-review-guardian skill for reviews, or do your own pre-analysis. The agent runs the linters, then analyzes architecture, design, testing, naming, performance, and documentation against Google Engineering Practices, Microsoft guidelines, and Clean Code principles.
+**Do NOT** run linters yourself or do your own pre-analysis. The agent runs the linters, then analyzes architecture, design, testing, naming, performance, and documentation against Google Engineering Practices, Microsoft guidelines, and Clean Code principles.
 
 After the agent reports, you act on the findings (apply auto-fixes, create issues, refactor code).

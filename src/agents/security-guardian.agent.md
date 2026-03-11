@@ -23,8 +23,6 @@ tools:
   - "bash(bandit *)"
   - "bash(safety *)"
   - "bash(cargo deny *)"
-  - "bash(bash ~/.copilot/skills/security-guardian/setup.sh --scan)"
-  - "bash(bash ~/.copilot/skills/security-guardian/setup.sh --check)"
 ---
 
 # Security Guardian
@@ -57,8 +55,30 @@ cd /tmp/security-review-*
 The scan runs in two phases for speed:
 
 ### Step 1: Run the full scan (MANDATORY — always run this first)
+
+Run the scan pipeline via the skill:
 ```bash
-bash ~/.copilot/skills/security-guardian/setup.sh --scan
+bash ~/.copilot/skills/security-guardian/run.sh --scan
+```
+
+Or run each tool directly if the skill is not available:
+
+```bash
+# SAST (Static Analysis)
+semgrep scan --config=auto --severity ERROR --severity WARNING .
+
+# Secret Detection
+gitleaks detect --source=. --no-banner
+
+# Vulnerability Scanning
+trivy fs --severity CRITICAL,HIGH .
+
+# Dependency Audits (run whichever applies)
+npm audit --audit-level=moderate        # Node.js
+pip-audit                               # Python
+bandit -r . -ll --quiet                 # Python SAST
+cargo audit                             # Rust
+dotnet list package --vulnerable        # .NET
 ```
 
 **Phase 1 — Core scans (PARALLEL):**
@@ -127,8 +147,7 @@ Always end your review with a **structured handoff** that the default agent can 
 The findings above are ready for action. You can:
 1. Create GitHub issues for each finding (include the Source & Justification as context)
 2. Apply the suggested fixes directly
-3. Run `bash ~/.copilot/skills/security-guardian/setup.sh` to install scanning tools
-4. Run `bash ~/.copilot/skills/security-guardian/setup.sh --scan` to verify fixes
+3. Re-run scans to verify fixes
 ```
 
 This format ensures every finding is self-explanatory — the source and justification make it clear why the finding matters without requiring follow-up questions.
@@ -657,11 +676,7 @@ When a `[CUSTOM]` rule conflicts with an OWASP/WAF rule, the custom rule takes p
 
 ---
 
-## Automated Enforcement Tools
-
-Security Guardian provides guidance, but automated tools enforce it in CI/CD. Run `./tools/setup.sh` to install them, or `./tools/setup.sh --check` to see what's already installed.
-
-### Tool-to-Rule Mapping
+## Tool-to-Rule Mapping
 
 | Tool | Enforces | Type |
 |------|----------|------|
@@ -672,25 +687,8 @@ Security Guardian provides guidance, but automated tools enforce it in CI/CD. Ru
 | **cargo audit / cargo deny** | `[OWASP-A03]` — Rust crate vulnerabilities and license compliance | SCA |
 | **pip-audit / bandit / safety** | `[OWASP-A03]` supply chain, `[OWASP-A05]` injection — Python deps and SAST | SCA + SAST |
 | **dotnet list --vulnerable** | `[OWASP-A03]` — .NET NuGet package vulnerabilities | SCA |
-| **GitHub Actions workflow** | All of the above — runs automatically on PRs and pushes | CI/CD |
 
-### Quick Commands
-
-```bash
-# Install all tools for your project (auto-detects languages)
-./tools/setup.sh
-
-# Check what's installed
-./tools/setup.sh --check
-
-# Run a full security scan now
-./tools/setup.sh --scan
-
-# Install tools for ALL languages
-./tools/setup.sh --all
-```
-
-When running a **Code Review**, reference tool findings to validate your analysis. When in **Implementation** mode, suggest adding these tools to new projects.
+See [PREREQUISITES.md](../../PREREQUISITES.md) for installation instructions per platform.
 
 ---
 
