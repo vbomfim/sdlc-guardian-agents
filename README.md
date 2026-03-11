@@ -229,6 +229,10 @@ Deployment and operations specialist. Reviews deployment strategies (blue-green,
 
 ## Getting Started
 
+### Prerequisites
+
+See **[PREREQUISITES.md](PREREQUISITES.md)** for the complete setup guide — covers macOS, Linux, and Windows with install commands for all scanning and analysis tools used by the Guardians.
+
 ### Installation
 
 ```bash
