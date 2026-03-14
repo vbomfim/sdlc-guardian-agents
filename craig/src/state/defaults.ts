@@ -43,5 +43,6 @@ export function createDefaultState(): CraigState {
         info: 0,
       },
     },
+    last_reviewed_prs: {},
   };
 }

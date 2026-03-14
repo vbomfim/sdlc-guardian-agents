@@ -102,6 +102,7 @@ export const craigConfigSchema = z
         po_audit: z.boolean().default(true),
         auto_fix: z.boolean().default(true),
         dependency_updates: z.boolean().default(true),
+        pr_monitor: z.boolean().default(false),
       })
       .default({
         merge_review: true,
@@ -111,6 +112,7 @@ export const craigConfigSchema = z
         po_audit: true,
         auto_fix: true,
         dependency_updates: true,
+        pr_monitor: false,
       }),
 
     models: z

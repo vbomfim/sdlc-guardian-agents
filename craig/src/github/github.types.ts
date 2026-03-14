@@ -67,3 +67,43 @@ export interface RateLimitInfo {
   readonly remaining: number;
   readonly reset: Date;
 }
+
+// ---------------------------------------------------------------------------
+// Pull Request Types (PR Monitoring — Issue #33)
+// ---------------------------------------------------------------------------
+
+/** Represents an open pull request with metadata for monitoring. */
+export interface PullRequestInfo {
+  /** PR number. */
+  readonly number: number;
+  /** PR title. */
+  readonly title: string;
+  /** Head branch SHA (latest commit). */
+  readonly head_sha: string;
+  /** Head branch name. */
+  readonly head_ref: string;
+  /** Base branch name. */
+  readonly base_ref: string;
+  /** PR author login. */
+  readonly author: string;
+  /** PR HTML URL. */
+  readonly url: string;
+}
+
+/** Parameters for posting a PR review. */
+export interface CreatePRReviewParams {
+  /** PR number to review. */
+  readonly pull_number: number;
+  /** Review body (markdown). */
+  readonly body: string;
+  /** Review event type. */
+  readonly event: "COMMENT" | "APPROVE" | "REQUEST_CHANGES";
+}
+
+/** Reference to a posted PR review. */
+export interface PRReviewReference {
+  /** Review ID. */
+  readonly id: number;
+  /** HTML URL of the review. */
+  readonly url: string;
+}

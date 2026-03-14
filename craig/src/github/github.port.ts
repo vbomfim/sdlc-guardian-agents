@@ -11,8 +11,11 @@
 import type {
   CreateIssueParams,
   CreatePRParams,
+  CreatePRReviewParams,
   IssueReference,
   PRReference,
+  PRReviewReference,
+  PullRequestInfo,
   CommentReference,
   CommitInfo,
   CommitDiff,
@@ -28,6 +31,9 @@ export interface GitHubPort {
 
   // Pull Requests
   createDraftPR(params: CreatePRParams): Promise<PRReference>;
+  listOpenPRs(): Promise<PullRequestInfo[]>;
+  getPRDiff(pullNumber: number): Promise<string>;
+  postPRReview(params: CreatePRReviewParams): Promise<PRReviewReference>;
 
   // Review Comments
   createCommitComment(sha: string, body: string): Promise<CommentReference>;

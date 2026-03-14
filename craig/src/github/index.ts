@@ -10,8 +10,11 @@ export type { GitHubPort } from "./github.port.js";
 export type {
   CreateIssueParams,
   CreatePRParams,
+  CreatePRReviewParams,
   IssueReference,
   PRReference,
+  PRReviewReference,
+  PullRequestInfo,
   CommentReference,
   CommitInfo,
   CommitDiff,

@@ -15,8 +15,11 @@ import type { GitHubPort } from "./github.port.js";
 import type {
   CreateIssueParams,
   CreatePRParams,
+  CreatePRReviewParams,
   IssueReference,
   PRReference,
+  PRReviewReference,
+  PullRequestInfo,
   CommentReference,
   CommitInfo,
   CommitDiff,
@@ -201,6 +204,65 @@ export class GitHubAdapter implements GitHubPort {
     return {
       url: response.data.html_url,
       number: response.data.number,
+    };
+  }
+
+  async listOpenPRs(): Promise<PullRequestInfo[]> {
+    const allPRs: PullRequestInfo[] = [];
+    let page = 1;
+
+    while (page <= MAX_PAGES) {
+      const response = await this.execute(() =>
+        this.octokit.rest.pulls.list({
+          owner: this.owner,
+          repo: this.repo,
+          state: "open",
+          per_page: PAGE_SIZE,
+          page,
+        }),
+      );
+
+      const prs = response.data.map(mapPullRequest);
+      allPRs.push(...prs);
+
+      if (response.data.length < PAGE_SIZE) {
+        break;
+      }
+
+      page++;
+    }
+
+    return allPRs;
+  }
+
+  async getPRDiff(pullNumber: number): Promise<string> {
+    const response = await this.execute(() =>
+      this.octokit.rest.pulls.get({
+        owner: this.owner,
+        repo: this.repo,
+        pull_number: pullNumber,
+        mediaType: { format: "diff" },
+      }),
+    );
+
+    // When using diff media type, data is the raw diff string
+    return response.data as unknown as string;
+  }
+
+  async postPRReview(params: CreatePRReviewParams): Promise<PRReviewReference> {
+    const response = await this.execute(() =>
+      this.octokit.rest.pulls.createReview({
+        owner: this.owner,
+        repo: this.repo,
+        pull_number: params.pull_number,
+        body: params.body,
+        event: params.event,
+      }),
+    );
+
+    return {
+      id: response.data.id,
+      url: response.data.html_url,
     };
   }
 
@@ -462,4 +524,26 @@ interface GitHubDiffFileItem {
   additions: number;
   deletions: number;
   patch?: string;
+}
+
+interface GitHubPullRequestItem {
+  number: number;
+  title: string;
+  head: { sha: string; ref: string };
+  base: { ref: string };
+  user: { login: string } | null;
+  html_url: string;
+}
+
+/** Map a GitHub API pull request to our PullRequestInfo type. */
+function mapPullRequest(pr: GitHubPullRequestItem): PullRequestInfo {
+  return {
+    number: pr.number,
+    title: pr.title,
+    head_sha: pr.head.sha,
+    head_ref: pr.head.ref,
+    base_ref: pr.base.ref,
+    author: pr.user?.login ?? "unknown",
+    url: pr.html_url,
+  };
 }
