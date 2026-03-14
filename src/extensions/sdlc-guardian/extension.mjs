@@ -191,24 +191,29 @@ const session = await joinSession({
         }
       }
 
-      // After a git commit, enforce post-implementation reviews
+      // After a git commit, enforce post-implementation reviews (only for source code changes)
       if (input.toolName === "bash") {
         const cmd = String(input.toolArgs?.command || "");
         if (/git\s+commit/.test(cmd) && editedFiles.length > 0) {
-          const fileCount = editedFiles.length;
-          const secWarning = securitySensitiveEdits
-            ? " (includes security-sensitive files!)"
-            : "";
+          // Filter: only trigger for source code files, not configs/docs/extensions
+          const NON_CODE_PATTERNS = /\.(md|yaml|yml|json|svg|txt|mjs)$|\.copilot\/|extension\.|\.gitignore/i;
+          const codeFiles = editedFiles.filter(f => !NON_CODE_PATTERNS.test(f));
 
-          await session.log(
-            `🛡️ Committed ${fileCount} files${secWarning}. Enforcing post-implementation gate.`,
-            { level: "info" }
-          );
+          if (codeFiles.length > 0) {
+            const secWarning = securitySensitiveEdits
+              ? " (includes security-sensitive files!)"
+              : "";
 
-          // ENFORCE: trigger review pipeline
-          setTimeout(() => session.send({
-            prompt: `Post-implementation gate triggered. ${fileCount} files committed${secWarning}. Invoke QA Guardian + Security Guardian + Code Review Guardian in parallel (background, model: claude-opus-4.6). Code Review uses dual-model: Opus 4.6 + GPT 5.4.`
-          }), 0);
+            await session.log(
+              `🛡️ Committed ${codeFiles.length} source files${secWarning}. Enforcing post-implementation gate.`,
+              { level: "info" }
+            );
+
+            // ENFORCE: trigger review pipeline
+            setTimeout(() => session.send({
+              prompt: `Post-implementation gate triggered. ${codeFiles.length} source files committed${secWarning}. Invoke QA Guardian + Security Guardian + Code Review Guardian in parallel (background, model: claude-opus-4.6). Code Review uses dual-model: Opus 4.6 + GPT 5.4.`
+            }), 0);
+          }
 
           // Reset tracking
           editedFiles = [];
