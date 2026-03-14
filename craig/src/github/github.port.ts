@@ -22,6 +22,7 @@ import type {
 export interface GitHubPort {
   // Issues
   createIssue(params: CreateIssueParams): Promise<IssueReference>;
+  createIssueComment(issueNumber: number, body: string): Promise<CommentReference>;
   findExistingIssue(title: string): Promise<IssueReference | null>;
   listOpenIssues(labels?: string[]): Promise<IssueReference[]>;
 

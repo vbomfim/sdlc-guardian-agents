@@ -99,6 +99,22 @@ export class GitHubAdapter implements GitHubPort {
     };
   }
 
+  async createIssueComment(
+    issueNumber: number,
+    body: string,
+  ): Promise<CommentReference> {
+    const response = await this.execute(() =>
+      this.octokit.rest.issues.createComment({
+        owner: this.owner,
+        repo: this.repo,
+        issue_number: issueNumber,
+        body,
+      }),
+    );
+
+    return { url: response.data.html_url };
+  }
+
   async findExistingIssue(title: string): Promise<IssueReference | null> {
     let page = 1;
 
