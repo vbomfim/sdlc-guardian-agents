@@ -3,11 +3,15 @@
  *
  * Bootstraps the Craig MCP server: loads config, initializes state,
  * creates component instances, wires them together, and connects
- * to the stdio transport.
+ * to either stdio transport (default) or daemon mode (SSE transport).
+ *
+ * Usage:
+ *   node dist/index.js                    # Stdio mode (MCP child process)
+ *   node dist/index.js --daemon --port 3001  # Daemon mode (SSE over HTTP)
  *
  * [HEXAGONAL] This is the composition root — the only place where
  * concrete implementations are instantiated and wired together.
- * [SECURITY] Never console.log() — MCP stdio uses stdout for JSON-RPC.
+ * [SECURITY] Never console.log() in stdio mode — stdout is JSON-RPC.
  * All logging goes to stderr via console.error().
  *
  * @module index
@@ -18,47 +22,81 @@ import { ConfigLoader } from "./config/index.js";
 import { FileStateAdapter } from "./state/index.js";
 import { CopilotAdapter } from "./copilot/index.js";
 import { createCraigServer } from "./core/index.js";
+import { parseCliArgs } from "./cli/index.js";
+import { startDaemonServer } from "./daemon/index.js";
 
 /**
  * Bootstrap and start the Craig MCP server.
  *
  * Sequence:
- * 1. Load config from craig.config.yaml
- * 2. Initialize state from .craig-state.json
- * 3. Create component adapters
- * 4. Wire dependencies into MCP server
- * 5. Connect via stdio transport
+ * 1. Parse CLI args to determine transport mode
+ * 2. Load config from craig.config.yaml
+ * 3. Initialize state from .craig-state.json
+ * 4. Create component adapters
+ * 5. Wire dependencies into MCP server
+ * 6a. Stdio mode: connect via StdioServerTransport (default)
+ * 6b. Daemon mode: start HTTP server with SSE transport
  *
  * Exits with code 1 on fatal errors (missing config, etc.).
  */
 async function main(): Promise<void> {
   try {
-    // 1. Load config
+    // 1. Parse CLI args
+    const args = parseCliArgs(process.argv.slice(2));
+
+    // 2. Load config
     const config = new ConfigLoader();
     await config.load();
     const cfg = config.get();
 
-    // [SECURITY] Log to stderr — stdout is for MCP JSON-RPC
+    // [SECURITY] Log to stderr — stdout is for MCP JSON-RPC in stdio mode
     console.error(`[Craig] Starting for repo: ${cfg.repo}`);
 
-    // 2. Initialize state
+    // 3. Initialize state
     const state = new FileStateAdapter(".craig-state.json");
     await state.load();
 
-    // 3. Create Copilot adapter
+    // 4. Create Copilot adapter
     const copilot = new CopilotAdapter({
       defaultModel: cfg.models.default,
       guardiansPath: cfg.guardians.path,
     });
 
-    // 4. Create and configure MCP server
+    // 5. Create and configure MCP server
     const server = createCraigServer({ state, config, copilot });
 
-    // 5. Connect via stdio transport
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
+    if (args.daemon) {
+      // 6b. Daemon mode: SSE transport over HTTP
+      const { shutdown } = await startDaemonServer(server, {
+        port: args.port,
+      });
 
-    console.error("[Craig] MCP server connected via stdio");
+      console.error(
+        `[Craig] Daemon mode: listening on http://127.0.0.1:${args.port}`,
+      );
+      console.error(`[Craig] SSE endpoint: http://127.0.0.1:${args.port}/sse`);
+      console.error(
+        `[Craig] Health check: http://127.0.0.1:${args.port}/health`,
+      );
+
+      // Graceful shutdown on SIGTERM/SIGINT (systemd, pm2, Ctrl+C)
+      const handleShutdown = (): void => {
+        console.error("[Craig] Shutting down daemon...");
+        void shutdown().then(() => {
+          console.error("[Craig] Daemon stopped.");
+          process.exit(0);
+        });
+      };
+
+      process.on("SIGTERM", handleShutdown);
+      process.on("SIGINT", handleShutdown);
+    } else {
+      // 6a. Stdio mode: standard MCP child process transport (default)
+      const transport = new StdioServerTransport();
+      await server.connect(transport);
+
+      console.error("[Craig] MCP server connected via stdio");
+    }
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : String(error);
