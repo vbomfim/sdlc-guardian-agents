@@ -36,3 +36,16 @@ export type {
 export type { LinterDefinition, FixerResult } from "./auto-fix/auto-fix.types.js";
 export { SUPPORTED_LINTERS } from "./auto-fix/auto-fix.types.js";
 export { FixVerificationError, GitOpsError } from "./auto-fix/auto-fix.errors.js";
+export { PatternCheckAnalyzer } from "./pattern-check/index.js";
+export { FilePatternStore } from "./pattern-check/file-pattern-store.js";
+export type { PatternStorePort } from "./pattern-check/pattern-store.port.js";
+export type {
+  PatternSet,
+  PatternRule,
+  PatternSeverity,
+  PatternDeviation,
+} from "./pattern-check/types.js";
+export {
+  PatternStoreCorruptedError,
+  PatternLearningError,
+} from "./pattern-check/errors.js";
