@@ -112,6 +112,7 @@ export const repoEntrySchema = z.object({
       delivery_audit: z.boolean().optional(),
         auto_develop: z.boolean().optional(),
         platform_audit: z.boolean().optional(),
+        autonomous_workflow: z.boolean().optional(),
     })
     .optional(),
 
@@ -179,6 +180,7 @@ export const craigConfigSchema = z
         delivery_audit: z.boolean().default(false),
           auto_develop: z.boolean().default(false),
           platform_audit: z.boolean().default(false),
+          autonomous_workflow: z.boolean().default(false),
       })
       .default({
         merge_review: true,
@@ -192,6 +194,7 @@ export const craigConfigSchema = z
         delivery_audit: false,
           auto_develop: false,
           platform_audit: false,
+          autonomous_workflow: false,
       }),
 
     models: z
