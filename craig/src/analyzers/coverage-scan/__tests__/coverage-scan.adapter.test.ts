@@ -150,9 +150,9 @@ function createMockState(): StatePort {
 
 function createDefaultContext(): AnalyzerContext {
   return {
-    trigger: "schedule",
-    repo: "owner/repo",
-    branch: "main",
+    task: "coverage_scan",
+    taskId: "test-id",
+    timestamp: new Date().toISOString(),
   };
 }
 
@@ -186,7 +186,7 @@ describe("AC1: Invoke QA Guardian with coverage analysis prompt", () => {
   });
 
   it("should invoke QA Guardian agent via CopilotPort", async () => {
-    await analyzer.analyze(context);
+    await analyzer.execute(context);
 
     expect(deps.copilot.invoke).toHaveBeenCalledTimes(1);
     expect(deps.copilot.invoke).toHaveBeenCalledWith(
@@ -197,7 +197,7 @@ describe("AC1: Invoke QA Guardian with coverage analysis prompt", () => {
   });
 
   it("should include coverage analysis prompt in invocation", async () => {
-    await analyzer.analyze(context);
+    await analyzer.execute(context);
 
     const invokeCall = vi.mocked(deps.copilot.invoke).mock.calls[0]![0];
     expect(invokeCall.prompt).toContain(
@@ -209,7 +209,7 @@ describe("AC1: Invoke QA Guardian with coverage analysis prompt", () => {
   });
 
   it("should parse the QA Guardian response", async () => {
-    await analyzer.analyze(context);
+    await analyzer.execute(context);
 
     expect(deps.parser.parse).toHaveBeenCalledTimes(1);
     expect(deps.parser.parse).toHaveBeenCalledWith(
@@ -219,24 +219,23 @@ describe("AC1: Invoke QA Guardian with coverage analysis prompt", () => {
   });
 
   it("should return success result with findings", async () => {
-    const result = await analyzer.analyze(context);
+    const result = await analyzer.execute(context);
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.analyzer).toBe("coverage-scan");
       expect(result.findings.length).toBe(2);
-      expect(result.durationMs).toBeGreaterThanOrEqual(0);
+      expect(result.duration_ms).toBeGreaterThanOrEqual(0);
     }
   });
 
   it("should support manual trigger", async () => {
     const manualContext: AnalyzerContext = {
-      trigger: "manual",
-      repo: "owner/repo",
-      branch: "main",
+      task: "coverage_scan",
+      taskId: "manual-test-id",
+      timestamp: new Date().toISOString(),
     };
 
-    const result = await analyzer.analyze(manualContext);
+    const result = await analyzer.execute(manualContext);
     expect(result.success).toBe(true);
   });
 });
@@ -257,13 +256,13 @@ describe("AC2: Issues include Given/When/Then acceptance criteria", () => {
   });
 
   it("should create a GitHub issue for each coverage gap", async () => {
-    await analyzer.analyze(context);
+    await analyzer.execute(context);
 
     expect(deps.github.createIssue).toHaveBeenCalledTimes(2);
   });
 
   it("should include Given/When/Then in issue body", async () => {
-    await analyzer.analyze(context);
+    await analyzer.execute(context);
 
     const firstCall = vi.mocked(deps.github.createIssue).mock.calls[0]![0];
     expect(firstCall.body).toContain("Given");
@@ -272,7 +271,7 @@ describe("AC2: Issues include Given/When/Then acceptance criteria", () => {
   });
 
   it("should include gap description in issue title", async () => {
-    await analyzer.analyze(context);
+    await analyzer.execute(context);
 
     const firstCall = vi.mocked(deps.github.createIssue).mock.calls[0]![0];
     expect(firstCall.title).toContain(
@@ -281,14 +280,14 @@ describe("AC2: Issues include Given/When/Then acceptance criteria", () => {
   });
 
   it("should include 'coverage-gap' label on issues", async () => {
-    await analyzer.analyze(context);
+    await analyzer.execute(context);
 
     const firstCall = vi.mocked(deps.github.createIssue).mock.calls[0]![0];
     expect(firstCall.labels).toContain("coverage-gap");
   });
 
   it("should include severity-based label on issues", async () => {
-    await analyzer.analyze(context);
+    await analyzer.execute(context);
 
     const calls = vi.mocked(deps.github.createIssue).mock.calls;
 
@@ -300,35 +299,35 @@ describe("AC2: Issues include Given/When/Then acceptance criteria", () => {
   });
 
   it("should include 'craig' label on issues", async () => {
-    await analyzer.analyze(context);
+    await analyzer.execute(context);
 
     const firstCall = vi.mocked(deps.github.createIssue).mock.calls[0]![0];
     expect(firstCall.labels).toContain("craig");
   });
 
-  it("should track issue URL in findings", async () => {
-    const result = await analyzer.analyze(context);
+  it("should track findings with correct severity and category", async () => {
+    const result = await analyzer.execute(context);
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.findings[0]!.issueUrl).toBe(
-        "https://github.com/owner/repo/issues/42",
-      );
-      expect(result.findings[0]!.issueNumber).toBe(42);
+      expect(result.findings[0]!.severity).toBe("high");
+      expect(result.findings[0]!.category).toBe("coverage-gap");
+      expect(result.findings[0]!.issue).toContain("/upload endpoint");
+      expect(result.findings[0]!.source).toBe("qa-guardian");
     }
   });
 
-  it("should record issue count in result", async () => {
-    const result = await analyzer.analyze(context);
+  it("should record issue count in summary", async () => {
+    const result = await analyzer.execute(context);
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.issuesCreated).toBe(2);
+      expect(result.summary).toContain("2");
     }
   });
 
   it("should include gap description and risk in issue body", async () => {
-    await analyzer.analyze(context);
+    await analyzer.execute(context);
 
     const firstCall = vi.mocked(deps.github.createIssue).mock.calls[0]![0];
     expect(firstCall.body).toContain("/upload endpoint");
@@ -359,7 +358,7 @@ describe("AC3: No test framework detected", () => {
   });
 
   it("should create a single 'Setup test framework' issue", async () => {
-    await analyzer.analyze(context);
+    await analyzer.execute(context);
 
     expect(deps.github.createIssue).toHaveBeenCalledTimes(1);
     const call = vi.mocked(deps.github.createIssue).mock.calls[0]![0];
@@ -367,19 +366,19 @@ describe("AC3: No test framework detected", () => {
   });
 
   it("should include language recommendations in the issue body", async () => {
-    await analyzer.analyze(context);
+    await analyzer.execute(context);
 
     const call = vi.mocked(deps.github.createIssue).mock.calls[0]![0];
     expect(call.body).toMatch(/test framework/i);
   });
 
   it("should return exactly one finding", async () => {
-    const result = await analyzer.analyze(context);
+    const result = await analyzer.execute(context);
 
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.findings).toHaveLength(1);
-      expect(result.issuesCreated).toBe(1);
+      expect(result.summary).toMatch(/issue|framework/i);
     }
   });
 });
@@ -407,24 +406,23 @@ describe("Edge: Full coverage — no issues created", () => {
   });
 
   it("should not create any issues", async () => {
-    await analyzer.analyze(context);
+    await analyzer.execute(context);
 
     expect(deps.github.createIssue).not.toHaveBeenCalled();
   });
 
   it("should return success with zero findings", async () => {
-    const result = await analyzer.analyze(context);
+    const result = await analyzer.execute(context);
 
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.findings).toHaveLength(0);
-      expect(result.issuesCreated).toBe(0);
-      expect(result.issuesSkipped).toBe(0);
+      expect(result.summary.toLowerCase()).toContain("no gaps");
     }
   });
 
   it("should include 'full coverage' in summary", async () => {
-    const result = await analyzer.analyze(context);
+    const result = await analyzer.execute(context);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -458,23 +456,22 @@ describe("Edge: Copilot invocation failure", () => {
   });
 
   it("should return failure result", async () => {
-    const result = await analyzer.analyze(context);
+    const result = await analyzer.execute(context);
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error).toContain("Copilot");
-      expect(result.analyzer).toBe("coverage-scan");
+      expect(result.summary).toContain("Copilot");
     }
   });
 
   it("should not create any issues", async () => {
-    await analyzer.analyze(context);
+    await analyzer.execute(context);
 
     expect(deps.github.createIssue).not.toHaveBeenCalled();
   });
 
   it("should not call the parser", async () => {
-    await analyzer.analyze(context);
+    await analyzer.execute(context);
 
     expect(deps.parser.parse).not.toHaveBeenCalled();
   });
@@ -505,20 +502,20 @@ describe("Edge: Duplicate issue already exists", () => {
   });
 
   it("should skip creating issue for existing gap", async () => {
-    const result = await analyzer.analyze(context);
+    const result = await analyzer.execute(context);
 
     // Only one createIssue call (for the second gap)
     expect(deps.github.createIssue).toHaveBeenCalledTimes(1);
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.issuesCreated).toBe(1);
-      expect(result.issuesSkipped).toBe(1);
+      expect(result.summary).toContain("1");
+      expect(result.summary).toMatch(/skip/i);
     }
   });
 
   it("should still include skipped gap in findings", async () => {
-    const result = await analyzer.analyze(context);
+    const result = await analyzer.execute(context);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -548,11 +545,11 @@ describe("Edge: GitHub API failure during issue creation", () => {
   });
 
   it("should return failure result when issue creation fails", async () => {
-    const result = await analyzer.analyze(context);
+    const result = await analyzer.execute(context);
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error).toContain("GitHub");
+      expect(result.summary).toContain("GitHub");
     }
   });
 });
@@ -573,19 +570,19 @@ describe("State tracking", () => {
   });
 
   it("should add findings to state", async () => {
-    await analyzer.analyze(context);
+    await analyzer.execute(context);
 
     expect(deps.state.addFinding).toHaveBeenCalledTimes(2);
   });
 
   it("should save state after analysis", async () => {
-    await analyzer.analyze(context);
+    await analyzer.execute(context);
 
     expect(deps.state.save).toHaveBeenCalled();
   });
 
   it("should record finding with correct source", async () => {
-    await analyzer.analyze(context);
+    await analyzer.execute(context);
 
     const firstCall = vi.mocked(deps.state.addFinding).mock.calls[0]![0];
     expect(firstCall.source).toBe("qa-guardian");
@@ -618,7 +615,7 @@ describe("Factory function: createCoverageScanAnalyzer", () => {
     const deps = createDeps();
     const analyzer = createCoverageScanAnalyzer(deps);
 
-    expect(typeof analyzer.analyze).toBe("function");
+    expect(typeof analyzer.execute).toBe("function");
     expect(typeof analyzer.name).toBe("string");
   });
 });

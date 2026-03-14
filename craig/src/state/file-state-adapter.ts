@@ -249,7 +249,7 @@ export class FileStateAdapter implements StatePort {
    */
   private updateExistingFinding(index: number, detectedAt: string): void {
     const updated = [...this.state.findings];
-    updated[index] = { ...updated[index], detected_at: detectedAt };
+    updated[index] = { ...updated[index]!, detected_at: detectedAt };
     this.state = { ...this.state, findings: updated };
   }
 

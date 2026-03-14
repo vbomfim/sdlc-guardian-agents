@@ -285,7 +285,7 @@ export class ConfigLoader implements ConfigPort {
     let current: Record<string, unknown> = obj;
 
     for (let i = 0; i < keys.length - 1; i++) {
-      const key = keys[i];
+      const key = keys[i]!;
       if (
         current[key] === undefined ||
         current[key] === null ||
@@ -296,7 +296,7 @@ export class ConfigLoader implements ConfigPort {
       current = current[key] as Record<string, unknown>;
     }
 
-    current[keys[keys.length - 1]] = value;
+    current[keys[keys.length - 1]!] = value;
   }
 
   /** Type guard for Node.js errors with a code property. */

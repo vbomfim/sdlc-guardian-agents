@@ -247,7 +247,7 @@ describe("AC1: Invokes PO Guardian in audit mode", () => {
 
     const result = await analyzer.execute(createScheduleContext());
 
-    expect(result.task).toBe("tech_debt_audit");
+
   });
 
   it("should have name property set to tech_debt_audit", () => {
@@ -730,8 +730,8 @@ describe("AnalyzerResult structure", () => {
 
     const result = await analyzer.execute(createScheduleContext());
 
-    expect(result.actions_taken.length).toBe(5);
-    for (const action of result.actions_taken) {
+    expect(result.actions.length).toBe(5);
+    for (const action of result.actions) {
       expect(action.type).toBe("issue_created");
       expect(action.url).toContain("github.com");
     }
@@ -776,7 +776,7 @@ describe("Edge: No findings", () => {
 
     expect(result.success).toBe(true);
     expect(result.findings).toHaveLength(0);
-    expect(result.actions_taken).toHaveLength(0);
+    expect(result.actions).toHaveLength(0);
     expect(github.createIssue).not.toHaveBeenCalled();
   });
 });
@@ -810,7 +810,7 @@ describe("Edge: PO Guardian failure", () => {
     const result = await analyzer.execute(createScheduleContext());
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("PO Guardian");
+    expect(result.summary).toContain("PO Guardian");
     expect(result.findings).toHaveLength(0);
     expect(github.createIssue).not.toHaveBeenCalled();
   });
@@ -835,7 +835,7 @@ describe("Edge: PO Guardian failure", () => {
     const result = await analyzer.execute(createScheduleContext());
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("SDK crashed");
+    expect(result.summary).toContain("SDK crashed");
   });
 });
 
@@ -874,7 +874,7 @@ describe("Edge: GitHub issue creation failure", () => {
     // Should still succeed overall — partial failure is OK
     expect(result.success).toBe(true);
     // 4 issues created (1 failed)
-    expect(result.actions_taken.length).toBe(4);
+    expect(result.actions.length).toBe(4);
   });
 
   it("should still record all findings in state even when issue creation fails", async () => {

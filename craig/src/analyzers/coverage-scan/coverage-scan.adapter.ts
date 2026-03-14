@@ -23,6 +23,7 @@ import type {
   AnalyzerContext,
   AnalyzerResult,
   AnalyzerFinding,
+  ActionTaken,
 } from "../analyzer.types.js";
 import type { CoverageScanDeps } from "./coverage-scan.types.js";
 import type { CoverageGap, Severity } from "../../result-parser/index.js";
@@ -88,7 +89,7 @@ export class CoverageScanAnalyzer implements AnalyzerPort {
    *
    * @throws Never — errors are captured in the result
    */
-  async analyze(context: AnalyzerContext): Promise<AnalyzerResult> {
+  async execute(context: AnalyzerContext): Promise<AnalyzerResult> {
     const startTime = performance.now();
 
     try {
@@ -96,7 +97,7 @@ export class CoverageScanAnalyzer implements AnalyzerPort {
       const invokeResult = await this.copilot.invoke({
         agent: "qa-guardian",
         prompt: COVERAGE_ANALYSIS_PROMPT,
-        context: `Repository: ${context.repo}, Branch: ${context.branch}, Trigger: ${context.trigger}`,
+        context: `Task: ${context.task}, TaskId: ${context.taskId}, Timestamp: ${context.timestamp}`,
       });
 
       if (!invokeResult.success) {
@@ -145,6 +146,7 @@ export class CoverageScanAnalyzer implements AnalyzerPort {
     startTime: number,
   ): Promise<AnalyzerResult> {
     const findings: AnalyzerFinding[] = [];
+    const actions: ActionTaken[] = [];
     let issuesCreated = 0;
     let issuesSkipped = 0;
 
@@ -154,7 +156,7 @@ export class CoverageScanAnalyzer implements AnalyzerPort {
 
       if (existing) {
         // Duplicate — skip issue creation but still record finding
-        findings.push(this.toFinding(gap, existing.url, existing.number));
+        findings.push(this.toFinding(gap));
         issuesSkipped++;
         continue;
       }
@@ -169,7 +171,12 @@ export class CoverageScanAnalyzer implements AnalyzerPort {
         labels,
       });
 
-      findings.push(this.toFinding(gap, issueRef.url, issueRef.number));
+      findings.push(this.toFinding(gap));
+      actions.push({
+        type: "issue_created",
+        description: `Created issue #${issueRef.number}: ${title}`,
+        url: issueRef.url,
+      });
       issuesCreated++;
 
       // Record in state
@@ -190,13 +197,11 @@ export class CoverageScanAnalyzer implements AnalyzerPort {
 
     const durationMs = Math.round(performance.now() - startTime);
     return {
-      success: true as const,
-      analyzer: ANALYZER_NAME,
-      findings,
-      issuesCreated,
-      issuesSkipped,
-      durationMs,
+      success: true,
       summary: `Found ${findings.length} coverage gap(s). Created ${issuesCreated} issue(s), skipped ${issuesSkipped} duplicate(s).`,
+      findings,
+      actions,
+      duration_ms: durationMs,
     };
   }
 
@@ -216,28 +221,24 @@ export class CoverageScanAnalyzer implements AnalyzerPort {
     const title = "Setup test framework";
     const body = this.buildSetupFrameworkBody();
     const labels = this.buildLabels("high");
+    const actions: ActionTaken[] = [];
 
     const existing = await this.github.findExistingIssue(title);
     if (existing) {
       const durationMs = Math.round(performance.now() - startTime);
       return {
-        success: true as const,
-        analyzer: ANALYZER_NAME,
+        success: true,
+        summary: "No test framework detected. Issue already exists.",
         findings: [
           {
-            title,
-            body,
             severity: "high",
-            labels,
-            issueUrl: existing.url,
-            issueNumber: existing.number,
+            category: "coverage-gap",
+            issue: "No test framework detected — setup required",
+            source: "qa-guardian",
           },
         ],
-        issuesCreated: 0,
-        issuesSkipped: 1,
-        durationMs,
-        summary:
-          "No test framework detected. Issue already exists.",
+        actions: [],
+        duration_ms: durationMs,
       };
     }
 
@@ -245,6 +246,12 @@ export class CoverageScanAnalyzer implements AnalyzerPort {
       title,
       body,
       labels,
+    });
+
+    actions.push({
+      type: "issue_created",
+      description: `Created issue #${issueRef.number}: ${title}`,
+      url: issueRef.url,
     });
 
     this.state.addFinding({
@@ -262,23 +269,18 @@ export class CoverageScanAnalyzer implements AnalyzerPort {
 
     const durationMs = Math.round(performance.now() - startTime);
     return {
-      success: true as const,
-      analyzer: ANALYZER_NAME,
+      success: true,
+      summary: "No test framework detected. Created issue: Setup test framework.",
       findings: [
         {
-          title,
-          body,
           severity: "high",
-          labels,
-          issueUrl: issueRef.url,
-          issueNumber: issueRef.number,
+          category: "coverage-gap",
+          issue: "No test framework detected — setup required",
+          source: "qa-guardian",
         },
       ],
-      issuesCreated: 1,
-      issuesSkipped: 0,
-      durationMs,
-      summary:
-        "No test framework detected. Created issue: Setup test framework.",
+      actions,
+      duration_ms: durationMs,
     };
   }
 
@@ -294,13 +296,11 @@ export class CoverageScanAnalyzer implements AnalyzerPort {
     console.error("[Craig] Coverage scan: full coverage — no gaps found.");
 
     return {
-      success: true as const,
-      analyzer: ANALYZER_NAME,
-      findings: [],
-      issuesCreated: 0,
-      issuesSkipped: 0,
-      durationMs,
+      success: true,
       summary: "Full coverage — no gaps found.",
+      findings: [],
+      actions: [],
+      duration_ms: durationMs,
     };
   }
 
@@ -398,16 +398,12 @@ export class CoverageScanAnalyzer implements AnalyzerPort {
    */
   private toFinding(
     gap: CoverageGap,
-    issueUrl: string,
-    issueNumber: number,
   ): AnalyzerFinding {
     return {
-      title: this.buildIssueTitle(gap),
-      body: this.buildIssueBody(gap),
       severity: gap.risk,
-      labels: this.buildLabels(gap.risk),
-      issueUrl,
-      issueNumber,
+      category: "coverage-gap",
+      issue: gap.gap,
+      source: "qa-guardian",
     };
   }
 
@@ -426,10 +422,11 @@ export class CoverageScanAnalyzer implements AnalyzerPort {
    */
   private failureResult(error: string, startTime: number): AnalyzerResult {
     return {
-      success: false as const,
-      analyzer: ANALYZER_NAME,
-      error,
-      durationMs: Math.round(performance.now() - startTime),
+      success: false,
+      summary: error,
+      findings: [],
+      actions: [],
+      duration_ms: Math.round(performance.now() - startTime),
     };
   }
 }

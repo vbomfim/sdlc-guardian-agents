@@ -22,6 +22,9 @@
   "dependencies": {
     "@github/copilot-sdk": "^0.1.32",
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "@octokit/rest": "^22.0.1",
+    "@types/node-cron": "^3.0.11",
+    "node-cron": "^4.2.1",
     "yaml": "^2.8.2",
     "zod": "^4.3.6"
   }

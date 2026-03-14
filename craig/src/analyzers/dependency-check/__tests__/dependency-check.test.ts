@@ -19,6 +19,7 @@ import { DependencyCheckAnalyzer } from "../dependency-check.adapter.js";
 import type { ShellPort, CommandResult } from "../dependency-check.types.js";
 import type { GitHubPort } from "../../../github/index.js";
 import type { StatePort } from "../../../state/index.js";
+import type { AnalyzerContext } from "../../analyzer.types.js";
 import {
   createMockState,
   createMockGitHub,
@@ -27,6 +28,12 @@ import {
   PIP_AUDIT_OUTPUT,
   CARGO_AUDIT_OUTPUT,
 } from "./mock-helpers.js";
+
+const createContext = (): AnalyzerContext => ({
+  task: "dependency_check",
+  taskId: "test-id",
+  timestamp: new Date().toISOString(),
+});
 
 /* ------------------------------------------------------------------ */
 /*  AC4: Detect package manager                                        */
@@ -59,13 +66,13 @@ describe("AC4: Detect package manager", () => {
       shell,
       repoRoot: "/repo",
     });
-    const result = await analyzer.analyze();
+    const result = await analyzer.execute(createContext());
 
     expect(shell.run).toHaveBeenCalledWith(
       "npm",
       expect.arrayContaining(["audit"]),
     );
-    expect(result.findings_count).toBeGreaterThan(0);
+    expect(result.findings.length).toBeGreaterThan(0);
   });
 
   it("detects pip when requirements.txt exists", async () => {
@@ -84,13 +91,13 @@ describe("AC4: Detect package manager", () => {
       shell,
       repoRoot: "/repo",
     });
-    const result = await analyzer.analyze();
+    const result = await analyzer.execute(createContext());
 
     expect(shell.run).toHaveBeenCalledWith(
       "pip-audit",
       expect.arrayContaining(["--format=json"]),
     );
-    expect(result.findings_count).toBeGreaterThan(0);
+    expect(result.findings.length).toBeGreaterThan(0);
   });
 
   it("detects pip when pyproject.toml exists", async () => {
@@ -109,7 +116,7 @@ describe("AC4: Detect package manager", () => {
       shell,
       repoRoot: "/repo",
     });
-    const result = await analyzer.analyze();
+    const result = await analyzer.execute(createContext());
 
     expect(shell.run).toHaveBeenCalledWith(
       "pip-audit",
@@ -133,7 +140,7 @@ describe("AC4: Detect package manager", () => {
       shell,
       repoRoot: "/repo",
     });
-    const result = await analyzer.analyze();
+    const result = await analyzer.execute(createContext());
 
     expect(shell.run).toHaveBeenCalledWith(
       "cargo",
@@ -160,12 +167,13 @@ describe("Edge: No package manager detected", () => {
       shell,
       repoRoot: "/repo",
     });
-    const result = await analyzer.analyze();
+    const result = await analyzer.execute(createContext());
 
-    expect(result.findings_count).toBe(0);
-    expect(result.issues_created).toBe(0);
-    expect(result.prs_created).toBe(0);
+    expect(result.findings.length).toBe(0);
+    expect(result.actions.filter(a => a.type === "issue_created").length).toBe(0);
+    expect(result.actions.filter(a => a.type === "pr_opened").length).toBe(0);
     expect(result.summary).toContain("no dependencies found");
+    expect(result.success).toBe(true);
   });
 });
 
@@ -200,12 +208,12 @@ describe("Edge: Multiple package managers", () => {
       shell,
       repoRoot: "/repo",
     });
-    const result = await analyzer.analyze();
+    const result = await analyzer.execute(createContext());
 
     expect(shell.run).toHaveBeenCalledWith("npm", expect.arrayContaining(["audit"]));
     expect(shell.run).toHaveBeenCalledWith("cargo", expect.arrayContaining(["audit"]));
     // npm fixture has 1 vuln, cargo fixture has 1 vuln = 2 total
-    expect(result.findings_count).toBe(2);
+    expect(result.findings.length).toBe(2);
   });
 });
 
@@ -242,7 +250,7 @@ describe("AC1: Detect vulnerable dependencies", () => {
       shell,
       repoRoot: "/repo",
     });
-    await analyzer.analyze();
+    await analyzer.execute(createContext());
 
     expect(github.createIssue).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -262,7 +270,7 @@ describe("AC1: Detect vulnerable dependencies", () => {
       shell,
       repoRoot: "/repo",
     });
-    await analyzer.analyze();
+    await analyzer.execute(createContext());
 
     const issueCall = vi.mocked(github.createIssue).mock.calls[0]![0];
     expect(issueCall.body).toContain("critical");
@@ -282,10 +290,10 @@ describe("AC1: Detect vulnerable dependencies", () => {
       shell,
       repoRoot: "/repo",
     });
-    const result = await analyzer.analyze();
+    const result = await analyzer.execute(createContext());
 
     expect(github.createIssue).not.toHaveBeenCalled();
-    expect(result.issues_created).toBe(0);
+    expect(result.actions.filter(a => a.type === "issue_created").length).toBe(0);
   });
 
   it("records findings in state", async () => {
@@ -297,7 +305,7 @@ describe("AC1: Detect vulnerable dependencies", () => {
       shell,
       repoRoot: "/repo",
     });
-    await analyzer.analyze();
+    await analyzer.execute(createContext());
 
     expect(state.addFinding).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -344,7 +352,7 @@ describe("AC2: Create upgrade draft PR", () => {
       shell,
       repoRoot: "/repo",
     });
-    await analyzer.analyze();
+    await analyzer.execute(createContext());
 
     expect(github.createDraftPR).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -362,7 +370,7 @@ describe("AC2: Create upgrade draft PR", () => {
       shell,
       repoRoot: "/repo",
     });
-    await analyzer.analyze();
+    await analyzer.execute(createContext());
 
     const prCall = vi.mocked(github.createDraftPR).mock.calls[0]![0];
     expect(prCall.body).toContain("lodash");
@@ -392,10 +400,10 @@ describe("AC2: Create upgrade draft PR", () => {
       shell,
       repoRoot: "/repo",
     });
-    const result = await analyzer.analyze();
+    const result = await analyzer.execute(createContext());
 
     expect(github.createDraftPR).not.toHaveBeenCalled();
-    expect(result.prs_created).toBe(0);
+    expect(result.actions.filter(a => a.type === "pr_opened").length).toBe(0);
   });
 });
 
@@ -425,7 +433,7 @@ describe("AC3: PR body includes CI warning", () => {
       shell,
       repoRoot: "/repo",
     });
-    await analyzer.analyze();
+    await analyzer.execute(createContext());
 
     const prCall = vi.mocked(github.createDraftPR).mock.calls[0]![0];
     expect(prCall.body).toContain(
@@ -460,11 +468,12 @@ describe("Error handling", () => {
       shell,
       repoRoot: "/repo",
     });
-    const result = await analyzer.analyze();
+    const result = await analyzer.execute(createContext());
 
     // Should not crash — returns zero findings for failed audit
-    expect(result.findings_count).toBe(0);
+    expect(result.findings.length).toBe(0);
     expect(result.summary).toBeDefined();
+    expect(result.success).toBe(true);
   });
 
   it("handles GitHub issue creation failure gracefully", async () => {
@@ -491,10 +500,10 @@ describe("Error handling", () => {
       shell,
       repoRoot: "/repo",
     });
-    const result = await analyzer.analyze();
+    const result = await analyzer.execute(createContext());
 
     // Should not crash — reports what it could
-    expect(result.issues_created).toBe(0);
+    expect(result.actions.filter(a => a.type === "issue_created").length).toBe(0);
   });
 
   it("never throws — always returns AnalyzerResult", async () => {
@@ -513,11 +522,13 @@ describe("Error handling", () => {
       shell,
       repoRoot: "/repo",
     });
-    const result = await analyzer.analyze();
+    const result = await analyzer.execute(createContext());
 
-    expect(result).toHaveProperty("analyzer", "dependency-check");
-    expect(result).toHaveProperty("findings_count");
+    expect(result.success).toBeDefined();
+    expect(result).toHaveProperty("findings");
     expect(result).toHaveProperty("summary");
+    expect(result).toHaveProperty("actions");
+    expect(result).toHaveProperty("duration_ms");
   });
 });
 
@@ -537,7 +548,7 @@ describe("Analyzer metadata", () => {
     expect(analyzer.name).toBe("dependency-check");
   });
 
-  it("returns analyzer name in result", async () => {
+  it("returns a valid AnalyzerResult shape", async () => {
     const shell = createMockShell();
     vi.mocked(shell.fileExists).mockResolvedValue(false);
 
@@ -547,8 +558,12 @@ describe("Analyzer metadata", () => {
       shell,
       repoRoot: "/repo",
     });
-    const result = await analyzer.analyze();
+    const result = await analyzer.execute(createContext());
 
-    expect(result.analyzer).toBe("dependency-check");
+    expect(result.success).toBe(true);
+    expect(result).toHaveProperty("summary");
+    expect(result).toHaveProperty("findings");
+    expect(result).toHaveProperty("actions");
+    expect(result).toHaveProperty("duration_ms");
   });
 });

@@ -137,7 +137,7 @@ export class AutoFixAnalyzer implements AnalyzerPort {
       });
 
       const action: ActionTaken = {
-        type: "pr_created",
+        type: "pr_opened",
         url: pr.url,
         description: `Draft PR #${pr.number}: auto-fix linting issues`,
       };
@@ -341,12 +341,11 @@ export class AutoFixAnalyzer implements AnalyzerPort {
    */
   private skipResult(reason: string, startTime: number): AnalyzerResult {
     return {
-      task: this.name,
       success: true,
+      summary: reason,
       findings: [],
-      actions_taken: [],
+      actions: [],
       duration_ms: Date.now() - startTime,
-      error: reason,
     };
   }
 
@@ -358,10 +357,12 @@ export class AutoFixAnalyzer implements AnalyzerPort {
     startTime: number,
   ): AnalyzerResult {
     return {
-      task: this.name,
       success: true,
+      summary: actions.length > 0
+        ? `Auto-fix completed with ${actions.length} action(s)`
+        : "Auto-fix completed — no changes needed",
       findings: [],
-      actions_taken: actions,
+      actions,
       duration_ms: Date.now() - startTime,
     };
   }
@@ -371,12 +372,11 @@ export class AutoFixAnalyzer implements AnalyzerPort {
    */
   private errorResult(error: string, startTime: number): AnalyzerResult {
     return {
-      task: this.name,
       success: false,
+      summary: error,
       findings: [],
-      actions_taken: [],
+      actions: [],
       duration_ms: Date.now() - startTime,
-      error,
     };
   }
 

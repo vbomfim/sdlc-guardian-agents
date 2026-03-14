@@ -15,10 +15,11 @@
  * @module analyzers/security-scan
  */
 
+import type { AnalyzerPort } from "../analyzer.port.js";
 import type {
-  Analyzer,
   AnalyzerContext,
   AnalyzerResult,
+  AnalyzerFinding,
   ActionTaken,
 } from "../analyzer.types.js";
 import type { CopilotPort } from "../../copilot/index.js";
@@ -182,7 +183,7 @@ function toStateFinding(
  * [HEXAGONAL] Returns the port interface, not the implementation.
  * [SOLID/DIP] Depends on abstractions (ports), not concretions.
  */
-export function createSecurityScanAnalyzer(deps: SecurityScanDeps): Analyzer {
+export function createSecurityScanAnalyzer(deps: SecurityScanDeps): AnalyzerPort {
   const { copilot, github, state, parser } = deps;
   let consecutiveFailures = deps.consecutiveFailures ?? 0;
 
@@ -207,12 +208,11 @@ export function createSecurityScanAnalyzer(deps: SecurityScanDeps): Analyzer {
         await handleFailure(github, state, consecutiveFailures, error);
 
         return {
-          task: "security_scan",
           success: false,
+          summary: error instanceof Error ? error.message : String(error),
           findings: [],
-          actions_taken: [],
+          actions: [],
           duration_ms: Date.now() - startTime,
-          error: error instanceof Error ? error.message : String(error),
         };
       }
     },
@@ -255,12 +255,11 @@ export function createSecurityScanAnalyzer(deps: SecurityScanDeps): Analyzer {
       );
 
       return {
-        task: "security_scan",
         success: false,
+        summary: invokeResult.error ?? "Security Guardian invocation failed",
         findings: [],
-        actions_taken: [],
+        actions: [],
         duration_ms: Date.now() - startTime,
-        error: invokeResult.error,
       };
     }
 
@@ -271,7 +270,7 @@ export function createSecurityScanAnalyzer(deps: SecurityScanDeps): Analyzer {
     const report = parserPort.parse(invokeResult.output, "security");
 
     // Step 3 & 4: Process findings
-    const actionsTaken = await processFindings(
+    const { analyzerFindings, actionsTaken } = await processFindings(
       report.findings,
       githubPort,
       statePort,
@@ -281,10 +280,10 @@ export function createSecurityScanAnalyzer(deps: SecurityScanDeps): Analyzer {
     await statePort.save();
 
     return {
-      task: "security_scan",
       success: true,
-      findings: report.findings,
-      actions_taken: actionsTaken,
+      summary: `Security scan complete. Found ${analyzerFindings.length} finding(s), took ${actionsTaken.length} action(s).`,
+      findings: analyzerFindings,
+      actions: actionsTaken,
       duration_ms: Date.now() - startTime,
     };
   }
@@ -300,8 +299,9 @@ export function createSecurityScanAnalyzer(deps: SecurityScanDeps): Analyzer {
     findings: ParsedFinding[],
     githubPort: GitHubPort,
     statePort: StatePort,
-  ): Promise<ActionTaken[]> {
+  ): Promise<{ analyzerFindings: AnalyzerFinding[]; actionsTaken: ActionTaken[] }> {
     const actionsTaken: ActionTaken[] = [];
+    const analyzerFindings: AnalyzerFinding[] = [];
 
     for (const finding of findings) {
       let githubIssueUrl: string | undefined;
@@ -319,12 +319,22 @@ export function createSecurityScanAnalyzer(deps: SecurityScanDeps): Analyzer {
         }
       }
 
+      // Map to canonical AnalyzerFinding
+      analyzerFindings.push({
+        severity: finding.severity as import("../../shared/severity.js").Severity,
+        category: finding.category,
+        file: finding.file_line || undefined,
+        issue: finding.issue,
+        source: finding.source_justification || "security-guardian",
+        suggested_fix: finding.suggested_fix,
+      });
+
       // Store all findings in state regardless of severity [AC1]
       const stateFinding = toStateFinding(finding, githubIssueUrl);
       statePort.addFinding(stateFinding);
     }
 
-    return actionsTaken;
+    return { analyzerFindings, actionsTaken };
   }
 
   /**

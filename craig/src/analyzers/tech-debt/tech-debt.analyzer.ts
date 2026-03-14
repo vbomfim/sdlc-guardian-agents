@@ -18,12 +18,12 @@ import type {
   ResultParserPort,
   ParsedFinding,
 } from "../../result-parser/index.js";
+import type { AnalyzerPort } from "../analyzer.port.js";
 import type {
-  AnalyzerPort,
   AnalyzerContext,
   AnalyzerResult,
   ActionTaken,
-} from "../analyzer.port.js";
+} from "../analyzer.types.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -115,10 +115,10 @@ export function createTechDebtAnalyzer(
         await recordFindings(report.findings, issueUrls, deps.state);
 
         return {
-          task: "tech_debt_audit",
           success: true,
+          summary: `Tech debt audit found ${report.findings.length} item(s), created ${actions.length} action(s)`,
           findings: report.findings.map(toResultFinding),
-          actions_taken: actions,
+          actions,
           duration_ms: Date.now() - start,
         };
       } catch (error: unknown) {
@@ -298,11 +298,10 @@ function failResult(
   actions: readonly ActionTaken[] = [],
 ): AnalyzerResult {
   return {
-    task: "tech_debt_audit",
     success: false,
+    summary: error,
     findings: [],
-    actions_taken: actions,
+    actions,
     duration_ms: Date.now() - start,
-    error,
   };
 }

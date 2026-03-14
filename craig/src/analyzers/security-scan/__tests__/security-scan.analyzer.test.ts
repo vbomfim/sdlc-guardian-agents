@@ -16,7 +16,8 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createSecurityScanAnalyzer } from "../security-scan.analyzer.js";
-import type { Analyzer, AnalyzerContext } from "../../analyzer.types.js";
+import type { AnalyzerPort } from "../../analyzer.port.js";
+import type { AnalyzerContext } from "../../analyzer.types.js";
 import type { CopilotPort, InvokeResult } from "../../../copilot/index.js";
 import type { GitHubPort, IssueReference } from "../../../github/index.js";
 import type { StatePort } from "../../../state/index.js";
@@ -112,10 +113,18 @@ describe("SecurityScanAnalyzer", () => {
   let github: GitHubPort;
   let state: StatePort;
   let parser: ResultParserPort;
-  let analyzer: Analyzer;
+  let analyzer: AnalyzerPort;
 
-  const scheduleContext: AnalyzerContext = { trigger: "schedule" };
-  const manualContext: AnalyzerContext = { trigger: "manual" };
+  const scheduleContext: AnalyzerContext = {
+    task: "security_scan",
+    taskId: "test-schedule-001",
+    timestamp: new Date().toISOString(),
+  };
+  const manualContext: AnalyzerContext = {
+    task: "security_scan",
+    taskId: "test-manual-001",
+    timestamp: new Date().toISOString(),
+  };
 
   beforeEach(() => {
     copilot = createMockCopilot();
@@ -134,13 +143,13 @@ describe("SecurityScanAnalyzer", () => {
       expect(analyzer.name).toBe("security-scan");
     });
 
-    it("implements Analyzer interface (execute returns AnalyzerResult)", async () => {
+    it("implements AnalyzerPort interface (execute returns AnalyzerResult)", async () => {
       const result = await analyzer.execute(scheduleContext);
 
-      expect(result).toHaveProperty("task", "security_scan");
       expect(result).toHaveProperty("success");
+      expect(result).toHaveProperty("summary");
       expect(result).toHaveProperty("findings");
-      expect(result).toHaveProperty("actions_taken");
+      expect(result).toHaveProperty("actions");
       expect(result).toHaveProperty("duration_ms");
       expect(typeof result.duration_ms).toBe("number");
     });
@@ -311,8 +320,8 @@ describe("SecurityScanAnalyzer", () => {
 
       // 3 issues: 2 critical + 1 high (not medium or low)
       expect(github.createIssue).toHaveBeenCalledTimes(3);
-      expect(result.actions_taken).toHaveLength(3);
-      expect(result.actions_taken.every((a) => a.type === "issue_created")).toBe(true);
+      expect(result.actions).toHaveLength(3);
+      expect(result.actions.every((a) => a.type === "issue_created")).toBe(true);
     });
 
     it("does NOT create issues for medium/low/info findings", async () => {
@@ -333,10 +342,10 @@ describe("SecurityScanAnalyzer", () => {
       const result = await analyzer.execute(scheduleContext);
 
       expect(github.createIssue).not.toHaveBeenCalled();
-      expect(result.actions_taken).toHaveLength(0);
+      expect(result.actions).toHaveLength(0);
     });
 
-    it("records actions_taken with issue URLs", async () => {
+    it("records actions with issue URLs", async () => {
       const finding = makeFinding({ severity: "critical", issue: "SQL injection" });
       vi.mocked(parser.parse).mockReturnValue({
         guardian: "security",
@@ -353,7 +362,7 @@ describe("SecurityScanAnalyzer", () => {
 
       const result = await analyzer.execute(scheduleContext);
 
-      expect(result.actions_taken).toEqual([
+      expect(result.actions).toEqual([
         expect.objectContaining({
           type: "issue_created",
           url: "https://github.com/owner/repo/issues/42",
@@ -553,7 +562,7 @@ describe("SecurityScanAnalyzer", () => {
       const result = await analyzer.execute(scheduleContext);
 
       expect(github.createIssue).not.toHaveBeenCalled();
-      expect(result.actions_taken).toHaveLength(0);
+      expect(result.actions).toHaveLength(0);
     });
 
     it("creates issue for new finding but skips duplicate", async () => {
@@ -587,7 +596,7 @@ describe("SecurityScanAnalyzer", () => {
 
       // Only 1 issue created (the non-duplicate)
       expect(github.createIssue).toHaveBeenCalledTimes(1);
-      expect(result.actions_taken).toHaveLength(1);
+      expect(result.actions).toHaveLength(1);
     });
 
     it("still stores finding in state even when issue is a duplicate", async () => {
@@ -634,7 +643,7 @@ describe("SecurityScanAnalyzer", () => {
 
       expect(result.success).toBe(true);
       expect(result.findings).toEqual([]);
-      expect(result.actions_taken).toEqual([]);
+      expect(result.actions).toEqual([]);
     });
 
     it("does not create any GitHub issues", async () => {
@@ -683,9 +692,9 @@ describe("SecurityScanAnalyzer", () => {
       const result = await analyzer.execute(scheduleContext);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Timeout");
+      expect(result.summary).toContain("Timeout");
       expect(result.findings).toEqual([]);
-      expect(result.actions_taken).toEqual([]);
+      expect(result.actions).toEqual([]);
     });
 
     it("records failure in state", async () => {
@@ -773,7 +782,7 @@ describe("SecurityScanAnalyzer", () => {
       const result = await analyzer.execute(scheduleContext);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Network failure");
+      expect(result.summary).toContain("Network failure");
     });
   });
 
@@ -801,8 +810,8 @@ describe("SecurityScanAnalyzer", () => {
       // Should still succeed (scan worked), but note the issue creation failure
       expect(result.success).toBe(true);
       expect(result.findings).toHaveLength(1);
-      // No actions_taken since issue creation failed
-      expect(result.actions_taken).toHaveLength(0);
+      // No actions since issue creation failed
+      expect(result.actions).toHaveLength(0);
     });
 
     it("handles parser errors gracefully", async () => {
@@ -819,7 +828,7 @@ describe("SecurityScanAnalyzer", () => {
       const result = await analyzer.execute(scheduleContext);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Parse failed");
+      expect(result.summary).toContain("Parse failed");
     });
 
     it("returns all findings in result including medium/low", async () => {

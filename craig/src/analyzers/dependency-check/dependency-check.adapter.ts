@@ -16,7 +16,7 @@
 
 import { join } from "node:path";
 import type { AnalyzerPort } from "../analyzer.port.js";
-import type { AnalyzerResult } from "../analyzer.types.js";
+import type { AnalyzerResult, AnalyzerContext, AnalyzerFinding, ActionTaken } from "../analyzer.types.js";
 import type {
   DependencyCheckDeps,
   PackageManager,
@@ -49,18 +49,19 @@ export class DependencyCheckAnalyzer implements AnalyzerPort {
    *
    * Never throws — errors are caught and reported in the summary.
    */
-  async analyze(): Promise<AnalyzerResult> {
+  async execute(_context: AnalyzerContext): Promise<AnalyzerResult> {
+    const startTime = Date.now();
     try {
-      return await this.runAnalysis();
+      return await this.runAnalysis(startTime);
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : String(error);
       return {
-        analyzer: this.name,
-        findings_count: 0,
-        issues_created: 0,
-        prs_created: 0,
+        success: false,
         summary: `Dependency check failed: ${message}`,
+        findings: [],
+        actions: [],
+        duration_ms: Date.now() - startTime,
       };
     }
   }
@@ -69,17 +70,17 @@ export class DependencyCheckAnalyzer implements AnalyzerPort {
   /*  Core analysis flow                                               */
   /* ---------------------------------------------------------------- */
 
-  private async runAnalysis(): Promise<AnalyzerResult> {
+  private async runAnalysis(startTime: number): Promise<AnalyzerResult> {
     // Step 1: Detect package managers [AC4]
     const packageManagers = await this.detectPackageManagers();
 
     if (packageManagers.length === 0) {
       return {
-        analyzer: this.name,
-        findings_count: 0,
-        issues_created: 0,
-        prs_created: 0,
+        success: true,
         summary: "Skipped — no dependencies found in repository",
+        findings: [],
+        actions: [],
+        duration_ms: Date.now() - startTime,
       };
     }
 
@@ -88,31 +89,40 @@ export class DependencyCheckAnalyzer implements AnalyzerPort {
 
     if (allVulnerabilities.length === 0) {
       return {
-        analyzer: this.name,
-        findings_count: 0,
-        issues_created: 0,
-        prs_created: 0,
+        success: true,
         summary: `Checked ${packageManagers.join(", ")} — no vulnerabilities found`,
+        findings: [],
+        actions: [],
+        duration_ms: Date.now() - startTime,
       };
     }
 
     // Step 4: Create issues for vulnerabilities [AC1]
-    const issuesCreated = await this.createIssuesForVulnerabilities(
+    const { issuesCreated, actions } = await this.createIssuesForVulnerabilities(
       allVulnerabilities,
     );
 
     // Step 5: Create draft PR for fixable vulnerabilities [AC2, AC3]
-    const prsCreated = await this.createUpgradePR(allVulnerabilities);
+    const prActions = await this.createUpgradePR(allVulnerabilities);
+    actions.push(...prActions);
 
     // Step 6: Record findings in state
     await this.recordFindings(allVulnerabilities);
 
+    const findings: AnalyzerFinding[] = allVulnerabilities.map((v) => ({
+      severity: v.severity,
+      category: "dependencies",
+      issue: `${v.advisory_id}: ${v.package_name} (${v.package_manager})`,
+      source: "dependency-check",
+      file: undefined,
+    }));
+
     return {
-      analyzer: this.name,
-      findings_count: allVulnerabilities.length,
-      issues_created: issuesCreated,
-      prs_created: prsCreated,
-      summary: buildSummary(allVulnerabilities, issuesCreated, prsCreated),
+      success: true,
+      summary: buildSummary(allVulnerabilities, issuesCreated, actions.length > issuesCreated ? 1 : 0),
+      findings,
+      actions,
+      duration_ms: Date.now() - startTime,
     };
   }
 
@@ -189,41 +199,47 @@ export class DependencyCheckAnalyzer implements AnalyzerPort {
    */
   private async createIssuesForVulnerabilities(
     vulnerabilities: Vulnerability[],
-  ): Promise<number> {
+  ): Promise<{ issuesCreated: number; actions: ActionTaken[] }> {
     let issuesCreated = 0;
+    const actions: ActionTaken[] = [];
 
     for (const vuln of vulnerabilities) {
-      const created = await this.createIssueIfNew(vuln);
-      if (created) {
+      const result = await this.createIssueIfNew(vuln);
+      if (result) {
         issuesCreated++;
+        actions.push(result);
       }
     }
 
-    return issuesCreated;
+    return { issuesCreated, actions };
   }
 
   /**
    * Create a GitHub issue for a vulnerability if one doesn't already exist.
    * Returns true if a new issue was created.
    */
-  private async createIssueIfNew(vuln: Vulnerability): Promise<boolean> {
+  private async createIssueIfNew(vuln: Vulnerability): Promise<ActionTaken | null> {
     const title = buildIssueTitle(vuln);
 
     try {
       const existing = await this.deps.github.findExistingIssue(title);
       if (existing) {
-        return false;
+        return null;
       }
 
-      await this.deps.github.createIssue({
+      const issue = await this.deps.github.createIssue({
         title,
         body: buildIssueBody(vuln),
         labels: ["dependencies", "security"],
       });
 
-      return true;
+      return {
+        type: "issue_created",
+        description: `Created issue for ${vuln.severity} vulnerability: ${vuln.advisory_id}`,
+        url: issue.url,
+      };
     } catch {
-      return false;
+      return null;
     }
   }
 
@@ -238,18 +254,18 @@ export class DependencyCheckAnalyzer implements AnalyzerPort {
    */
   private async createUpgradePR(
     vulnerabilities: Vulnerability[],
-  ): Promise<number> {
+  ): Promise<ActionTaken[]> {
     const fixable = vulnerabilities.filter((v) => v.fixed_version !== null);
 
     if (fixable.length === 0) {
-      return 0;
+      return [];
     }
 
     const dateStr = formatDate(new Date());
     const branchName = `craig/deps-update-${dateStr}`;
 
     try {
-      await this.deps.github.createDraftPR({
+      const pr = await this.deps.github.createDraftPR({
         title: `fix(deps): deps-update-${dateStr} — ${fixable.length} vulnerable ${fixable.length === 1 ? "dependency" : "dependencies"}`,
         body: buildPRBody(fixable),
         head: branchName,
@@ -257,9 +273,13 @@ export class DependencyCheckAnalyzer implements AnalyzerPort {
         draft: true,
       });
 
-      return 1;
+      return [{
+        type: "pr_opened",
+        description: `Created draft PR #${pr.number} for dependency updates`,
+        url: pr.url,
+      }];
     } catch {
-      return 0;
+      return [];
     }
   }
 

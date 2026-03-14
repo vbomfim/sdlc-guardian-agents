@@ -181,7 +181,6 @@ describe("AutoFixAnalyzer", () => {
       const result = await analyzer.execute(DEFAULT_CONTEXT);
 
       expect(result.success).toBe(true);
-      expect(result.task).toBe("auto_fix");
 
       // Branch created with correct naming pattern
       expect(gitOps.createBranch).toHaveBeenCalledWith(
@@ -208,12 +207,12 @@ describe("AutoFixAnalyzer", () => {
       expect(prCall.draft).toBe(true);
     });
 
-    it("returns PR URL in actions_taken", async () => {
+    it("returns PR URL in actions", async () => {
       const result = await analyzer.execute(DEFAULT_CONTEXT);
 
-      expect(result.actions_taken).toHaveLength(1);
-      expect(result.actions_taken[0]).toEqual({
-        type: "pr_created",
+      expect(result.actions).toHaveLength(1);
+      expect(result.actions[0]).toEqual({
+        type: "pr_opened",
         url: "https://github.com/test-owner/test-repo/pull/42",
         description: "Draft PR #42: auto-fix linting issues",
       });
@@ -316,8 +315,8 @@ describe("AutoFixAnalyzer", () => {
       const result = await analyzer.execute(DEFAULT_CONTEXT);
 
       expect(result.success).toBe(true);
-      expect(result.actions_taken).toHaveLength(0);
-      expect(result.error).toContain("auto-fix disabled by config");
+      expect(result.actions).toHaveLength(0);
+      expect(result.summary).toContain("auto-fix disabled by config");
 
       // No git or command operations should happen
       expect(gitOps.createBranch).not.toHaveBeenCalled();
@@ -332,8 +331,8 @@ describe("AutoFixAnalyzer", () => {
       const result = await analyzer.execute(DEFAULT_CONTEXT);
 
       expect(result.success).toBe(true);
-      expect(result.actions_taken).toHaveLength(0);
-      expect(result.error).toContain("draft PRs disabled");
+      expect(result.actions).toHaveLength(0);
+      expect(result.summary).toContain("draft PRs disabled");
 
       expect(github.createDraftPR).not.toHaveBeenCalled();
     });
@@ -351,7 +350,7 @@ describe("AutoFixAnalyzer", () => {
       const result = await analyzer.execute(DEFAULT_CONTEXT);
 
       expect(result.success).toBe(true);
-      expect(result.actions_taken).toHaveLength(0);
+      expect(result.actions).toHaveLength(0);
       expect(result.findings).toHaveLength(0);
 
       // Branch was created but then cleaned up
@@ -384,8 +383,8 @@ describe("AutoFixAnalyzer", () => {
       const result = await analyzer.execute(DEFAULT_CONTEXT);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("verification failed");
-      expect(result.actions_taken).toHaveLength(0);
+      expect(result.summary).toContain("verification failed");
+      expect(result.actions).toHaveLength(0);
 
       // Branch cleaned up
       expect(gitOps.cleanup).toHaveBeenCalledWith(
@@ -417,8 +416,8 @@ describe("AutoFixAnalyzer", () => {
       const result = await analyzer.execute(DEFAULT_CONTEXT);
 
       expect(result.success).toBe(true);
-      expect(result.actions_taken).toHaveLength(1);
-      expect(result.actions_taken[0]!.type).toBe("pr_created");
+      expect(result.actions).toHaveLength(1);
+      expect(result.actions[0]!.type).toBe("pr_opened");
 
       // Both fixers ran
       expect(commandRunner.run).toHaveBeenCalledWith(
@@ -454,8 +453,8 @@ describe("AutoFixAnalyzer", () => {
       const result = await analyzer.execute(DEFAULT_CONTEXT);
 
       expect(result.success).toBe(true);
-      expect(result.actions_taken).toHaveLength(0);
-      expect(result.error).toContain("no applicable linters");
+      expect(result.actions).toHaveLength(0);
+      expect(result.summary).toContain("no applicable linters");
 
       // No operations performed
       expect(gitOps.createBranch).not.toHaveBeenCalled();
@@ -527,8 +526,7 @@ describe("AutoFixAnalyzer", () => {
       const result = await analyzer.execute(DEFAULT_CONTEXT);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("GitHub API error");
-      expect(result.task).toBe("auto_fix");
+      expect(result.summary).toContain("GitHub API error");
     });
 
     it("cleans up branch when push fails", async () => {
@@ -539,7 +537,7 @@ describe("AutoFixAnalyzer", () => {
       const result = await analyzer.execute(DEFAULT_CONTEXT);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("push failed");
+      expect(result.summary).toContain("push failed");
 
       // Branch should be cleaned up
       expect(gitOps.cleanup).toHaveBeenCalled();
@@ -554,8 +552,7 @@ describe("AutoFixAnalyzer", () => {
 
       // Should NOT throw, should return error result
       expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
-      expect(result.task).toBe("auto_fix");
+      expect(result.summary).toBeDefined();
       expect(typeof result.duration_ms).toBe("number");
     });
   });
@@ -589,7 +586,7 @@ describe("AutoFixAnalyzer", () => {
       for (const trigger of ["merge", "schedule", "manual"] as const) {
         const ctx: AnalyzerContext = { trigger };
         const result = await analyzer.execute(ctx);
-        expect(result.task).toBe("auto_fix");
+        expect(result.success).toBeDefined();
       }
     });
   });
