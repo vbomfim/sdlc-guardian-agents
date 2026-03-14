@@ -190,6 +190,18 @@ export class AdoAdapter implements GitPort {
   }
 
   // -----------------------------------------------------------------------
+  // Repository Content — Stub implementations
+  // -----------------------------------------------------------------------
+
+  async getFileContents(_path: string): Promise<string> {
+    return "";
+  }
+
+  async getLanguages(): Promise<Record<string, number>> {
+    return {};
+  }
+
+  // -----------------------------------------------------------------------
   // Rate Limiting — Stub implementation
   // -----------------------------------------------------------------------
 

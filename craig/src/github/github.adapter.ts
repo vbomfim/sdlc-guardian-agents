@@ -347,6 +347,41 @@ export class GitHubAdapter implements GitPort, GitHubPort {
   }
 
   // -----------------------------------------------------------------------
+  // Repository Content
+  // -----------------------------------------------------------------------
+
+  async getFileContents(path: string): Promise<string> {
+    const response = await this.execute(() =>
+      this.octokit.rest.repos.getContent({
+        owner: this.owner,
+        repo: this.repo,
+        path,
+      }),
+    );
+
+    const data = response.data;
+
+    // GitHub returns file content as base64-encoded when it's a file
+    if (!Array.isArray(data) && "content" in data && data.encoding === "base64") {
+      return Buffer.from(data.content, "base64").toString("utf-8");
+    }
+
+    // If it's a directory or non-file, return empty
+    return "";
+  }
+
+  async getLanguages(): Promise<Record<string, number>> {
+    const response = await this.execute(() =>
+      this.octokit.rest.repos.listLanguages({
+        owner: this.owner,
+        repo: this.repo,
+      }),
+    );
+
+    return response.data as Record<string, number>;
+  }
+
+  // -----------------------------------------------------------------------
   // Rate Limiting
   // -----------------------------------------------------------------------
 

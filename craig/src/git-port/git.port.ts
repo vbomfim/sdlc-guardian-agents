@@ -49,6 +49,10 @@ export interface GitPort {
   getCommitDiff(sha: string): Promise<CommitDiff>;
   getMergeCommits(since: string): Promise<CommitInfo[]>;
 
+  // Repository Content
+  getFileContents(path: string): Promise<string>;
+  getLanguages(): Promise<Record<string, number>>;
+
   // Rate Limiting
   getRateLimit(): Promise<RateLimitInfo>;
 }
