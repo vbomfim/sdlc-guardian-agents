@@ -35,6 +35,9 @@ const MAX_TITLE_LENGTH = 256;
 /** Number of items per page for paginated requests. */
 const PAGE_SIZE = 100;
 
+/** Maximum pages to fetch in paginated requests (safety guard). */
+const MAX_PAGES = 10;
+
 /** Delay in ms before retrying a 5xx error. */
 const RETRY_DELAY_MS = 2000;
 
@@ -127,22 +130,38 @@ export class GitHubAdapter implements GitHubPort {
   }
 
   async listOpenIssues(labels?: string[]): Promise<IssueReference[]> {
-    const response = await this.execute(() =>
-      this.octokit.rest.issues.listForRepo({
-        owner: this.owner,
-        repo: this.repo,
-        state: "open",
-        per_page: PAGE_SIZE,
-        labels: labels?.join(","),
-      }),
-    );
+    const allIssues: IssueReference[] = [];
+    let page = 1;
 
-    return response.data
-      .filter((item: GitHubIssueItem) => !item.pull_request)
-      .map((item: GitHubIssueItem) => ({
-        url: item.html_url,
-        number: item.number,
-      }));
+    while (page <= MAX_PAGES) {
+      const response = await this.execute(() =>
+        this.octokit.rest.issues.listForRepo({
+          owner: this.owner,
+          repo: this.repo,
+          state: "open",
+          per_page: PAGE_SIZE,
+          page,
+          labels: labels?.join(","),
+        }),
+      );
+
+      const issues = response.data
+        .filter((item: GitHubIssueItem) => !item.pull_request)
+        .map((item: GitHubIssueItem) => ({
+          url: item.html_url,
+          number: item.number,
+        }));
+
+      allIssues.push(...issues);
+
+      if (response.data.length < PAGE_SIZE) {
+        break;
+      }
+
+      page++;
+    }
+
+    return allIssues;
   }
 
   // -----------------------------------------------------------------------
@@ -252,7 +271,9 @@ export class GitHubAdapter implements GitHubPort {
   // -----------------------------------------------------------------------
 
   async getRateLimit(): Promise<RateLimitInfo> {
-    const response = await this.octokit.rest.rateLimit.get();
+    const response = await this.execute(() =>
+      this.octokit.rest.rateLimit.get(),
+    );
 
     return {
       remaining: response.data.rate.remaining,

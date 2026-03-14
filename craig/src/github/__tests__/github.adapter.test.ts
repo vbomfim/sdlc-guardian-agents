@@ -356,6 +356,61 @@ describe("GitHubAdapter", () => {
       expect(result).toHaveLength(1);
       expect(result[0]!.number).toBe(1);
     });
+
+    it("paginates through all pages of open issues", async () => {
+      // First page: 100 results → indicates more pages
+      const page1 = Array.from({ length: 100 }, (_, i) => ({
+        title: `Issue ${i}`,
+        html_url: `https://github.com/test-owner/test-repo/issues/${i}`,
+        number: i,
+        pull_request: undefined,
+      }));
+
+      // Second page: 2 results → last page
+      const page2 = [
+        {
+          title: "Issue 100",
+          html_url: "https://github.com/test-owner/test-repo/issues/100",
+          number: 100,
+          pull_request: undefined,
+        },
+        {
+          title: "Issue 101",
+          html_url: "https://github.com/test-owner/test-repo/issues/101",
+          number: 101,
+          pull_request: undefined,
+        },
+      ];
+
+      mockOctokit.rest.issues.listForRepo
+        .mockResolvedValueOnce({ data: page1 })
+        .mockResolvedValueOnce({ data: page2 });
+
+      const result = await adapter.listOpenIssues();
+
+      expect(result).toHaveLength(102);
+      expect(result[0]!.number).toBe(0);
+      expect(result[101]!.number).toBe(101);
+      expect(mockOctokit.rest.issues.listForRepo).toHaveBeenCalledTimes(2);
+    });
+
+    it("stops paginating after MAX_PAGES (10) to prevent infinite loops", async () => {
+      // Every page returns 100 results (always full → always requests next page)
+      const fullPage = Array.from({ length: 100 }, (_, i) => ({
+        title: `Issue ${i}`,
+        html_url: `https://github.com/test-owner/test-repo/issues/${i}`,
+        number: i,
+        pull_request: undefined,
+      }));
+
+      mockOctokit.rest.issues.listForRepo.mockResolvedValue({ data: fullPage });
+
+      const result = await adapter.listOpenIssues();
+
+      // 10 pages × 100 issues = 1000 max
+      expect(result).toHaveLength(1000);
+      expect(mockOctokit.rest.issues.listForRepo).toHaveBeenCalledTimes(10);
+    });
   });
 
   // -------------------------------------------------------------------------
@@ -441,6 +496,15 @@ describe("GitHubAdapter", () => {
       expect(result.remaining).toBe(4500);
       expect(result.reset).toBeInstanceOf(Date);
       expect(result.reset.getTime()).toBe(resetTimestamp * 1000);
+    });
+
+    it("maps errors through execute() wrapper (e.g. 401 → GitHubAuthError)", async () => {
+      const error = new Error("Bad credentials") as Error & { status: number };
+      error.status = 401;
+
+      mockOctokit.rest.rateLimit.get.mockRejectedValue(error);
+
+      await expect(adapter.getRateLimit()).rejects.toThrow(GitHubAuthError);
     });
 
     it("throws GitHubRateLimitError on 403 with rate limit message", async () => {
