@@ -1,7 +1,7 @@
 /**
  * Craig MCP Server — Factory and tool registration.
  *
- * Creates an MCP server with 6 tools registered, each delegating
+ * Creates an MCP server with 7 tools registered, each delegating
  * to the appropriate component via thin handler functions.
  *
  * [HEXAGONAL] The MCP server is an adapter — it adapts the MCP protocol
@@ -27,7 +27,9 @@ import {
   createScheduleHandler,
   createConfigHandler,
   createDigestHandler,
+  createShutdownHandler,
 } from "./tool-handlers.js";
+import type { ShutdownHandlerOpts } from "./tool-handlers.js";
 
 /* ------------------------------------------------------------------ */
 /*  Dependencies Interface                                             */
@@ -48,6 +50,8 @@ export interface CraigServerDeps {
   readonly copilot: CopilotPort;
   readonly repoManager?: RepoManagerPort;
   readonly registry?: AnalyzerRegistry;
+  /** Shutdown options for the craig_shutdown tool. */
+  readonly shutdown?: ShutdownHandlerOpts;
 }
 
 /* ------------------------------------------------------------------ */
@@ -55,7 +59,7 @@ export interface CraigServerDeps {
 /* ------------------------------------------------------------------ */
 
 /**
- * Create and configure the Craig MCP server with all 6 tools registered.
+ * Create and configure the Craig MCP server with all 7 tools registered.
  *
  * The server is ready to be connected to a transport (StdioServerTransport
  * for CLI usage). Does NOT start the server — caller decides transport.
@@ -78,6 +82,7 @@ export function createCraigServer(deps: CraigServerDeps): McpServer {
   registerScheduleTool(server, deps);
   registerConfigTool(server, deps);
   registerDigestTool(server, deps);
+  registerShutdownTool(server, deps);
 
   return server;
 }
@@ -249,6 +254,31 @@ function registerDigestTool(server: McpServer, deps: CraigServerDeps): void {
     async (args) => {
       const result = await handler(args);
       return wrapToolResult(result);
+    },
+  );
+}
+
+/**
+ * Register craig_shutdown — gracefully shut down the Craig daemon.
+ * In stdio mode, logs a warning (lifecycle managed by CLI).
+ * In daemon mode, stops all background services and exits.
+ *
+ * @see https://github.com/vbomfim/sdlc-guardian-agents/issues/54
+ */
+function registerShutdownTool(server: McpServer, deps: CraigServerDeps): void {
+  const shutdownOpts: ShutdownHandlerOpts = deps.shutdown ?? { mode: "stdio" };
+  const handler = createShutdownHandler(deps.state, shutdownOpts);
+
+  server.tool(
+    "craig_shutdown",
+    "Gracefully shut down the Craig daemon. Stops scheduler, merge watcher, flushes state, and exits.",
+    {
+      reason: z.string().optional(),
+    },
+    async (args) => {
+      const result = await handler(args);
+      const isError = "error" in result;
+      return wrapToolResult(result, isError);
     },
   );
 }

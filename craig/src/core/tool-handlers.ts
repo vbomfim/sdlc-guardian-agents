@@ -28,6 +28,7 @@ import type {
   ScheduleResult,
   ConfigResult,
   DigestResult,
+  ShutdownResult,
   ToolError,
   RunTaskParams,
   FindingsParams,
@@ -35,6 +36,7 @@ import type {
   ConfigParams,
   DigestParams,
   StatusParams,
+  ShutdownParams,
 } from "./core.types.js";
 import { isValidTask } from "./core.types.js";
 import { sanitizeError } from "./error-sanitizer.js";
@@ -322,6 +324,221 @@ export function createDigestHandler(
       return createToolError(error);
     }
   };
+}
+
+/* ------------------------------------------------------------------ */
+/*  craig_shutdown                                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Minimal interface for components that can be stopped.
+ *
+ * [SOLID/ISP] Handlers depend only on what they need — a stop() method.
+ * Both SchedulerPort and MergeWatcherPort satisfy this interface.
+ */
+export interface Stoppable {
+  stop(): void;
+}
+
+/**
+ * Options for the shutdown handler.
+ *
+ * [HEXAGONAL] These are injected dependencies — the handler doesn't
+ * know about concrete adapters.
+ */
+export interface ShutdownHandlerOpts {
+  /** Transport mode: "daemon" or "stdio". */
+  readonly mode: "daemon" | "stdio";
+  /** Scheduler to stop on shutdown. */
+  readonly scheduler?: Stoppable;
+  /** Merge watcher to stop on shutdown. */
+  readonly mergeWatcher?: Stoppable;
+  /** Callback to shut down the daemon HTTP server. */
+  readonly onShutdown?: () => Promise<void>;
+}
+
+/** Maximum time (ms) to wait for running tasks to drain. */
+const DRAIN_TIMEOUT_MS = 30_000;
+
+/** Polling interval (ms) to check for running tasks during drain. */
+const DRAIN_POLL_MS = 1_000;
+
+/**
+ * Create the handler for the craig_shutdown tool.
+ *
+ * In stdio mode: logs a warning and returns "ignored" — the CLI manages
+ * the process lifecycle.
+ *
+ * In daemon mode: initiates graceful shutdown asynchronously:
+ * 1. Stops scheduler and merge watcher
+ * 2. Waits up to 30s for pending tasks to complete
+ * 3. Flushes state to disk
+ * 4. Calls onShutdown callback (HTTP server teardown)
+ * 5. Exits the process
+ *
+ * The response is returned immediately so the MCP client receives
+ * the acknowledgement before the process exits.
+ *
+ * [HEXAGONAL] Adapter layer — orchestrates shutdown via injected ports.
+ * [CLEAN-CODE] Fire-and-forget async shutdown, same pattern as run_task.
+ * [AC1] Daemon mode: stops all background services, exits cleanly.
+ * [AC2] Stdio mode: logs warning, no action.
+ * [AC3] Waits up to 30s for pending tasks before force exit.
+ *
+ * @param state - State port for flushing and checking running tasks.
+ * @param opts - Shutdown dependencies (mode, stoppables, callback).
+ */
+export function createShutdownHandler(
+  state: StatePort,
+  opts: ShutdownHandlerOpts,
+): (params?: ShutdownParams) => Promise<ShutdownResult | ToolError> {
+  return async (params) => {
+    try {
+      const reason = params?.reason;
+      const reasonSuffix = reason ? ` (reason: ${reason})` : "";
+
+      // Stdio mode: lifecycle managed by CLI — warn and return [AC2]
+      if (opts.mode === "stdio") {
+        const message =
+          `Shutdown ignored in stdio mode — lifecycle is managed by the CLI.${reasonSuffix}`;
+        console.error(`[Craig] ${message}`);
+        return { status: "ignored" as const, message };
+      }
+
+      // Daemon mode: initiate graceful shutdown [AC1]
+      const message = `Graceful shutdown initiated.${reasonSuffix}`;
+      console.error(`[Craig] Shutting down...${reasonSuffix}`);
+
+      // Fire-and-forget: shutdown runs asynchronously after response
+      void performGracefulShutdown(state, opts, reason);
+
+      return { status: "shutting_down" as const, message };
+    } catch (error: unknown) {
+      return createToolError(error);
+    }
+  };
+}
+
+/**
+ * Execute the graceful shutdown sequence.
+ *
+ * Order:
+ * 1. Stop scheduler and merge watcher (stop accepting new work)
+ * 2. Drain running tasks (wait up to 30s) [AC3]
+ * 3. Flush state to disk
+ * 4. Call onShutdown callback (HTTP server teardown + process exit)
+ *
+ * Each step is resilient — errors are caught and logged,
+ * and the sequence continues to the next step.
+ *
+ * [HEXAGONAL] Does NOT call process.exit() — the composition root
+ * provides an onShutdown callback that handles process termination.
+ * [CLEAN-CODE] Each step isolated, errors don't cascade.
+ * [SECURITY] Logs to stderr — stdout is MCP JSON-RPC.
+ */
+async function performGracefulShutdown(
+  state: StatePort,
+  opts: ShutdownHandlerOpts,
+  _reason?: string,
+): Promise<void> {
+  try {
+    // 1. Stop background services
+    stopSafely(opts.scheduler, "scheduler");
+    stopSafely(opts.mergeWatcher, "merge watcher");
+
+    // 2. Wait for running tasks to drain [AC3]
+    await drainRunningTasks(state);
+
+    // 3. Flush state
+    try {
+      await state.save();
+      console.error("[Craig] State flushed to disk.");
+    } catch (error: unknown) {
+      console.error(
+        "[Craig] State flush failed:",
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+
+    // 4. Tear down HTTP server + exit (delegated to composition root)
+    if (opts.onShutdown) {
+      try {
+        await opts.onShutdown();
+      } catch (error: unknown) {
+        console.error(
+          "[Craig] onShutdown callback failed:",
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    }
+
+    console.error("[Craig] Shutdown complete.");
+  } catch (error: unknown) {
+    // Catch-all: prevent unhandled rejections during shutdown
+    console.error(
+      "[Craig] Shutdown error:",
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+}
+
+/**
+ * Stop a component safely — catch and log errors.
+ *
+ * [CLEAN-CODE] Never let a stop() failure prevent the rest of shutdown.
+ */
+function stopSafely(component: Stoppable | undefined, name: string): void {
+  if (!component) return;
+  try {
+    component.stop();
+    console.error(`[Craig] Stopped ${name}.`);
+  } catch (error: unknown) {
+    console.error(
+      `[Craig] Failed to stop ${name}:`,
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+}
+
+/**
+ * Wait for all running tasks to complete, up to DRAIN_TIMEOUT_MS.
+ *
+ * Polls state.get("running_tasks") every DRAIN_POLL_MS. If tasks
+ * are still running after the timeout, logs a warning and proceeds.
+ *
+ * [AC3] Waits up to 30s for completion before force exit.
+ */
+async function drainRunningTasks(state: StatePort): Promise<void> {
+  const runningTasks = state.get("running_tasks");
+  if (runningTasks.length === 0) return;
+
+  console.error(
+    `[Craig] Waiting for ${runningTasks.length} running task(s) to complete...`,
+  );
+
+  const deadline = Date.now() + DRAIN_TIMEOUT_MS;
+
+  while (Date.now() < deadline) {
+    const current = state.get("running_tasks");
+    if (current.length === 0) {
+      console.error("[Craig] All tasks completed.");
+      return;
+    }
+    await sleep(DRAIN_POLL_MS);
+  }
+
+  const remaining = state.get("running_tasks");
+  console.error(
+    `[Craig] Drain timed out — ${remaining.length} task(s) still running. Proceeding with shutdown.`,
+  );
+}
+
+/**
+ * Sleep for the specified number of milliseconds.
+ * Extracted for testability with fake timers.
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /* ------------------------------------------------------------------ */

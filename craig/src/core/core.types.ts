@@ -128,3 +128,19 @@ export interface DigestParams {
 export interface StatusParams {
   readonly repo?: string;
 }
+
+/** Input parameters for craig_shutdown. */
+export interface ShutdownParams {
+  readonly reason?: string;
+}
+
+/**
+ * Return type for craig_shutdown.
+ *
+ * "shutting_down" — daemon mode: graceful shutdown initiated.
+ * "ignored" — stdio mode: lifecycle managed by CLI, no action taken.
+ */
+export interface ShutdownResult {
+  readonly status: "shutting_down" | "ignored";
+  readonly message: string;
+}

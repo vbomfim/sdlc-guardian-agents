@@ -32,7 +32,7 @@ describe("createCraigServer", () => {
     expect(server).toHaveProperty("close");
   });
 
-  it("registers all 6 tools", () => {
+  it("registers all 7 tools", () => {
     const server = createCraigServer({
       state: createMockState(),
       config: createMockConfig(),
@@ -50,12 +50,13 @@ describe("createCraigServer", () => {
       "craig_schedule",
       "craig_config",
       "craig_digest",
+      "craig_shutdown",
     ];
 
     for (const toolName of expectedTools) {
       expect(registeredTools).toHaveProperty(toolName);
     }
 
-    expect(Object.keys(registeredTools)).toHaveLength(6);
+    expect(Object.keys(registeredTools)).toHaveLength(7);
   });
 });
