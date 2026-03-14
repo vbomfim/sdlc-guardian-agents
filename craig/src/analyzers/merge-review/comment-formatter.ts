@@ -11,7 +11,7 @@
  */
 
 import type { ParsedFinding } from "../../result-parser/index.js";
-import type { Severity } from "../../result-parser/index.js";
+import type { Severity } from "../../shared/severity.js";
 
 // ---------------------------------------------------------------------------
 // Types

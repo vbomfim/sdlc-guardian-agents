@@ -321,7 +321,7 @@ export function createSecurityScanAnalyzer(deps: SecurityScanDeps): AnalyzerPort
 
       // Map to canonical AnalyzerFinding
       analyzerFindings.push({
-        severity: finding.severity as import("../../shared/severity.js").Severity,
+        severity: finding.severity,
         category: finding.category,
         file: finding.file_line || undefined,
         issue: finding.issue,
