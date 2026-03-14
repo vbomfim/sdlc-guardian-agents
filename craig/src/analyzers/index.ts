@@ -64,3 +64,10 @@ export {
   parsePipAudit,
   parseCargoAudit,
 } from "./dependency-check/dependency-check.parsers.js";
+export { createPrReviewAnalyzer } from "./pr-review/index.js";
+export type {
+  PrReviewAnalyzerDeps,
+  PrReviewContext,
+} from "./pr-review/pr-review.analyzer.js";
+export { formatPrReviewComment } from "./pr-review/pr-comment-formatter.js";
+export type { PrCommentInput } from "./pr-review/pr-comment-formatter.js";

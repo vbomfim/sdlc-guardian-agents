@@ -90,4 +90,6 @@ export interface CraigState {
   readonly findings: Finding[];
   /** Aggregated statistics for the current day. */
   readonly daily_stats: DailyStats;
+  /** Map of PR number → last reviewed head SHA. Used by PR watcher. */
+  readonly last_reviewed_prs: Record<string, string>;
 }

@@ -5,6 +5,7 @@ schedule:
   coverage_scan: 0 8 * * *
   tech_debt_audit: 0 9 * * 1
   dependency_check: 0 10 * * 1
+  pr_monitor: 0 */2 * * *
 capabilities:
   merge_review: true
   coverage_gaps: true
@@ -13,6 +14,7 @@ capabilities:
   po_audit: true
   auto_fix: true
   dependency_updates: true
+  pr_monitor: true
 models:
   code_review:
     - claude-opus-4.6
