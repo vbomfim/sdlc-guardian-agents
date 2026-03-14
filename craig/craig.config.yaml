@@ -17,7 +17,7 @@ capabilities:
   dependency_updates: true
   pr_monitor: true
   delivery_audit: true
-  auto_develop: false
+  auto_develop: true
   platform_audit: true
   autonomous_workflow: true
 models:

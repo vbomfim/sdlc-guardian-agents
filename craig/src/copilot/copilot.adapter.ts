@@ -244,6 +244,7 @@ export class CopilotAdapter implements CopilotPort {
     }
 
     const client = new CopilotClient();
+    await client.start();
     let session:
       | Awaited<ReturnType<CopilotClient["createSession"]>>
       | undefined;
