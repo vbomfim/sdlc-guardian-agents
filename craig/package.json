@@ -20,7 +20,7 @@
     "vitest": "^3.1.0"
   },
   "dependencies": {
-    "@github/copilot-sdk": "^0.1.32",
+    "@github/copilot-sdk": "^0.1.33-preview.2",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@octokit/rest": "^22.0.1",
     "@types/node-cron": "^3.0.11",
