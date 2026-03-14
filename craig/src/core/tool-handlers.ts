@@ -20,6 +20,7 @@ import type { ConfigPort } from "../config/index.js";
 import type { CopilotPort } from "../copilot/index.js";
 import type { AnalyzerContext } from "../analyzers/index.js";
 import type { AnalyzerRegistry } from "./analyzer-registry.js";
+import type { RepoManagerPort } from "../repo-manager/index.js";
 import type {
   StatusResult,
   RunTaskSuccess,
@@ -33,6 +34,7 @@ import type {
   ScheduleParams,
   ConfigParams,
   DigestParams,
+  StatusParams,
 } from "./core.types.js";
 import { isValidTask } from "./core.types.js";
 import { sanitizeError } from "./error-sanitizer.js";
@@ -45,18 +47,20 @@ import { sanitizeError } from "./error-sanitizer.js";
  * Create the handler for the craig_status tool.
  *
  * Delegates to State component to read running_tasks and last_runs.
- * Returns health "ok" always (degraded is reserved for future use
- * when background services are implemented).
+ * When a RepoManager is provided, routes to the correct repo's state.
  *
  * [HEXAGONAL] Adapter layer — reads from StatePort, formats for MCP.
+ * [AC3] Optional repo param routes to specific repo state.
  */
 export function createStatusHandler(
   state: StatePort,
-): () => Promise<StatusResult | ToolError> {
-  return async () => {
+  repoManager?: RepoManagerPort,
+): (params?: StatusParams) => Promise<StatusResult | ToolError> {
+  return async (params) => {
     try {
-      const runningTasks = state.get("running_tasks");
-      const lastRuns = state.get("last_runs");
+      const targetState = resolveState(state, repoManager, params?.repo);
+      const runningTasks = targetState.get("running_tasks");
+      const lastRuns = targetState.get("last_runs");
 
       return {
         running_tasks: runningTasks,
@@ -78,7 +82,7 @@ export function createStatusHandler(
  *
  * Validates the task name, checks for duplicate runs, registers
  * the task in state, and starts the analyzer asynchronously.
- * Returns immediately with a task_id.
+ * When a RepoManager is provided, routes to the correct repo's state.
  *
  * [HEXAGONAL] Adapter layer — validates, delegates to StatePort + AnalyzerRegistry.
  * [CLEAN-CODE] Fail-fast validation, then happy path.
@@ -88,6 +92,7 @@ export function createRunTaskHandler(
   state: StatePort,
   copilot: CopilotPort,
   registry?: AnalyzerRegistry,
+  repoManager?: RepoManagerPort,
 ): (params: RunTaskParams) => Promise<RunTaskSuccess | ToolError> {
   return async (params) => {
     try {
@@ -99,8 +104,11 @@ export function createRunTaskHandler(
         };
       }
 
+      // Resolve state for the target repo
+      const targetState = resolveState(state, repoManager, params.repo);
+
       // Check if already running [Edge case]
-      const runningTasks = state.get("running_tasks");
+      const runningTasks = targetState.get("running_tasks");
       if (runningTasks.includes(params.task)) {
         return {
           error: `Task already running: ${params.task}`,
@@ -112,12 +120,11 @@ export function createRunTaskHandler(
       const taskId = generateTaskId();
 
       // Register as running
-      state.set("running_tasks", [...runningTasks, params.task]);
-      await state.save();
+      targetState.set("running_tasks", [...runningTasks, params.task]);
+      await targetState.save();
 
       // Start analyzer asynchronously (fire-and-forget)
-      // The task will update state when complete.
-      startTaskAsync(params.task, taskId, state, copilot, registry);
+      startTaskAsync(params.task, taskId, targetState, copilot, registry);
 
       return {
         task_id: taskId,
@@ -137,12 +144,14 @@ export function createRunTaskHandler(
  * Create the handler for the craig_findings tool.
  *
  * Delegates filtering entirely to StatePort.getFindings().
- * The state component owns the filter logic.
+ * When repo="all" and RepoManager is present, aggregates across all repos.
  *
  * [HEXAGONAL] Thin adapter — maps MCP params to FindingFilter, returns findings.
+ * [AC3] When repo param provided, filter by repo.
  */
 export function createFindingsHandler(
   state: StatePort,
+  repoManager?: RepoManagerPort,
 ): (params: FindingsParams) => Promise<FindingsResult | ToolError> {
   return async (params) => {
     try {
@@ -153,7 +162,15 @@ export function createFindingsHandler(
         ...(params.since ? { since: params.since } : {}),
       };
 
-      const findings = state.getFindings(filter);
+      // Aggregate across all repos when "all" is specified
+      if (params.repo === "all" && repoManager) {
+        const findings = repoManager.getAllFindings(filter);
+        return { findings };
+      }
+
+      // Route to specific repo or default
+      const targetState = resolveState(state, repoManager, params.repo);
+      const findings = targetState.getFindings(filter);
 
       return { findings };
     } catch (error: unknown) {
@@ -263,20 +280,36 @@ export function createConfigHandler(
 /**
  * Create the handler for the craig_digest tool.
  *
- * Returns daily stats from State. The period parameter is passed
- * through but currently only "today" stats are available (daily_stats).
- * Week/month aggregation is deferred to a future Digest Reporter component.
+ * Returns daily stats from State. In multi-repo mode, aggregates
+ * across all repos when no specific repo is requested.
+ * When a specific repo is provided, returns that repo's stats only.
  *
- * [HEXAGONAL] Adapter layer — reads from StatePort.
- * [YAGNI] Returns what's available now; aggregation comes with Digest Reporter.
+ * [HEXAGONAL] Adapter layer — reads from StatePort or RepoManager.
+ * [AC6] Digest aggregates across all repos.
  */
 export function createDigestHandler(
   state: StatePort,
+  repoManager?: RepoManagerPort,
 ): (params: DigestParams) => Promise<DigestResult | ToolError> {
   return async (params) => {
     try {
-      const dailyStats = state.get("daily_stats");
       const period = params.period ?? "today";
+
+      // Multi-repo aggregation: when repo manager exists and no specific repo
+      if (repoManager && !params.repo) {
+        const aggregated = repoManager.getAggregatedDailyStats();
+        return {
+          merges_reviewed: aggregated.merges_reviewed,
+          issues_created: aggregated.issues_created,
+          prs_opened: aggregated.prs_opened,
+          findings_by_severity: aggregated.findings_by_severity,
+          period,
+        };
+      }
+
+      // Specific repo or single-repo mode
+      const targetState = resolveState(state, repoManager, params.repo);
+      const dailyStats = targetState.get("daily_stats");
 
       return {
         merges_reviewed: dailyStats.merges_reviewed,
@@ -294,6 +327,28 @@ export function createDigestHandler(
 /* ------------------------------------------------------------------ */
 /*  Private Helpers                                                    */
 /* ------------------------------------------------------------------ */
+
+/**
+ * Resolve the target StatePort for a tool handler.
+ *
+ * When a RepoManager is available and a repo is specified (or defaulted),
+ * returns the state for that specific repo. Otherwise falls back to
+ * the injected state (single-repo backward compatibility).
+ *
+ * [AC4] Backward compatible — works without RepoManager.
+ * [AC3] Routes to specific repo when provided.
+ */
+function resolveState(
+  fallbackState: StatePort,
+  repoManager?: RepoManagerPort,
+  repo?: string,
+): StatePort {
+  if (!repoManager) {
+    return fallbackState;
+  }
+  const resolved = repoManager.resolveRepo(repo);
+  return repoManager.getState(resolved);
+}
 
 /**
  * Create a standard tool error response.

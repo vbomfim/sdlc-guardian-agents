@@ -24,6 +24,8 @@ import { CopilotAdapter } from "./copilot/index.js";
 import { createCraigServer } from "./core/index.js";
 import { parseCliArgs } from "./cli/index.js";
 import { startDaemonServer } from "./daemon/index.js";
+import { RepoManager } from "./repo-manager/index.js";
+import type { StateFactory } from "./repo-manager/index.js";
 
 /**
  * Bootstrap and start the Craig MCP server.
@@ -50,20 +52,31 @@ async function main(): Promise<void> {
     const cfg = config.get();
 
     // [SECURITY] Log to stderr — stdout is for MCP JSON-RPC in stdio mode
-    console.error(`[Craig] Starting for repo: ${cfg.repo}`);
+    const repoNames = cfg.repos
+      ? cfg.repos.map((r) => r.repo).join(", ")
+      : cfg.repo ?? "unknown";
+    console.error(`[Craig] Starting for repo(s): ${repoNames}`);
 
-    // 3. Initialize state
-    const state = new FileStateAdapter(".craig-state.json");
-    await state.load();
+    // 3. Initialize multi-repo manager
+    //    In single-repo mode (no repos[]), creates one state with default path.
+    //    In multi-repo mode, creates separate state files per repo.
+    const stateFactory: StateFactory = (filePath: string) =>
+      new FileStateAdapter(filePath);
+    const repoManager = new RepoManager(cfg, stateFactory);
+    await repoManager.initialize();
 
-    // 4. Create Copilot adapter
+    // 4. Default state for backward-compatible handler fallback
+    const defaultRepo = repoManager.getDefaultRepo();
+    const state = repoManager.getState(defaultRepo);
+
+    // 5. Create Copilot adapter
     const copilot = new CopilotAdapter({
       defaultModel: cfg.models.default,
       guardiansPath: cfg.guardians.path,
     });
 
-    // 5. Create and configure MCP server
-    const server = createCraigServer({ state, config, copilot });
+    // 6. Create and configure MCP server
+    const server = createCraigServer({ state, config, copilot, repoManager });
 
     if (args.daemon) {
       // 6b. Daemon mode: SSE transport over HTTP

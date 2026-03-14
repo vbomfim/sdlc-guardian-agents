@@ -91,12 +91,14 @@ export interface ToolError {
 /** Input parameters for craig_run_task. */
 export interface RunTaskParams {
   readonly task: string;
+  readonly repo?: string;
 }
 
 /** Input parameters for craig_findings. */
 export interface FindingsParams {
   readonly severity?: string;
   readonly since?: string;
+  readonly repo?: string;
 }
 
 /** Input parameters for craig_schedule. */
@@ -116,4 +118,10 @@ export interface ConfigParams {
 /** Input parameters for craig_digest. */
 export interface DigestParams {
   readonly period?: string;
+  readonly repo?: string;
+}
+
+/** Input parameters for craig_status. */
+export interface StatusParams {
+  readonly repo?: string;
 }
