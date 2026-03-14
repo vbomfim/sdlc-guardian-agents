@@ -35,6 +35,7 @@ import type {
   DigestParams,
 } from "./core.types.js";
 import { isValidTask } from "./core.types.js";
+import { sanitizeError } from "./error-sanitizer.js";
 
 /* ------------------------------------------------------------------ */
 /*  craig_status                                                       */
@@ -296,14 +297,19 @@ export function createDigestHandler(
 
 /**
  * Create a standard tool error response.
- * Extracts message from Error objects, uses String() for others.
  *
- * [CLEAN-CODE] Error responses are structured, never crash the server.
+ * Sanitizes the error message before returning to the MCP client.
+ * Detailed error information is logged to stderr for debugging.
+ * Raw error.message is never exposed to MCP clients.
+ *
+ * [SECURITY] Prevents information disclosure via error messages.
+ * [CLEAN-CODE] Delegates to sanitizeError() for mapping logic.
+ *
+ * @see https://github.com/vbomfim/sdlc-guardian-agents/issues/41
  */
 function createToolError(error: unknown): ToolError {
-  const message =
-    error instanceof Error ? error.message : String(error);
-  return { error: message, code: "INTERNAL_ERROR" };
+  const sanitized = sanitizeError(error);
+  return { error: sanitized.message, code: sanitized.code };
 }
 
 /**

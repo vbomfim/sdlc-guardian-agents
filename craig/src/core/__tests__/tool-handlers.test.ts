@@ -390,8 +390,9 @@ describe("craig_digest handler", () => {
 /*  Error handling — tool handlers never throw                         */
 /* ------------------------------------------------------------------ */
 
-describe("error handling — handlers return errors, never throw", () => {
-  it("craig_status returns error object on state failure", async () => {
+describe("error handling — handlers return sanitized errors, never throw", () => {
+  it("craig_status returns sanitized error on state failure", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const state = createMockState();
     vi.mocked(state.get).mockImplementation(() => {
       throw new Error("State corrupted");
@@ -400,11 +401,15 @@ describe("error handling — handlers return errors, never throw", () => {
 
     const result = await handler();
 
-    expect(result).toHaveProperty("error");
+    expect(result).toHaveProperty("error", "An internal error occurred.");
     expect(result).toHaveProperty("code", "INTERNAL_ERROR");
+    // Verify raw message is NOT leaked
+    expect(result.error).not.toContain("State corrupted");
+    errorSpy.mockRestore();
   });
 
-  it("craig_findings returns error object on state failure", async () => {
+  it("craig_findings returns sanitized error on state failure", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const state = createMockState();
     vi.mocked(state.getFindings).mockImplementation(() => {
       throw new Error("State corrupted");
@@ -413,11 +418,14 @@ describe("error handling — handlers return errors, never throw", () => {
 
     const result = await handler({});
 
-    expect(result).toHaveProperty("error");
+    expect(result).toHaveProperty("error", "An internal error occurred.");
     expect(result).toHaveProperty("code", "INTERNAL_ERROR");
+    expect(result.error).not.toContain("State corrupted");
+    errorSpy.mockRestore();
   });
 
-  it("craig_config returns error object on config failure", async () => {
+  it("craig_config returns sanitized error on config failure", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const config = createMockConfig();
     vi.mocked(config.get).mockImplementation(() => {
       throw new Error("Config not loaded");
@@ -426,8 +434,10 @@ describe("error handling — handlers return errors, never throw", () => {
 
     const result = await handler({ action: "view" });
 
-    expect(result).toHaveProperty("error");
+    expect(result).toHaveProperty("error", "An internal error occurred.");
     expect(result).toHaveProperty("code", "INTERNAL_ERROR");
+    expect(result.error).not.toContain("Config not loaded");
+    errorSpy.mockRestore();
   });
 });
 
