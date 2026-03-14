@@ -18,7 +18,7 @@
  * @module tests/state
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
@@ -642,6 +642,151 @@ describe("FileStateAdapter", () => {
       };
       adapter.set("daily_stats", stats);
       expect(adapter.get("daily_stats")).toEqual(stats);
+    });
+  });
+
+  // ─── HIGH Fix #1: Save mutex recovery after failure ────────────
+
+  describe("HIGH Fix: Save mutex recovery after failure", () => {
+    it("should allow subsequent saves after an atomicWrite failure", async () => {
+      const adapter = new FileStateAdapter(stateFilePath);
+      await adapter.load();
+
+      // Make the directory read-only so the first save fails
+      const dir = path.dirname(stateFilePath);
+      await fs.chmod(dir, 0o444);
+
+      // First save should fail
+      await expect(adapter.save()).rejects.toThrow();
+
+      // Restore write permission
+      await fs.chmod(dir, 0o755);
+
+      // Second save must NOT be poisoned — it should succeed
+      adapter.set("last_processed_sha", "recovered-sha");
+      await adapter.save();
+
+      const raw = await fs.readFile(stateFilePath, "utf-8");
+      const saved = JSON.parse(raw) as CraigState;
+      expect(saved.last_processed_sha).toBe("recovered-sha");
+    });
+  });
+
+  // ─── HIGH Fix #2: isValidStateShape validates required fields ──
+
+  describe("HIGH Fix: State shape validation", () => {
+    it("should treat JSON with only version field as incomplete and merge defaults", async () => {
+      // {"version":1} passes the old validator but has no findings, running_tasks, etc.
+      await fs.writeFile(stateFilePath, JSON.stringify({ version: 1 }));
+
+      const adapter = new FileStateAdapter(stateFilePath);
+      await adapter.load();
+
+      // Must NOT crash — findings should be an array (from defaults)
+      expect(adapter.get("findings")).toEqual([]);
+      expect(adapter.get("running_tasks")).toEqual([]);
+      expect(adapter.get("last_runs")).toEqual({});
+      expect(adapter.get("last_processed_sha")).toBeNull();
+      expect(adapter.get("daily_stats")).toBeDefined();
+    });
+
+    it("should preserve existing fields and fill in missing ones from defaults", async () => {
+      // Partial state: has version and findings, but no running_tasks or daily_stats
+      const partialState = {
+        version: 1,
+        last_processed_sha: "partial-sha",
+        findings: [makeFinding({ id: "f-partial" })],
+      };
+      await fs.writeFile(stateFilePath, JSON.stringify(partialState));
+
+      const adapter = new FileStateAdapter(stateFilePath);
+      await adapter.load();
+
+      // Existing fields preserved
+      expect(adapter.get("last_processed_sha")).toBe("partial-sha");
+      expect(adapter.get("findings")).toHaveLength(1);
+      expect(adapter.get("findings")[0].id).toBe("f-partial");
+
+      // Missing fields filled with defaults
+      expect(adapter.get("running_tasks")).toEqual([]);
+      expect(adapter.get("last_runs")).toEqual({});
+      expect(adapter.get("daily_stats")).toEqual(
+        createDefaultState().daily_stats,
+      );
+    });
+
+    it("should reject JSON without version field as corrupted", async () => {
+      await fs.writeFile(
+        stateFilePath,
+        JSON.stringify({ findings: [], running_tasks: [] }),
+      );
+
+      const adapter = new FileStateAdapter(stateFilePath);
+      await adapter.load();
+
+      // Should be treated as corrupted — gets default state
+      expect(adapter.get("version")).toBe(1);
+      // Backup should exist
+      const bakExists = await fs
+        .access(`${stateFilePath}.bak`)
+        .then(() => true)
+        .catch(() => false);
+      expect(bakExists).toBe(true);
+    });
+
+    it("should reject JSON with non-numeric version as corrupted", async () => {
+      await fs.writeFile(
+        stateFilePath,
+        JSON.stringify({ version: "one", findings: [] }),
+      );
+
+      const adapter = new FileStateAdapter(stateFilePath);
+      await adapter.load();
+
+      expect(adapter.get("version")).toBe(1);
+    });
+  });
+
+  // ─── HIGH Fix #3: atomicWrite cleans up .tmp on failure ────────
+
+  describe("HIGH Fix: Tmp file cleanup on atomicWrite failure", () => {
+    it("should remove .tmp file when rename fails after write", async () => {
+      const adapter = new FileStateAdapter(stateFilePath);
+      await adapter.load();
+
+      // Create a non-empty directory at the state file path.
+      // rename(file, non-empty-directory) fails with EISDIR on POSIX,
+      // but writeFile to .tmp succeeds because it's at a sibling path.
+      await fs.mkdir(stateFilePath);
+      await fs.writeFile(path.join(stateFilePath, "blocker"), "x");
+
+      try {
+        await adapter.save();
+      } catch {
+        // Expected: rename fails because destination is a non-empty directory
+      }
+
+      // The .tmp file must NOT remain on disk
+      const files = await fs.readdir(tempDir);
+      const tmpFiles = files.filter((f) => f.endsWith(".tmp"));
+      expect(tmpFiles).toHaveLength(0);
+
+      // Clean up the blocker directory for afterEach
+      await fs.rm(stateFilePath, { recursive: true });
+    });
+
+    it("should still propagate the original error after cleanup", async () => {
+      const adapter = new FileStateAdapter(stateFilePath);
+      await adapter.load();
+
+      // Same trick: non-empty directory blocks rename
+      await fs.mkdir(stateFilePath);
+      await fs.writeFile(path.join(stateFilePath, "blocker"), "x");
+
+      await expect(adapter.save()).rejects.toThrow();
+
+      // Clean up
+      await fs.rm(stateFilePath, { recursive: true });
     });
   });
 });

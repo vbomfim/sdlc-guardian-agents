@@ -73,10 +73,12 @@ export class FileStateAdapter implements StatePort {
   /**
    * Persist state to disk using atomic write (temp + rename).
    * Uses a simple mutex to serialize concurrent saves.
+   * Isolates failures so subsequent saves are not poisoned. [CLEAN-CODE]
    */
   async save(): Promise<void> {
     // Queue saves to prevent concurrent file writes [SPEC: mutex]
-    this.saveLock = this.saveLock.then(() => this.atomicWrite());
+    // .catch(() => {}) isolates prior failures so the chain never poisons
+    this.saveLock = this.saveLock.catch(() => {}).then(() => this.atomicWrite());
     await this.saveLock;
   }
 
@@ -143,6 +145,7 @@ export class FileStateAdapter implements StatePort {
 
   /**
    * Parse JSON string into CraigState, returning null on failure.
+   * Merges parsed data with defaults to fill any missing fields. [CLEAN-CODE]
    */
   private parseStateJson(content: string): CraigState | null {
     try {
@@ -153,7 +156,7 @@ export class FileStateAdapter implements StatePort {
       if (!isValidStateShape(parsed)) {
         return null;
       }
-      return parsed as CraigState;
+      return mergeWithDefaults(parsed as Partial<CraigState>);
     } catch {
       return null;
     }
@@ -176,6 +179,7 @@ export class FileStateAdapter implements StatePort {
   /**
    * Write state atomically: write to .tmp file, then rename.
    * Rename is atomic on POSIX systems — prevents partial writes.
+   * Cleans up .tmp file on failure to avoid orphaned temp files. [CLEAN-CODE]
    */
   private async atomicWrite(): Promise<void> {
     const tmpPath = `${this.filePath}.tmp`;
@@ -183,7 +187,12 @@ export class FileStateAdapter implements StatePort {
 
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
     await fs.writeFile(tmpPath, content, "utf-8");
-    await fs.rename(tmpPath, this.filePath);
+    try {
+      await fs.rename(tmpPath, this.filePath);
+    } catch (error) {
+      await fs.unlink(tmpPath).catch(() => {});
+      throw error;
+    }
   }
 
   // ─── Private: Cleanup on Load ──────────────────────────────────
@@ -278,4 +287,24 @@ function isValidStateShape(value: unknown): boolean {
   }
   const obj = value as Record<string, unknown>;
   return "version" in obj && typeof obj.version === "number";
+}
+
+/**
+ * Merge parsed state with defaults to fill missing fields.
+ * Preserves existing values, fills gaps from createDefaultState(). [CLEAN-CODE]
+ */
+function mergeWithDefaults(partial: Partial<CraigState>): CraigState {
+  const defaults = createDefaultState();
+  return {
+    ...defaults,
+    ...partial,
+    daily_stats: {
+      ...defaults.daily_stats,
+      ...(partial.daily_stats ?? {}),
+      findings_by_severity: {
+        ...defaults.daily_stats.findings_by_severity,
+        ...(partial.daily_stats?.findings_by_severity ?? {}),
+      },
+    },
+  };
 }
