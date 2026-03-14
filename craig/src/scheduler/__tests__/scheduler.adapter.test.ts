@@ -553,4 +553,71 @@ describe("CronSchedulerAdapter", () => {
       expect(adapter.getSchedule()[0]?.task).toBe("coverage_scan");
     });
   });
+
+  /* ---------------------------------------------------------------- */
+  /*  Regression: Double-start orphaned cron jobs                      */
+  /* ---------------------------------------------------------------- */
+
+  describe("Regression: double-start does not create orphaned cron jobs", () => {
+    it("should stop existing jobs before creating new ones on double-start", () => {
+      const schedule = { coverage_scan: "0 8 * * *" };
+      const adapter = new CronSchedulerAdapter(schedule, dispatcher);
+
+      adapter.start();
+
+      const firstTask = mockTasksList[0];
+      expect(firstTask).toBeDefined();
+
+      // Call start() again without stop()
+      adapter.start();
+
+      // The first cron job should have been stopped
+      expect(firstTask!.stop).toHaveBeenCalled();
+
+      // Only one task should be registered (not two)
+      expect(adapter.getSchedule()).toHaveLength(1);
+
+      adapter.stop();
+    });
+
+    it("should not create duplicate cron callbacks on double-start", async () => {
+      const schedule = { coverage_scan: "0 8 * * *" };
+      const adapter = new CronSchedulerAdapter(schedule, dispatcher);
+
+      adapter.start();
+      adapter.start();
+
+      // Only the latest cron job should fire the dispatcher
+      const latestTask = mockTasks.get("0 8 * * *");
+      await latestTask!.callback();
+
+      // Dispatcher should only be called once, not twice
+      expect(dispatcher).toHaveBeenCalledTimes(1);
+
+      adapter.stop();
+    });
+  });
+
+  /* ---------------------------------------------------------------- */
+  /*  Regression: nextRun is a placeholder (known limitation)          */
+  /* ---------------------------------------------------------------- */
+
+  describe("Regression: nextRun is documented as placeholder", () => {
+    it("should return an ISO 8601 string for nextRun (placeholder behavior)", () => {
+      const now = new Date("2025-03-14T08:00:00Z");
+      vi.setSystemTime(now);
+
+      const schedule = { coverage_scan: "0 8 * * *" };
+      const adapter = new CronSchedulerAdapter(schedule, dispatcher);
+
+      adapter.start();
+
+      const entries = adapter.getSchedule();
+      // nextRun returns a valid ISO timestamp (currently a placeholder)
+      expect(entries[0]?.nextRun).toBe(now.toISOString());
+
+      adapter.stop();
+      vi.useRealTimers();
+    });
+  });
 });

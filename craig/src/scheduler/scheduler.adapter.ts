@@ -72,10 +72,14 @@ export class CronSchedulerAdapter implements SchedulerPort {
    *
    * Validates all cron expressions first (fail fast).
    * Skips entries marked as "on_push".
+   * Stops any existing jobs first to prevent orphaned cron jobs on double-start.
    *
    * @throws {ScheduleValidationError} If any cron expression is invalid.
    */
   start(): void {
+    // Prevent orphaned cron jobs if start() is called while already running
+    this.stop();
+
     // Phase 1: Validate all cron expressions before registering any [CLEAN-CODE]
     const cronEntries = this.filterCronEntries(this.scheduleConfig);
     this.validateAll(cronEntries);
@@ -100,12 +104,19 @@ export class CronSchedulerAdapter implements SchedulerPort {
   /**
    * Get the current list of scheduled tasks.
    *
+   * Note: `nextRun` returns the current timestamp as a placeholder.
+   * node-cron v4 does not expose a getNextRun() method, so accurate
+   * next-run computation would require an additional library (e.g., cron-parser).
+   *
    * @returns Array of ScheduleEntry objects with task metadata.
    */
   getSchedule(): ScheduleEntry[] {
     return Array.from(this.tasks.values()).map((scheduled) => ({
       task: scheduled.task,
       cron: scheduled.cron,
+      // TODO(#8): Compute actual next run time using cron-parser.
+      // node-cron v4 does not expose ScheduledTask.nextRun().
+      // Current value is a placeholder (current timestamp).
       nextRun: new Date().toISOString(),
       lastRun: scheduled.lastRun,
     }));

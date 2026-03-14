@@ -24,7 +24,13 @@ export interface ScheduleEntry {
   readonly task: string;
   /** Cron expression for the schedule (e.g., "0 8 * * *"). */
   readonly cron: string;
-  /** ISO 8601 timestamp of the next scheduled run. */
+  /**
+   * ISO 8601 timestamp of the next scheduled run.
+   *
+   * Known limitation: Currently returns the current timestamp as a
+   * placeholder because node-cron v4 does not expose getNextRun().
+   * TODO: Use cron-parser to compute the actual next run time.
+   */
   readonly nextRun: string;
   /** ISO 8601 timestamp of the last completed run, or null if never run. */
   readonly lastRun: string | null;
