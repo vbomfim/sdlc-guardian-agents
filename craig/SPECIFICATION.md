@@ -1,5 +1,7 @@
 # Craig — Autonomous AI Developer
 
+> An always-on MCP server that monitors your repository 24/7, invoking SDLC Guardian agents to review merges, detect bugs, create tickets, and submit draft PRs — even when Copilot CLI is closed.
+
 ## 1. User Story
 As a **software engineering team**,
 we want an **autonomous AI agent that continuously monitors our repository, reviews code, detects issues, and creates tickets/PRs**,
@@ -9,22 +11,92 @@ so that **quality, security, and consistency are enforced 24/7 without human ini
 
 ### Component Boundary
 - **Component name:** Craig
-- **Boundary:** Standalone Node.js application. Consumes GitHub API and Copilot SDK. Does NOT modify the Guardian agent definitions — uses them as-is.
-- **New or existing:** New project, separate from `sdlc-guardian-agents`
+- **Boundary:** MCP server (Model Context Protocol) running as a persistent daemon. Exposes tools to Copilot CLI via MCP protocol. Consumes GitHub API and Copilot SDK internally. Does NOT modify Guardian agent definitions — uses them as-is.
+- **New or existing:** New component within `sdlc-guardian-agents` repo (`craig/` directory)
 
-### Interface Contract
-- **Input:** GitHub repository events (merges, PRs), cron schedule triggers
-- **Output:** GitHub issues, draft PRs, review comments, daily digest reports
+### Interface Contract — MCP Tools
+
+Craig exposes the following tools via MCP. Copilot CLI discovers them automatically — no skill or REST API needed.
+
+| MCP Tool | Description | Parameters |
+|----------|------------|------------|
+| `craig_status` | Current state: running tasks, last run times, health | None |
+| `craig_run_task` | Trigger a specific task on demand | `task`: merge_review, coverage_scan, security_scan, tech_debt_audit, dependency_check, pattern_check |
+| `craig_findings` | Get recent findings by severity or category | `severity?`: critical/high/medium/low, `since?`: ISO date |
+| `craig_schedule` | View or modify the task schedule | `action`: view/update, `task?`, `cron?` |
+| `craig_config` | View or update Craig's configuration | `action`: view/update, `key?`, `value?` |
+| `craig_digest` | Get the daily/weekly digest summary | `period?`: today/week/month |
+
+### Input/Output
+- **Input:** MCP tool calls from Copilot CLI + autonomous triggers (cron, merge events)
+- **Output:** GitHub issues, draft PRs, review comments, daily digest reports + MCP tool responses
 - **Configuration:** `craig.config.yaml` per repo
 - **Error contract:** Failures logged, never silently swallowed. Failed tasks retry once, then create an incident issue.
 
+### Architecture
+
+```
+┌──────────────────────────┐
+│   Copilot CLI             │
+│                          │
+│   "craig status"         │
+│   "ask craig to review"  │──── MCP protocol (stdio/SSE) ────┐
+│   "craig findings"       │                                    │
+└──────────────────────────┘                                    ▼
+                                             ┌──────────────────────────────┐
+                                             │   Craig MCP Server (daemon)   │
+                                             │                              │
+                                             │   MCP Tools:                 │
+                                             │   ├── craig_status           │
+                                             │   ├── craig_run_task         │
+                                             │   ├── craig_findings         │
+                                             │   ├── craig_schedule         │
+                                             │   ├── craig_config           │
+                                             │   └── craig_digest           │
+                                             │                              │
+                                             │   Background Services:       │
+                                             │   ├── Merge Watcher (poll)   │
+                                             │   ├── Scheduler (node-cron)  │
+                                             │   ├── Copilot SDK (agents)   │
+                                             │   └── GitHub API (octokit)   │
+                                             │                              │
+                                             │   State: .craig-state.json   │
+                                             └──────────────────────────────┘
+```
+
+### Copilot CLI MCP Configuration
+
+Craig registers as an MCP server in Copilot CLI's config:
+
+```json
+// ~/.copilot/mcp.json (or via /mcp command)
+{
+  "servers": {
+    "craig": {
+      "command": "node",
+      "args": ["/path/to/craig/dist/index.js"],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+        "CRAIG_CONFIG": "/path/to/craig.config.yaml"
+      }
+    }
+  }
+}
+```
+
+Once registered, Copilot CLI discovers Craig's tools automatically. Users interact naturally:
+- *"craig status"* → calls `craig_status` tool
+- *"ask craig to run a security scan"* → calls `craig_run_task` with `task: security_scan`
+- *"what did craig find this week?"* → calls `craig_findings` with `since: [7 days ago]`
+
 ### Dependencies
-- **Depends on:** `@github/copilot-sdk` (JSON-RPC), GitHub API (`@octokit/rest`), SDLC Guardian agents (installed at `~/.copilot/`)
-- **Consumed by:** Human developers who review Craig's output (issues, draft PRs, comments)
+- **Depends on:** `@modelcontextprotocol/sdk` (MCP server SDK), `@github/copilot-sdk` (agent invocation), `@octokit/rest` (GitHub API), SDLC Guardian agents (installed at `~/.copilot/`)
+- **Consumed by:** Copilot CLI via MCP protocol + human developers who review Craig's GitHub output
 - **Rule:** Craig never merges its own PRs. A human always approves.
 
 ### Rewritability Check
 - [x] Each analyzer (coverage, tech-debt, deps, patterns) is an independent component with a defined interface
+- [x] MCP tool handlers are thin wrappers — business logic lives in analyzers
 - [x] The Copilot SDK session management is isolated from business logic
 - [x] GitHub API interactions are behind an interface (can swap `@octokit` for `gh` CLI)
 
@@ -99,9 +171,38 @@ so that **quality, security, and consistency are enforced 24/7 without human ini
 - **Reliability:** Process crashes should auto-restart (PM2 or systemd); no data loss
 - **Resource usage:** Should run on a small VM or developer machine (< 512MB RAM idle)
 
-## 6. API Design
+## 6. Interface — MCP Server
 
-Craig is not an API service — it's a daemon. Configuration is via YAML:
+Craig is an MCP (Model Context Protocol) server that runs as a persistent daemon. Copilot CLI connects to it via MCP and discovers its tools automatically. No REST API, no skill, no curl.
+
+### MCP Tool Definitions
+
+```typescript
+// craig_status — no params
+// Returns: { running_tasks: [], last_runs: {}, health: "ok" | "degraded" }
+
+// craig_run_task
+// Params: { task: "merge_review" | "coverage_scan" | "security_scan" | "tech_debt_audit" | "dependency_check" | "pattern_check" | "auto_fix" }
+// Returns: { task_id: string, status: "started" }
+
+// craig_findings
+// Params: { severity?: "critical" | "high" | "medium" | "low", since?: string (ISO date) }
+// Returns: { findings: [{ severity, category, file, issue, source, github_issue_url }] }
+
+// craig_schedule
+// Params: { action: "view" | "update", task?: string, cron?: string }
+// Returns: { schedule: { task: cron_expression }[] }
+
+// craig_config
+// Params: { action: "view" | "update", key?: string, value?: string }
+// Returns: { config: object }
+
+// craig_digest
+// Params: { period?: "today" | "week" | "month" }
+// Returns: { merges_reviewed, issues_created, prs_opened, findings_by_severity }
+```
+
+### Configuration
 
 ```yaml
 # craig.config.yaml
