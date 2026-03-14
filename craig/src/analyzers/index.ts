@@ -49,3 +49,5 @@ export {
   PatternStoreCorruptedError,
   PatternLearningError,
 } from "./pattern-check/errors.js";
+export { createTechDebtAnalyzer } from "./tech-debt/index.js";
+export type { TechDebtAnalyzerDeps } from "./tech-debt/tech-debt.analyzer.js";
