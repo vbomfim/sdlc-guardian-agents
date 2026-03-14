@@ -71,13 +71,5 @@ export type {
 } from "./pr-review/pr-review.analyzer.js";
 export { formatPrReviewComment } from "./pr-review/pr-comment-formatter.js";
 export type { PrCommentInput } from "./pr-review/pr-comment-formatter.js";
-export { createPlatformAuditAnalyzer } from "./platform-audit/index.js";
-export type {
-  PlatformAuditDeps,
-  PlatformAuditContext,
-} from "./platform-audit/platform-audit.analyzer.js";
-export {
-  isK8sFile,
-  filterK8sFiles,
-  hasK8sFiles,
-} from "./platform-audit/k8s-file-detector.js";
+export { createDeliveryAuditAnalyzer } from "./delivery-audit/index.js";
+export type { DeliveryAuditAnalyzerDeps } from "./delivery-audit/index.js";

@@ -33,6 +33,7 @@ import { createSecurityScanAnalyzer } from "./analyzers/security-scan/index.js";
 import { createCoverageScanAnalyzer } from "./analyzers/coverage-scan/index.js";
 import { createTechDebtAnalyzer } from "./analyzers/tech-debt/index.js";
 import { createPrReviewAnalyzer } from "./analyzers/pr-review/index.js";
+import { createDeliveryAuditAnalyzer } from "./analyzers/delivery-audit/index.js";
 import { createResultParser } from "./result-parser/index.js";
 import { GitHubAdapter } from "./github/index.js";
 
@@ -131,6 +132,11 @@ async function main(): Promise<void> {
       }
       if (cfg.capabilities.pr_monitor) {
         analyzers.push(createPrReviewAnalyzer({
+          copilot, github, parser: resultParser, state,
+        }));
+      }
+      if (cfg.capabilities.delivery_audit) {
+        analyzers.push(createDeliveryAuditAnalyzer({
           copilot, github, parser: resultParser, state,
         }));
       }
