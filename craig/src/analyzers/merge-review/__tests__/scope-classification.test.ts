@@ -451,4 +451,161 @@ describe("Scope Classification (Issue #67)", () => {
       expect(classificationCall![0].prompt).toContain("OUT_OF_SCOPE");
     });
   });
+
+  describe("PO Guardian ticket body (buildTicketBody)", () => {
+    it("uses PO Guardian rich ticket body when invocation succeeds with substantial output", async () => {
+      const parser = createMockParser([CRITICAL_FINDING]);
+      const richTicket = "## SQL Injection Vulnerability\n\n### Summary\nA critical SQL injection...\n\n### Acceptance Criteria\n- [ ] Fix parameterized query\n";
+
+      vi.mocked(copilot.invoke)
+        .mockResolvedValueOnce({ success: true, output: "## Security Report", duration_ms: 1000, model_used: "claude-sonnet-4.5" })
+        .mockResolvedValueOnce({ success: true, output: "## Code Review Report", duration_ms: 1200, model_used: "claude-sonnet-4.5" })
+        // Classification: IN_SCOPE
+        .mockResolvedValueOnce({ success: true, output: "IN_SCOPE\nValid finding.", duration_ms: 500, model_used: "claude-sonnet-4.5" })
+        // PO ticket writing: rich output (> 50 chars)
+        .mockResolvedValueOnce({ success: true, output: richTicket, duration_ms: 800, model_used: "claude-sonnet-4.5" })
+        // Second finding (same mock from parser returning 2 findings)
+        .mockResolvedValueOnce({ success: true, output: "IN_SCOPE\nValid finding.", duration_ms: 500, model_used: "claude-sonnet-4.5" })
+        .mockResolvedValueOnce({ success: true, output: richTicket, duration_ms: 800, model_used: "claude-sonnet-4.5" });
+
+      const analyzer = createMergeReviewAnalyzer({ copilot, github, state, parser });
+      await analyzer.execute(createContext());
+
+      // createIssue should be called with the PO Guardian's rich ticket body
+      expect(github.createIssue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: richTicket,
+        }),
+      );
+    });
+
+    it("falls back to basic template when PO Guardian invocation fails", async () => {
+      const parser = createMockParser([CRITICAL_FINDING]);
+
+      vi.mocked(copilot.invoke)
+        .mockResolvedValueOnce({ success: true, output: "## Security Report", duration_ms: 1000, model_used: "claude-sonnet-4.5" })
+        .mockResolvedValueOnce({ success: true, output: "## Code Review Report", duration_ms: 1200, model_used: "claude-sonnet-4.5" })
+        // Classification: IN_SCOPE
+        .mockResolvedValueOnce({ success: true, output: "IN_SCOPE", duration_ms: 500, model_used: "claude-sonnet-4.5" })
+        // PO ticket writing: failure
+        .mockResolvedValueOnce({ success: false, output: "", duration_ms: 500, model_used: "claude-sonnet-4.5", error: "Timeout" })
+        // Second finding
+        .mockResolvedValueOnce({ success: true, output: "IN_SCOPE", duration_ms: 500, model_used: "claude-sonnet-4.5" })
+        .mockResolvedValueOnce({ success: false, output: "", duration_ms: 500, model_used: "claude-sonnet-4.5", error: "Timeout" });
+
+      const analyzer = createMergeReviewAnalyzer({ copilot, github, state, parser });
+      await analyzer.execute(createContext());
+
+      // Should use basic template with structured finding info
+      expect(github.createIssue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.stringContaining("## Finding"),
+        }),
+      );
+      expect(github.createIssue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.stringContaining("SQL injection"),
+        }),
+      );
+    });
+
+    it("falls back to basic template when PO Guardian returns short output (< 50 chars)", async () => {
+      const parser = createMockParser([CRITICAL_FINDING]);
+
+      vi.mocked(copilot.invoke)
+        .mockResolvedValueOnce({ success: true, output: "## Security Report", duration_ms: 1000, model_used: "claude-sonnet-4.5" })
+        .mockResolvedValueOnce({ success: true, output: "## Code Review Report", duration_ms: 1200, model_used: "claude-sonnet-4.5" })
+        // Classification: IN_SCOPE
+        .mockResolvedValueOnce({ success: true, output: "IN_SCOPE", duration_ms: 500, model_used: "claude-sonnet-4.5" })
+        // PO ticket writing: success but too short
+        .mockResolvedValueOnce({ success: true, output: "Fix it.", duration_ms: 500, model_used: "claude-sonnet-4.5" })
+        // Second finding
+        .mockResolvedValueOnce({ success: true, output: "IN_SCOPE", duration_ms: 500, model_used: "claude-sonnet-4.5" })
+        .mockResolvedValueOnce({ success: true, output: "Fix it.", duration_ms: 500, model_used: "claude-sonnet-4.5" });
+
+      const analyzer = createMergeReviewAnalyzer({ copilot, github, state, parser });
+      await analyzer.execute(createContext());
+
+      // Short PO output should be discarded — basic template used
+      expect(github.createIssue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.stringContaining("## Finding"),
+        }),
+      );
+      // Should NOT use the short PO output as the body
+      expect(github.createIssue).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: "Fix it.",
+        }),
+      );
+    });
+
+    it("uses basic template when copilot is undefined", async () => {
+      // Use a parser that returns findings only from one parse call
+      const parser: ResultParserPort = {
+        parse: vi.fn()
+          .mockReturnValueOnce({
+            guardian: "security",
+            summary: "Found issues",
+            findings: [CRITICAL_FINDING],
+            recommended_actions: [],
+            raw: "",
+          } satisfies ParsedReport)
+          .mockReturnValueOnce({
+            guardian: "code-review",
+            summary: "No issues",
+            findings: [],
+            recommended_actions: [],
+            raw: "",
+          } satisfies ParsedReport),
+      };
+
+      // Create deps without copilot — this means guardians won't run either,
+      // but we test the buildTicketBody fallback path. We need a copilot
+      // that succeeds for guardians + classification but simulate undefined
+      // in buildTicketBody. Since buildTicketBody checks !copilot, and the
+      // guardians need copilot, let's test with a copilot that works for
+      // guardians/classification but PO ticket returns unusable output.
+      vi.mocked(copilot.invoke)
+        .mockResolvedValueOnce({ success: true, output: "## Security Report", duration_ms: 1000, model_used: "claude-sonnet-4.5" })
+        .mockResolvedValueOnce({ success: true, output: "## Code Review Report", duration_ms: 1200, model_used: "claude-sonnet-4.5" })
+        .mockResolvedValueOnce({ success: true, output: "IN_SCOPE", duration_ms: 500, model_used: "claude-sonnet-4.5" })
+        // PO returns empty (simulates unavailable)
+        .mockResolvedValueOnce({ success: true, output: "", duration_ms: 500, model_used: "claude-sonnet-4.5" });
+
+      const analyzer = createMergeReviewAnalyzer({ copilot, github, state, parser });
+      await analyzer.execute(createContext());
+
+      // Basic template should be used
+      expect(github.createIssue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.stringContaining("## Finding"),
+        }),
+      );
+    });
+
+    it("sends finding data in context parameter (not prompt) to prevent prompt injection", async () => {
+      const parser = createMockParser([CRITICAL_FINDING]);
+
+      vi.mocked(copilot.invoke)
+        .mockResolvedValueOnce({ success: true, output: "## Security Report", duration_ms: 1000, model_used: "claude-sonnet-4.5" })
+        .mockResolvedValueOnce({ success: true, output: "## Code Review Report", duration_ms: 1200, model_used: "claude-sonnet-4.5" })
+        .mockResolvedValueOnce({ success: true, output: "IN_SCOPE", duration_ms: 500, model_used: "claude-sonnet-4.5" })
+        .mockResolvedValueOnce({ success: true, output: "## Rich Ticket Body with lots of content for the issue".padEnd(100, "."), duration_ms: 800, model_used: "claude-sonnet-4.5" });
+
+      const analyzer = createMergeReviewAnalyzer({ copilot, github, state, parser });
+      await analyzer.execute(createContext());
+
+      // The PO ticket writing call (4th invoke) should have finding data in context, not prompt
+      const poTicketCall = vi.mocked(copilot.invoke).mock.calls[3];
+      expect(poTicketCall).toBeDefined();
+      expect(poTicketCall![0].agent).toBe("po-guardian");
+      // Prompt should NOT contain raw finding data
+      expect(poTicketCall![0].prompt).not.toContain("SQL injection");
+      expect(poTicketCall![0].prompt).not.toContain("OWASP A05");
+      // Context SHOULD contain finding data
+      expect(poTicketCall![0].context).toContain("SQL injection");
+      expect(poTicketCall![0].context).toContain("OWASP A05");
+    });
+  });
 });

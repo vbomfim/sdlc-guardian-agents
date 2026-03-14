@@ -13,7 +13,8 @@
  */
 
 import type { CopilotPort, InvokeResult } from "../../copilot/index.js";
-import type { GitHubPort, CommitDiff } from "../../github/index.js";
+import type { GitPort } from "../../git-port/git.port.js";
+import type { CommitDiff } from "../../github/index.js";
 import type { StatePort, Finding } from "../../state/index.js";
 import type {
   ResultParserPort,
@@ -59,6 +60,9 @@ export interface MergeReviewContext extends AnalyzerContext {
 /** Maximum number of lines in a diff before truncation. */
 const MAX_DIFF_LINES = 5_000;
 
+/** Minimum output length from PO Guardian to use as a rich ticket body. */
+const MIN_PO_TICKET_LENGTH = 50;
+
 /** Severity levels that trigger automatic GitHub issue creation. */
 const ISSUE_WORTHY_SEVERITIES = new Set(["critical", "high"]);
 
@@ -74,7 +78,7 @@ function ts(): string {
 /** Dependencies required by the MergeReviewAnalyzer. */
 export interface MergeReviewAnalyzerDeps {
   readonly copilot: CopilotPort;
-  readonly github: GitHubPort;
+  readonly github: GitPort;
   readonly state: StatePort;
   readonly parser: ResultParserPort;
   /** Optional: analyzer registry to trigger auto_develop after review. */
@@ -150,8 +154,7 @@ export function createMergeReviewAnalyzer(
             ].join("\n"),
             context: diff,
           }).then(r => {
-            console.error(`[Craig] [${ts()}] Security Guardian finished: success=${String(r.success)}, ${r.duration_ms}ms`);
-            console.error(`[Craig] [${ts()}] Security output (first 500 chars): ${r.output.slice(0, 500)}`);
+            console.error(`[Craig] [${ts()}] Security Guardian finished: success=${String(r.success)}, ${r.duration_ms}ms, output_length=${r.output.length}`);
             return r;
           }),
           deps.copilot.invoke({
@@ -170,8 +173,7 @@ export function createMergeReviewAnalyzer(
             ].join("\n"),
             context: diff,
           }).then(r => {
-            console.error(`[Craig] [${ts()}] Code Review Guardian finished: success=${String(r.success)}, ${r.duration_ms}ms`);
-            console.error(`[Craig] [${ts()}] Code Review output (first 500 chars): ${r.output.slice(0, 500)}`);
+            console.error(`[Craig] [${ts()}] Code Review Guardian finished: success=${String(r.success)}, ${r.duration_ms}ms, output_length=${r.output.length}`);
             return r;
           }),
         ]);
@@ -280,7 +282,7 @@ export function createMergeReviewAnalyzer(
  */
 async function fetchAndTruncateDiff(
   sha: string,
-  github: GitHubPort,
+  github: GitPort,
 ): Promise<{ diff: string; truncated: boolean }> {
   const commitDiff: CommitDiff = await github.getCommitDiff(sha);
   const diff = buildDiffText(commitDiff);
@@ -332,7 +334,7 @@ async function createIssuesForSevereFindings(
   findings: readonly ParsedFinding[],
   source: string,
   sha: string,
-  github: GitHubPort,
+  github: GitPort,
   copilot: CopilotPort | undefined,
   projectContext: ProjectContext,
 ): Promise<{ actions: ActionTaken[]; inScopeCount: number }> {
@@ -460,24 +462,28 @@ async function buildTicketBody(
   }
 
   console.error(`[Craig] [${ts()}] Invoking PO Guardian for issue: ${finding.issue}`);
+  const findingContext = [
+    `Severity: ${finding.severity.toUpperCase()}`,
+    `Category: ${finding.category}`,
+    `File: ${finding.file_line || "N/A"}`,
+    `Source: ${source}`,
+    `Issue: ${finding.issue}`,
+    `Justification: ${finding.source_justification}`,
+    `Suggested Fix: ${finding.suggested_fix}`,
+  ].join("\n");
+
   const poResult = await copilot.invoke({
     agent: "po-guardian",
     prompt: [
       "Write a GitHub issue ticket for the following finding from a merge review.",
       "Include: summary, acceptance criteria, technical context, and suggested fix.",
       "Format as a proper GitHub issue body in markdown.",
-      "",
-      `Severity: ${finding.severity.toUpperCase()}`,
-      `Category: ${finding.category}`,
-      `File: ${finding.file_line || "N/A"}`,
-      `Source: ${source}`,
-      `Issue: ${finding.issue}`,
-      `Justification: ${finding.source_justification}`,
-      `Suggested Fix: ${finding.suggested_fix}`,
+      "The finding details are provided in the context below.",
     ].join("\n"),
+    context: findingContext,
   });
 
-  if (poResult.success && poResult.output.trim().length > 50) {
+  if (poResult.success && poResult.output.trim().length > MIN_PO_TICKET_LENGTH) {
     console.error(`[Craig] [${ts()}] PO Guardian wrote ticket (${poResult.output.length} chars)`);
     return poResult.output;
   }

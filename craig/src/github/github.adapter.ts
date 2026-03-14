@@ -13,6 +13,7 @@
 import { Octokit } from "@octokit/rest";
 import type { GitPort } from "../git-port/git.port.js";
 import type { GitHubPort } from "./github.port.js";
+import { sanitizeGitHubContent } from "../shared/sanitize.js";
 import type {
   CreateIssueParams,
   CreatePRParams,
@@ -84,14 +85,17 @@ export class GitHubAdapter implements GitPort, GitHubPort {
   // -----------------------------------------------------------------------
 
   async createIssue(params: CreateIssueParams): Promise<IssueReference> {
-    const title = truncateTitle(params.title);
+    // [SECURITY] Defense-in-depth: sanitize all issue content before GitHub API.
+    // Prevents @mention spam, tracking pixels, XSS from LLM output.
+    const title = truncateTitle(sanitizeGitHubContent(params.title));
+    const body = sanitizeGitHubContent(params.body);
 
     const response = await this.execute(() =>
       this.octokit.rest.issues.create({
         owner: this.owner,
         repo: this.repo,
         title,
-        body: params.body,
+        body,
         labels: params.labels,
         assignees: params.assignees,
       }),
