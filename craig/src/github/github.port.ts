@@ -1,48 +1,18 @@
 /**
- * GitHubPort — the inward-facing interface for GitHub API operations.
+ * GitHubPort — GitHub-specific interface for API operations.
  *
- * All GitHub interactions go through this port. No other component
- * imports @octokit/rest directly. This enables swapping the adapter
- * (e.g., from octokit to `gh` CLI) without touching consumer code.
+ * Now extends the provider-agnostic GitPort interface. This ensures
+ * backward compatibility: all existing code that depends on GitHubPort
+ * continues to work, but new code should prefer GitPort.
  *
+ * @deprecated Use GitPort from "../git-port/git.port.js" for new code.
  * @see [HEXAGONAL] — Ports & Adapters pattern
  */
 
-import type {
-  CreateIssueParams,
-  CreatePRParams,
-  CreatePRReviewParams,
-  IssueReference,
-  PRReference,
-  PRReviewReference,
-  PullRequestInfo,
-  CommentReference,
-  CommitInfo,
-  CommitDiff,
-  RateLimitInfo,
-} from "./github.types.js";
+import type { GitPort } from "../git-port/git.port.js";
 
-export interface GitHubPort {
-  // Issues
-  createIssue(params: CreateIssueParams): Promise<IssueReference>;
-  createIssueComment(issueNumber: number, body: string): Promise<CommentReference>;
-  findExistingIssue(title: string): Promise<IssueReference | null>;
-  listOpenIssues(labels?: string[]): Promise<IssueReference[]>;
-
-  // Pull Requests
-  createDraftPR(params: CreatePRParams): Promise<PRReference>;
-  listOpenPRs(): Promise<PullRequestInfo[]>;
-  getPRDiff(pullNumber: number): Promise<string>;
-  postPRReview(params: CreatePRReviewParams): Promise<PRReviewReference>;
-
-  // Review Comments
-  createCommitComment(sha: string, body: string): Promise<CommentReference>;
-
-  // Repository
-  getLatestCommits(since: string, branch?: string): Promise<CommitInfo[]>;
-  getCommitDiff(sha: string): Promise<CommitDiff>;
-  getMergeCommits(since: string): Promise<CommitInfo[]>;
-
-  // Rate Limiting
-  getRateLimit(): Promise<RateLimitInfo>;
-}
+/**
+ * @deprecated Use GitPort from "git-port" module for new code.
+ * GitHubPort is retained for backward compatibility.
+ */
+export interface GitHubPort extends GitPort {}

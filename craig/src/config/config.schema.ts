@@ -91,6 +91,21 @@ export const craigConfigSchema = z
 
     branch: safeString.default("main"),
 
+    /** Git hosting provider. Defaults to "github" for backward compatibility. */
+    provider: z.enum(["github", "ado"]).default("github"),
+
+    /**
+     * Azure DevOps configuration. Required when provider is "ado".
+     * @see https://github.com/vbomfim/sdlc-guardian-agents/issues/35
+     */
+    ado: z
+      .object({
+        organization: safeString.min(1, "ADO organization is required"),
+        project: safeString.min(1, "ADO project is required"),
+        auth: z.enum(["pat", "managed-identity"]).default("pat"),
+      })
+      .optional(),
+
     schedule: z.record(z.string(), CRON_OR_ON_PUSH).default({}),
 
     capabilities: z
@@ -154,6 +169,15 @@ export const craigConfigSchema = z
         code: "custom",
         message: `Secret-like value detected at "${secretPath}". Config values must not contain tokens.`,
         path: secretPath.split("."),
+      });
+    }
+
+    // ADO provider requires ado configuration block
+    if (data.provider === "ado" && !data.ado) {
+      ctx.addIssue({
+        code: "custom",
+        message: 'ADO configuration (ado.organization, ado.project) is required when provider is "ado".',
+        path: ["ado"],
       });
     }
   });

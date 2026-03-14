@@ -29,6 +29,13 @@ import {
   GitHubAPIError,
 } from "../github/github.errors.js";
 import {
+  GitRateLimitError,
+  GitAuthError,
+  GitNotFoundError,
+  GitAPIError,
+  GitProviderNotSupportedError,
+} from "../git-port/git.errors.js";
+import {
   CopilotSessionError,
   CopilotTimeoutError,
   CopilotUnavailableError,
@@ -105,6 +112,33 @@ const ERROR_MAP: ErrorMapping = [
     match: GitHubAPIError,
     message: "GitHub API request failed.",
     code: "GITHUB_ERROR",
+  },
+
+  // Git provider-agnostic errors
+  {
+    match: GitRateLimitError,
+    message: "Git provider rate limit exceeded. Try again later.",
+    code: "RATE_LIMIT",
+  },
+  {
+    match: GitAuthError,
+    message: "Git provider authentication failed. Check your token.",
+    code: "AUTH_ERROR",
+  },
+  {
+    match: GitNotFoundError,
+    message: "Requested resource was not found on the Git provider.",
+    code: "NOT_FOUND",
+  },
+  {
+    match: GitAPIError,
+    message: "Git provider API request failed.",
+    code: "GIT_ERROR",
+  },
+  {
+    match: GitProviderNotSupportedError,
+    message: "Git provider not supported. Check your config.",
+    code: "PROVIDER_ERROR",
   },
 
   // Copilot errors
