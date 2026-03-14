@@ -75,6 +75,8 @@ export interface CraigState {
   readonly version: number;
   /** SHA of the last processed merge commit, or null if none. */
   readonly last_processed_sha: string | null;
+  /** ISO 8601 timestamp of the last processed merge commit, or null if none. */
+  readonly last_processed_timestamp: string | null;
   /** Map of task name → ISO 8601 timestamp of last execution. */
   readonly last_runs: Record<string, string>;
   /** List of currently running task names. */
