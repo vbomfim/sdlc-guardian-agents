@@ -322,7 +322,7 @@ function coerceValue(value: string): unknown {
   if (value === "false") return false;
 
   const asNumber = Number(value);
-  if (!Number.isNaN(asNumber) && value.trim() !== "") {
+  if (Number.isFinite(asNumber) && value.trim() !== "") {
     return asNumber;
   }
 
