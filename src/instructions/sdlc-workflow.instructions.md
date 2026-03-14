@@ -154,3 +154,4 @@ When different Guardians give contradictory feedback:
 - **Diff-only on re-iteration** — second pass reviews only what changed
 - **User decides, not the agent** — present findings, recommend, but let the user choose
 - **Track what ran** — when presenting results, show which Guardians completed and which are pending
+- **Always use `model: "claude-opus-4.6"`** — all Guardian agents must run under Opus 4.6. Never use default (Haiku) for Guardian work.
