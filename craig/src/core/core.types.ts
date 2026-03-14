@@ -26,6 +26,7 @@ export const VALID_TASKS = [
   "dependency_check",
   "pattern_check",
   "auto_fix",
+  "platform_audit",
 ] as const;
 
 export type ValidTask = (typeof VALID_TASKS)[number];
