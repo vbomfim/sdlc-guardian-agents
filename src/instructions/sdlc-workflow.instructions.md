@@ -150,6 +150,7 @@ When different Guardians give contradictory feedback:
 - **Never skip a gate** — if a Guardian hasn't run, invoke it before proceeding
 - **Parallel when possible** — QA, Security, Code Review run simultaneously
 - **Sequential when required** — Developer must finish before reviews start
+- **React to system_notifications IMMEDIATELY** — when a background agent completes, call `read_agent` right away, process results, and trigger the next pipeline step. Do NOT wait for the user to ask.
 - **Max 3 iterations per Guardian** — then consult or escalate to user
 - **Diff-only on re-iteration** — second pass reviews only what changed
 - **User decides, not the agent** — present findings, recommend, but let the user choose
