@@ -186,8 +186,8 @@ export class FileStateAdapter implements StatePort {
     const content = JSON.stringify(this.state, null, 2) + "\n";
 
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
-    await fs.writeFile(tmpPath, content, "utf-8");
     try {
+      await fs.writeFile(tmpPath, content, "utf-8");
       await fs.rename(tmpPath, this.filePath);
     } catch (error) {
       await fs.unlink(tmpPath).catch(() => {});
