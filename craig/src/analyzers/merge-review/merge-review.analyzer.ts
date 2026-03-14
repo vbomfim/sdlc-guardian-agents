@@ -181,11 +181,12 @@ export function createMergeReviewAnalyzer(
         });
         console.error(`[Craig] [${ts()}] Comment posted: ${commentRef.url}`);
 
-        // Step 5: Create issues for critical/high findings
+        // Step 5: Create issues for critical/high findings (via PO Guardian)
         const issueActions = await createIssuesForSevereFindings(
           allFindings,
           securityReport.guardian,
           deps.github,
+          deps.copilot,
         );
         actions.push(...issueActions);
         if (issueActions.length > 0) {
@@ -268,29 +269,64 @@ function parseIfSuccessful(
   };
 }
 
-/** Create GitHub issues for critical/high findings, checking for duplicates. */
+/** Create GitHub issues for critical/high findings via PO Guardian. */
 async function createIssuesForSevereFindings(
   findings: readonly ParsedFinding[],
   source: string,
   github: GitHubPort,
+  copilot?: CopilotPort,
 ): Promise<ActionTaken[]> {
   const actions: ActionTaken[] = [];
+  const severeFindings = findings.filter(f => ISSUE_WORTHY_SEVERITIES.has(f.severity));
 
-  for (const finding of findings) {
-    if (!ISSUE_WORTHY_SEVERITIES.has(finding.severity)) {
-      continue;
-    }
+  if (severeFindings.length === 0) {
+    return actions;
+  }
 
+  for (const finding of severeFindings) {
     const title = `[Craig] ${finding.severity.toUpperCase()}: ${finding.issue}`;
     const existing = await github.findExistingIssue(title);
 
     if (existing) {
+      console.error(`[Craig] [${ts()}] Issue already exists: ${title}`);
       continue;
+    }
+
+    // Try PO Guardian for rich ticket, fall back to basic template
+    let body: string;
+    if (copilot) {
+      console.error(`[Craig] [${ts()}] Invoking PO Guardian for issue: ${finding.issue}`);
+      const poResult = await copilot.invoke({
+        agent: "po-guardian",
+        prompt: [
+          "Write a GitHub issue ticket for the following finding from a merge review.",
+          "Include: summary, acceptance criteria, technical context, and suggested fix.",
+          "Format as a proper GitHub issue body in markdown.",
+          "",
+          `Severity: ${finding.severity.toUpperCase()}`,
+          `Category: ${finding.category}`,
+          `File: ${finding.file_line || "N/A"}`,
+          `Source: ${source}`,
+          `Issue: ${finding.issue}`,
+          `Justification: ${finding.source_justification}`,
+          `Suggested Fix: ${finding.suggested_fix}`,
+        ].join("\n"),
+      });
+
+      if (poResult.success && poResult.output.trim().length > 50) {
+        body = poResult.output;
+        console.error(`[Craig] [${ts()}] PO Guardian wrote ticket (${body.length} chars)`);
+      } else {
+        console.error(`[Craig] [${ts()}] PO Guardian failed, using basic template`);
+        body = buildIssueBody(finding, source);
+      }
+    } else {
+      body = buildIssueBody(finding, source);
     }
 
     const issue = await github.createIssue({
       title,
-      body: buildIssueBody(finding, source),
+      body,
       labels: ["craig", source],
     });
 
@@ -299,6 +335,7 @@ async function createIssuesForSevereFindings(
       url: issue.url,
       description: `Created issue for ${finding.severity} finding: ${finding.issue}`,
     });
+    console.error(`[Craig] [${ts()}] Issue created: ${issue.url}`);
   }
 
   return actions;
