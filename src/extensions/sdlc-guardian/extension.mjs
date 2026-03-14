@@ -216,11 +216,12 @@ const session = await joinSession({
         }
       }
 
-      // After a background agent completes, enforce the next workflow step
-      if (input.toolName === "task" || input.toolName === "read_agent") {
-        const agentType = String(input.toolArgs?.agent_type || input.toolArgs?.description || "");
+      // After a background agent COMPLETES (read_agent only, not task launch), enforce next step
+      if (input.toolName === "read_agent") {
+        const result = String(input.toolResult || "");
+        const description = String(input.toolArgs?.description || "");
 
-        if (/dev-guardian/i.test(agentType)) {
+        if (/dev-guardian/i.test(description) || /Developer Guardian/i.test(result)) {
           await session.log(
             "🛡️ Developer Guardian completed. Enforcing post-implementation gate.",
             { level: "info" }
@@ -228,7 +229,7 @@ const session = await joinSession({
           setTimeout(() => session.send({
             prompt: "Developer Guardian finished implementation. ENFORCE post-implementation gate: invoke QA Guardian + Security Guardian + Code Review Guardian (dual-model: Opus 4.6 + GPT 5.4) in parallel, all background mode, model: claude-opus-4.6. Read the Developer's handoff report first, then launch reviews on the changes."
           }), 0);
-        } else if (/security-guardian/i.test(agentType)) {
+        } else if (/security-guardian/i.test(description) || /Security Guardian/i.test(result)) {
           await session.log(
             "🛡️ Security Guardian completed. Read findings — fix critical/high before proceeding.",
             { level: "info" }
@@ -236,7 +237,7 @@ const session = await joinSession({
           setTimeout(() => session.send({
             prompt: "Security Guardian review completed. Read the findings with read_agent. If CRITICAL or HIGH findings exist, invoke Developer Guardian to fix them (model: claude-opus-4.6). If no critical/high, proceed to merge gate."
           }), 0);
-        } else if (/code-review/i.test(agentType)) {
+        } else if (/code-review/i.test(description) || /Code Review Guardian/i.test(result)) {
           await session.log(
             "🛡️ Code Review Guardian completed. Read findings — fix critical/high before proceeding.",
             { level: "info" }
@@ -244,7 +245,7 @@ const session = await joinSession({
           setTimeout(() => session.send({
             prompt: "Code Review Guardian completed. Read the findings with read_agent. If CRITICAL or HIGH findings exist, invoke Developer Guardian to fix them (model: claude-opus-4.6). If no critical/high, proceed to merge gate."
           }), 0);
-        } else if (/qa-guardian/i.test(agentType)) {
+        } else if (/qa-guardian/i.test(description) || /QA Guardian/i.test(result)) {
           await session.log(
             "🛡️ QA Guardian completed. Read test coverage report.",
             { level: "info" }
@@ -252,7 +253,7 @@ const session = await joinSession({
           setTimeout(() => session.send({
             prompt: "QA Guardian completed. Read the test report with read_agent. Address any coverage gaps flagged as HIGH."
           }), 0);
-        } else if (/po-guardian/i.test(agentType)) {
+        } else if (/po-guardian/i.test(description) || /PO Guardian/i.test(result)) {
           await session.log(
             "🛡️ PO Guardian completed. Create the GitHub issue from the ticket.",
             { level: "info" }
