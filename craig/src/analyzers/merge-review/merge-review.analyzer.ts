@@ -221,6 +221,10 @@ export function createMergeReviewAnalyzer(
 
         // Step 5: Create issues for critical/high findings (via PO Guardian)
         console.error(`[Craig] [${ts()}] Gathering project context for scope classification...`);
+        // Step 5: Store findings in state (returns issue→ID map for auto_develop)
+        const findingIdMap = await recordFindings(allFindings, deps.state);
+
+        // Step 6: Classify and create issues/comments for critical/high findings
         const projectContext = await gatherProjectContext(deps.github);
         console.error(`[Craig] [${ts()}] Project context: primary=${projectContext.primaryLanguage}, languages=${Object.keys(projectContext.languages).join(",")}`);
 
@@ -231,14 +235,13 @@ export function createMergeReviewAnalyzer(
           deps.github,
           deps.copilot,
           projectContext,
+          findingIdMap,
         );
         actions.push(...issueActions);
         if (issueActions.length > 0) {
           console.error(`[Craig] [${ts()}] Created ${issueActions.length} actions for critical/high findings (${inScopeCount} in-scope)`);
         }
 
-        // Step 6: Store findings in state
-        await recordFindings(allFindings, deps.state);
         console.error(`[Craig] [${ts()}] Merge review complete: ${allFindings.length} findings, ${actions.length} actions`);
 
         // Step 7: Trigger auto_develop only for IN_SCOPE findings
@@ -338,6 +341,7 @@ async function createIssuesForSevereFindings(
   github: GitPort,
   copilot: CopilotPort | undefined,
   projectContext: ProjectContext,
+  findingIdMap: Map<string, string>,
 ): Promise<{ actions: ActionTaken[]; inScopeCount: number; inScopeFindingIds: string[] }> {
   const actions: ActionTaken[] = [];
   let inScopeCount = 0;
@@ -364,9 +368,11 @@ async function createIssuesForSevereFindings(
     if (classification === "IN_SCOPE") {
       // IN_SCOPE: Create fix ticket (existing behavior)
       inScopeCount++;
-      // Generate a stable finding ID for auto_develop to reference
-      const findingId = crypto.randomUUID();
-      inScopeFindingIds.push(findingId);
+      // Look up the real state finding ID for auto_develop
+      const stateId = findingIdMap.get(finding.issue);
+      if (stateId) {
+        inScopeFindingIds.push(stateId);
+      }
       const body = await buildTicketBody(finding, source, copilot);
       const issue = await github.createIssue({
         title,
@@ -600,10 +606,12 @@ function buildIssueBody(finding: ParsedFinding, source: string): string {
 async function recordFindings(
   findings: readonly ParsedFinding[],
   state: StatePort,
-): Promise<void> {
+): Promise<Map<string, string>> {
+  const issueToId = new Map<string, string>();
   for (const finding of findings) {
+    const id = crypto.randomUUID();
     const stateFinding: Finding = {
-      id: crypto.randomUUID(),
+      id,
       severity: finding.severity,
       category: finding.category,
       file: finding.file_line || undefined,
@@ -613,9 +621,11 @@ async function recordFindings(
       task: "merge_review",
     };
     state.addFinding(stateFinding);
+    issueToId.set(finding.issue, id);
   }
 
   await state.save();
+  return issueToId;
 }
 
 /** Map a ParsedFinding to the shared AnalyzerFinding shape. */
