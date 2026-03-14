@@ -1,3 +1,10 @@
 dist/
 .security-scan-timestamp
 .DS_Store
+
+# Craig
+craig/node_modules/
+craig/dist/
+.craig-state.json
+.craig-state.json.bak
+.craig-state.json.tmp

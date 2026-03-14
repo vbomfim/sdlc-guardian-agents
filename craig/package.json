@@ -11,21 +11,12 @@
     "test:coverage": "vitest run --coverage",
     "lint": "tsc --noEmit"
   },
-  "keywords": [
-    "craig",
-    "mcp",
-    "guardian",
-    "autonomous",
-    "ai"
-  ],
-  "license": "MIT",
-  "dependencies": {
-    "yaml": "^2.8.2",
-    "zod": "^4.3.6"
+  "engines": {
+    "node": ">=20.0.0"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
-    "typescript": "^5.9.3",
-    "vitest": "^4.1.0"
+    "typescript": "^5.7.0",
+    "vitest": "^3.1.0",
+    "@types/node": "^22.0.0"
   }
 }
