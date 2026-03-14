@@ -50,14 +50,35 @@ const SEVERITY_MAP: ReadonlyMap<string, Severity> = new Map([
  */
 const COLUMN_ALIASES: ReadonlyMap<string, keyof ParsedFinding> = new Map([
   ["#", "number"],
+  ["no", "number"],
+  ["no.", "number"],
   ["severity", "severity"],
+  ["sev", "severity"],
+  ["level", "severity"],
   ["category", "category"],
   ["domain", "category"],
+  ["type", "category"],
+  ["area", "category"],
   ["file:line", "file_line"],
+  ["file", "file_line"],
+  ["location", "file_line"],
+  ["path", "file_line"],
   ["issue", "issue"],
+  ["finding", "issue"],
+  ["description", "issue"],
+  ["problem", "issue"],
+  ["details", "issue"],
   ["source & justification", "source_justification"],
   ["source &amp; justification", "source_justification"],
+  ["justification", "source_justification"],
+  ["source", "source_justification"],
+  ["rationale", "source_justification"],
+  ["reason", "source_justification"],
   ["suggested fix", "suggested_fix"],
+  ["fix", "suggested_fix"],
+  ["recommendation", "suggested_fix"],
+  ["remediation", "suggested_fix"],
+  ["action", "suggested_fix"],
 ]);
 
 // ---------------------------------------------------------------------------
@@ -146,6 +167,18 @@ function isSeparatorRow(line: string): boolean {
   return /^\|[\s\-:|]+\|$/.test(line);
 }
 
+/** Check if a table header line looks like a findings table. */
+function isFindingsTableHeader(headerLine: string): boolean {
+  return (
+    headerLine.includes("severity") ||
+    headerLine.includes("finding") ||
+    headerLine.includes("issue") ||
+    headerLine.includes("problem") ||
+    headerLine.includes("vulnerability") ||
+    (headerLine.includes("| # |") && (headerLine.includes("description") || headerLine.includes("issue")))
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Findings Extraction
 // ---------------------------------------------------------------------------
@@ -172,10 +205,7 @@ function findAllFindingsTables(markdown: string): string[] {
       if (inTable && currentTable.length >= 2) {
         // Check if this table is a findings table
         const headerLine = currentTable[0]!.toLowerCase();
-        if (
-          headerLine.includes("severity") ||
-          (headerLine.includes("| # |") && headerLine.includes("issue"))
-        ) {
+        if (isFindingsTableHeader(headerLine)) {
           tables.push(currentTable.join("\n"));
         }
       }
@@ -187,10 +217,7 @@ function findAllFindingsTables(markdown: string): string[] {
   // Handle table at end of document
   if (inTable && currentTable.length >= 2) {
     const headerLine = currentTable[0]!.toLowerCase();
-    if (
-      headerLine.includes("severity") ||
-      (headerLine.includes("| # |") && headerLine.includes("issue"))
-    ) {
+    if (isFindingsTableHeader(headerLine)) {
       tables.push(currentTable.join("\n"));
     }
   }
@@ -246,9 +273,10 @@ function rowToFinding(
 
 /**
  * Extract all findings from a markdown report.
- * Finds all findings tables and parses their rows.
+ * Tries table parsing first, falls back to bullet/heading extraction.
  */
 function extractFindings(markdown: string): ParsedFinding[] {
+  // Try table-based extraction first
   const tables = findAllFindingsTables(markdown);
   const findings: ParsedFinding[] = [];
   let runningNumber = 1;
@@ -259,6 +287,81 @@ function extractFindings(markdown: string): ParsedFinding[] {
       findings.push(rowToFinding(row, runningNumber));
       runningNumber++;
     }
+  }
+
+  // If tables yielded results, use them
+  if (findings.length > 0) {
+    return findings;
+  }
+
+  // Fallback: extract findings from bullet points or numbered lists
+  return extractFindingsFromText(markdown);
+}
+
+/**
+ * Fallback parser: extract findings from unstructured text.
+ * Looks for patterns like:
+ * - **CRITICAL/HIGH/MEDIUM/LOW**: description
+ * - 🔴/🟠/🟡/🔵 description
+ * - ### Finding N / ### Issue N headings
+ * - Numbered items: 1. **HIGH** - description
+ */
+function extractFindingsFromText(markdown: string): ParsedFinding[] {
+  const findings: ParsedFinding[] = [];
+  let number = 1;
+
+  // Pattern 1: Severity-prefixed bullet points
+  // e.g., "- **HIGH**: SQL injection in auth.py:42"
+  // e.g., "- 🟠 HIGH: Hardcoded secret"
+  // e.g., "1. **CRITICAL** - Buffer overflow"
+  const bulletPattern = /^[-*]\s+\*{0,2}(🔴|🟠|🟡|🔵|CRITICAL|HIGH|MEDIUM|LOW|INFO)\*{0,2}[:\s-]+(.+)$/gim;
+  const numberedPattern = /^\d+\.\s+\*{0,2}(🔴|🟠|🟡|🔵|CRITICAL|HIGH|MEDIUM|LOW|INFO)\*{0,2}[:\s-]+(.+)$/gim;
+
+  for (const pattern of [bulletPattern, numberedPattern]) {
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(markdown)) !== null) {
+      const severityText = match[1] ?? "";
+      const issueText = match[2]?.trim() ?? "";
+      if (issueText) {
+        // Try to extract file reference from the issue text
+        const fileMatch = issueText.match(/(?:in\s+|at\s+)?[`"]?([a-zA-Z0-9_./-]+\.[a-zA-Z]+(?::\d+)?)[`"]?/);
+        findings.push({
+          number: number++,
+          severity: parseSeverity(severityText),
+          category: "",
+          file_line: fileMatch?.[1] ?? "",
+          issue: issueText.replace(fileMatch?.[0] ?? "", "").trim() || issueText,
+          source_justification: "",
+          suggested_fix: "",
+        });
+      }
+    }
+  }
+
+  if (findings.length > 0) {
+    return findings;
+  }
+
+  // Pattern 2: Heading-based findings (### Finding 1: ...)
+  const headingPattern = /^###?\s+(?:Finding|Issue)\s*#?\d*[:\s-]+(.+)$/gim;
+  let headingMatch: RegExpExecArray | null;
+  while ((headingMatch = headingPattern.exec(markdown)) !== null) {
+    const title = headingMatch[1]?.trim() ?? "";
+    // Look for severity in nearby text
+    const contextStart = headingMatch.index;
+    const contextEnd = Math.min(contextStart + 500, markdown.length);
+    const context = markdown.slice(contextStart, contextEnd);
+    const sevMatch = context.match(/\b(CRITICAL|HIGH|MEDIUM|LOW|INFO)\b/i);
+
+    findings.push({
+      number: number++,
+      severity: parseSeverity(sevMatch?.[1] ?? ""),
+      category: "",
+      file_line: "",
+      issue: title,
+      source_justification: "",
+      suggested_fix: "",
+    });
   }
 
   return findings;
