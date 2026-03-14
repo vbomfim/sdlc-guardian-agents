@@ -224,7 +224,7 @@ export function createMergeReviewAnalyzer(
         const projectContext = await gatherProjectContext(deps.github);
         console.error(`[Craig] [${ts()}] Project context: primary=${projectContext.primaryLanguage}, languages=${Object.keys(projectContext.languages).join(",")}`);
 
-        const { actions: issueActions, inScopeCount } = await createIssuesForSevereFindings(
+        const { actions: issueActions, inScopeCount, inScopeFindingIds } = await createIssuesForSevereFindings(
           allFindings,
           securityReport.guardian,
           resolvedSha,
@@ -250,6 +250,7 @@ export function createMergeReviewAnalyzer(
               task: "auto_develop",
               taskId: `${context.taskId}-autodev`,
               timestamp: new Date().toISOString(),
+              findingIds: inScopeFindingIds,
             };
             const devResult = await autoDevelop.execute(devContext);
             console.error(`[Craig] [${ts()}] auto_develop: ${devResult.summary}`);
@@ -337,13 +338,14 @@ async function createIssuesForSevereFindings(
   github: GitPort,
   copilot: CopilotPort | undefined,
   projectContext: ProjectContext,
-): Promise<{ actions: ActionTaken[]; inScopeCount: number }> {
+): Promise<{ actions: ActionTaken[]; inScopeCount: number; inScopeFindingIds: string[] }> {
   const actions: ActionTaken[] = [];
   let inScopeCount = 0;
+  const inScopeFindingIds: string[] = [];
   const severeFindings = findings.filter(f => ISSUE_WORTHY_SEVERITIES.has(f.severity));
 
   if (severeFindings.length === 0) {
-    return { actions, inScopeCount };
+    return { actions, inScopeCount, inScopeFindingIds };
   }
 
   for (const finding of severeFindings) {
@@ -362,6 +364,9 @@ async function createIssuesForSevereFindings(
     if (classification === "IN_SCOPE") {
       // IN_SCOPE: Create fix ticket (existing behavior)
       inScopeCount++;
+      // Generate a stable finding ID for auto_develop to reference
+      const findingId = crypto.randomUUID();
+      inScopeFindingIds.push(findingId);
       const body = await buildTicketBody(finding, source, copilot);
       const issue = await github.createIssue({
         title,
@@ -372,9 +377,9 @@ async function createIssuesForSevereFindings(
       actions.push({
         type: "issue_created",
         url: issue.url,
-        description: `Created issue for ${finding.severity} finding: ${finding.issue}`,
+        description: `Created issue #${issue.number} for ${finding.severity} finding: ${finding.issue}`,
       });
-      console.error(`[Craig] [${ts()}] Issue created (IN_SCOPE): ${issue.url}`);
+      console.error(`[Craig] [${ts()}] Issue #${issue.number} created (IN_SCOPE): ${issue.url}`);
     } else {
       // QUESTIONABLE or OUT_OF_SCOPE: Post commit comment + clarification issue
       const commentBody = classification === "QUESTIONABLE"
@@ -400,14 +405,13 @@ async function createIssuesForSevereFindings(
       actions.push({
         type: "issue_created",
         url: issue.url,
-        description: `Created clarification issue (${classification}) for: ${finding.issue}`,
+        description: `Created clarification issue #${issue.number} (${classification}) for: ${finding.issue}`,
       });
-      console.error(`[Craig] [${ts()}] Clarification issue created (${classification}): ${issue.url}`);
+      console.error(`[Craig] [${ts()}] Clarification issue #${issue.number} created (${classification}): ${issue.url}`);
     }
   }
 
-  return { actions, inScopeCount };
-}
+  return { actions, inScopeCount, inScopeFindingIds };}
 
 /**
  * Classify a finding's scope via PO Guardian.

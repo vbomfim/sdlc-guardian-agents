@@ -34,6 +34,9 @@ export interface AnalyzerContext {
 
   /** ISO 8601 timestamp when the analysis was triggered. */
   readonly timestamp: string;
+
+  /** Optional: specific finding IDs to process (used by auto_develop). */
+  readonly findingIds?: readonly string[];
 }
 
 // ---------------------------------------------------------------------------

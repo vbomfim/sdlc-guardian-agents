@@ -265,9 +265,16 @@ export function createAutoDevelopAnalyzer(
 
     // Step 2: Query qualifying findings
     const allFindings = state.getFindings();
-    const qualifyingFindings = allFindings.filter((f) =>
+    let qualifyingFindings = allFindings.filter((f) =>
       QUALIFYING_SEVERITIES.has(f.severity),
     );
+
+    // If specific finding IDs were provided, filter to only those
+    if (_context.findingIds && _context.findingIds.length > 0) {
+      const idSet = new Set(_context.findingIds);
+      qualifyingFindings = qualifyingFindings.filter((f) => idSet.has(f.id));
+      console.error(`[Craig] [${ts()}] auto_develop: scoped to ${qualifyingFindings.length} findings (${_context.findingIds.length} IDs provided)`);
+    }
 
     if (qualifyingFindings.length === 0) {
       console.error(`[Craig] [${ts()}] auto_develop: no qualifying findings`);
