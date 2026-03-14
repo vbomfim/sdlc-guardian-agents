@@ -197,6 +197,9 @@ export interface CopilotAdapterOptions {
 
   /** Path to Guardian agent definitions. */
   readonly guardiansPath: string;
+
+  /** Path to the Copilot CLI binary. Uses SDK bundled CLI if not set. */
+  readonly cliPath?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -215,6 +218,18 @@ export class CopilotAdapter implements CopilotPort {
 
   constructor(options: CopilotAdapterOptions) {
     this.options = options;
+  }
+
+  /**
+   * Create a CopilotClient configured with the adapter's options.
+   * Uses the system Copilot CLI binary when cliPath is set,
+   * avoiding the bundled JS file that requires node:sqlite.
+   */
+  private createClient(): CopilotClient {
+    if (this.options.cliPath) {
+      return new CopilotClient({ cliPath: this.options.cliPath });
+    }
+    return new CopilotClient();
   }
 
   /**
@@ -243,7 +258,7 @@ export class CopilotAdapter implements CopilotPort {
       };
     }
 
-    const client = new CopilotClient();
+    const client = this.createClient();
     await client.start();
     let session:
       | Awaited<ReturnType<CopilotClient["createSession"]>>
@@ -290,7 +305,7 @@ export class CopilotAdapter implements CopilotPort {
    * Returns false on any failure — never throws.
    */
   async isAvailable(): Promise<boolean> {
-    const client = new CopilotClient();
+    const client = this.createClient();
 
     try {
       await client.start();

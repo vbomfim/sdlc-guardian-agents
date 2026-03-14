@@ -56,6 +56,11 @@ const MAX_DIFF_LINES = 5_000;
 /** Severity levels that trigger automatic GitHub issue creation. */
 const ISSUE_WORTHY_SEVERITIES = new Set(["critical", "high"]);
 
+/** Short timestamp for log lines. */
+function ts(): string {
+  return new Date().toISOString().slice(11, 19);
+}
+
 // ---------------------------------------------------------------------------
 // Factory Options
 // ---------------------------------------------------------------------------
@@ -92,34 +97,51 @@ export function createMergeReviewAnalyzer(
       const mergeCtx = context as MergeReviewContext;
 
       try {
-        // Validate input
-        if (!mergeCtx.sha) {
-          return failResult(start, "Missing SHA in analyzer context");
+        // Resolve SHA — use provided SHA or auto-detect latest merge
+        let resolvedSha: string;
+        if (mergeCtx.sha) {
+          resolvedSha = mergeCtx.sha;
+        } else {
+          const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+          console.error(`[Craig] merge_review: no SHA provided, looking for commits since ${since}`);
+          const merges = await deps.github.getMergeCommits(since);
+          if (merges.length > 0) {
+            resolvedSha = merges[0]!.sha;
+          } else {
+            const commits = await deps.github.getLatestCommits(since);
+            if (commits.length === 0) {
+              return failResult(start, "No recent commits or merges found in last 7 days");
+            }
+            resolvedSha = commits[0]!.sha;
+          }
         }
 
         // Step 1: Get diff
-        const { diff, truncated } = await resolveDiff(
-          mergeCtx,
-          deps.github,
-        );
+        console.error(`[Craig] [${ts()}] Fetching diff for commit ${resolvedSha.slice(0, 7)}...`);
+        const { diff, truncated } = mergeCtx.diff
+          ? truncateDiff(mergeCtx.diff)
+          : await fetchAndTruncateDiff(resolvedSha, deps.github);
+        console.error(`[Craig] [${ts()}] Diff fetched: ${diff.split("\n").length} lines${truncated ? " (truncated)" : ""}`);
 
         // Step 2: Invoke guardians in parallel
+        console.error(`[Craig] [${ts()}] Invoking Security Guardian + Code Review Guardian in parallel...`);
         const [securityResult, codeReviewResult] = await Promise.all([
           deps.copilot.invoke({
             agent: "security-guardian",
             prompt:
               "Perform a security review of the following merge diff. Report all findings.",
             context: diff,
-          }),
+          }).then(r => { console.error(`[Craig] [${ts()}] Security Guardian finished: success=${String(r.success)}, ${r.duration_ms}ms`); return r; }),
           deps.copilot.invoke({
             agent: "code-review-guardian",
             prompt:
               "Perform a code quality review of the following merge diff. Report all findings.",
             context: diff,
-          }),
+          }).then(r => { console.error(`[Craig] [${ts()}] Code Review Guardian finished: success=${String(r.success)}, ${r.duration_ms}ms`); return r; }),
         ]);
 
         // Step 3: Parse reports
+        console.error(`[Craig] [${ts()}] Parsing Guardian reports...`);
         const securityReport = parseIfSuccessful(
           securityResult,
           "security",
@@ -135,10 +157,12 @@ export function createMergeReviewAnalyzer(
           ...securityReport.findings,
           ...codeReviewReport.findings,
         ];
+        console.error(`[Craig] [${ts()}] Parsed: ${securityReport.findings.length} security + ${codeReviewReport.findings.length} code review = ${allFindings.length} total findings`);
 
         // Step 4: Post review comment
+        console.error(`[Craig] [${ts()}] Posting review comment on commit ${resolvedSha.slice(0, 7)}...`);
         const comment = formatReviewComment({
-          sha: mergeCtx.sha.slice(0, 7),
+          sha: resolvedSha.slice(0, 7),
           securityFindings: securityReport.findings,
           codeReviewFindings: codeReviewReport.findings,
           securityTimedOut: !securityResult.success,
@@ -147,7 +171,7 @@ export function createMergeReviewAnalyzer(
         });
 
         const commentRef = await deps.github.createCommitComment(
-          mergeCtx.sha,
+          resolvedSha,
           comment,
         );
         actions.push({
@@ -155,6 +179,7 @@ export function createMergeReviewAnalyzer(
           url: commentRef.url,
           description: "Merge review comment posted",
         });
+        console.error(`[Craig] [${ts()}] Comment posted: ${commentRef.url}`);
 
         // Step 5: Create issues for critical/high findings
         const issueActions = await createIssuesForSevereFindings(
@@ -163,13 +188,17 @@ export function createMergeReviewAnalyzer(
           deps.github,
         );
         actions.push(...issueActions);
+        if (issueActions.length > 0) {
+          console.error(`[Craig] [${ts()}] Created ${issueActions.length} issues for critical/high findings`);
+        }
 
         // Step 6: Store findings in state
         await recordFindings(allFindings, deps.state);
+        console.error(`[Craig] [${ts()}] Merge review complete: ${allFindings.length} findings, ${actions.length} actions`);
 
         return {
           success: true,
-          summary: `Merge review of ${mergeCtx.sha.slice(0, 7)}: ${allFindings.length} findings`,
+          summary: `Merge review of ${resolvedSha.slice(0, 7)}: ${allFindings.length} findings`,
           findings: allFindings.map(toAnalyzerFinding),
           actions,
           duration_ms: Date.now() - start,
@@ -188,22 +217,14 @@ export function createMergeReviewAnalyzer(
 // ---------------------------------------------------------------------------
 
 /**
- * Resolve the diff text from context or GitHub API.
- * Truncates large diffs to MAX_DIFF_LINES lines.
+ * Fetch diff from GitHub and truncate if needed.
  */
-async function resolveDiff(
-  context: MergeReviewContext,
+async function fetchAndTruncateDiff(
+  sha: string,
   github: GitHubPort,
 ): Promise<{ diff: string; truncated: boolean }> {
-  let diff: string;
-
-  if (context.diff) {
-    diff = context.diff;
-  } else {
-    const commitDiff: CommitDiff = await github.getCommitDiff(context.sha!);
-    diff = buildDiffText(commitDiff);
-  }
-
+  const commitDiff: CommitDiff = await github.getCommitDiff(sha);
+  const diff = buildDiffText(commitDiff);
   return truncateDiff(diff);
 }
 

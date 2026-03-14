@@ -636,6 +636,7 @@ function startTaskAsync(
       // Dispatch to registered analyzer if available [SOLID/OCP]
       const analyzer = registry?.get(task);
       if (analyzer) {
+        console.error(`[Craig] Running analyzer: ${task} (${taskId})`);
         const context: AnalyzerContext = {
           task,
           taskId,
@@ -643,6 +644,7 @@ function startTaskAsync(
         };
 
         const result = await analyzer.execute(context);
+        console.error(`[Craig] Analyzer ${task} completed: ${result.findings.length} findings, success=${String(result.success)}${result.success ? '' : `, error: ${result.summary}`}`);
 
         // Persist findings to state
         for (const finding of result.findings) {
@@ -657,6 +659,8 @@ function startTaskAsync(
             task,
           });
         }
+      } else {
+        console.error(`[Craig] No analyzer registered for task: ${task}`);
       }
 
       // Record last run timestamp

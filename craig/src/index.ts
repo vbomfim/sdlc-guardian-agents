@@ -83,9 +83,23 @@ async function main(): Promise<void> {
     const state = repoManager.getState(defaultRepo);
 
     // 5. Create Copilot adapter
+    // 5b. Resolve Copilot CLI binary path (the SEA binary, not the JS bundle)
+    let cliPath: string | undefined;
+    try {
+      const { execSync } = await import("node:child_process");
+      const resolved = execSync("which copilot", { encoding: "utf-8" }).trim();
+      if (resolved && !resolved.endsWith(".js")) {
+        cliPath = resolved;
+        console.error(`[Craig] Using Copilot CLI binary: ${cliPath}`);
+      }
+    } catch {
+      console.error("[Craig] Copilot CLI binary not found, using SDK bundled CLI");
+    }
+
     const copilot = new CopilotAdapter({
       defaultModel: cfg.models.default,
       guardiansPath: cfg.guardians.path,
+      cliPath,
     });
 
     // 6. Create GitHub adapter for analyzers
