@@ -16,7 +16,8 @@ export type GuardianAgent =
   | "security-guardian"
   | "code-review-guardian"
   | "qa-guardian"
-  | "po-guardian";
+  | "po-guardian"
+  | "dev-guardian";
 
 /**
  * Runtime set of valid Guardian agent names.
@@ -31,6 +32,7 @@ export const GUARDIAN_AGENTS: ReadonlySet<string> = new Set<string>([
   "code-review-guardian",
   "qa-guardian",
   "po-guardian",
+  "dev-guardian",
 ]);
 
 /**

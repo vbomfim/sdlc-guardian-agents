@@ -71,3 +71,5 @@ export type {
 } from "./pr-review/pr-review.analyzer.js";
 export { formatPrReviewComment } from "./pr-review/pr-comment-formatter.js";
 export type { PrCommentInput } from "./pr-review/pr-comment-formatter.js";
+export { createAutoDevelopAnalyzer } from "./auto-develop/index.js";
+export type { AutoDevelopDeps } from "./auto-develop/index.js";
