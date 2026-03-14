@@ -261,6 +261,26 @@ describe("GitHubAdapter", () => {
       expect(mockOctokit.rest.issues.listForRepo).toHaveBeenCalledTimes(2);
     });
 
+    it("stops paginating after MAX_PAGES (10) and returns null to prevent infinite loops", async () => {
+      // Every page returns 100 results with no match → always requests next page
+      const fullPage = Array.from({ length: 100 }, (_, i) => ({
+        title: `Unrelated issue ${i}`,
+        html_url: `https://github.com/test-owner/test-repo/issues/${i}`,
+        number: i,
+        pull_request: undefined,
+      }));
+
+      mockOctokit.rest.issues.listForRepo.mockResolvedValue({
+        data: fullPage,
+      });
+
+      const result = await adapter.findExistingIssue("Nonexistent issue");
+
+      // Should stop at MAX_PAGES (10) and return null — not loop forever
+      expect(result).toBeNull();
+      expect(mockOctokit.rest.issues.listForRepo).toHaveBeenCalledTimes(10);
+    });
+
     it("title matching is case-insensitive", async () => {
       mockOctokit.rest.issues.listForRepo.mockResolvedValue({
         data: [

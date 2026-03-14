@@ -118,8 +118,7 @@ export class GitHubAdapter implements GitHubPort {
   async findExistingIssue(title: string): Promise<IssueReference | null> {
     let page = 1;
 
-    // eslint-disable-next-line no-constant-condition -- pagination loop
-    while (true) {
+    while (page <= MAX_PAGES) {
       const response = await this.execute(() =>
         this.octokit.rest.issues.listForRepo({
           owner: this.owner,
@@ -143,6 +142,8 @@ export class GitHubAdapter implements GitHubPort {
 
       page++;
     }
+
+    return null;
   }
 
   async listOpenIssues(labels?: string[]): Promise<IssueReference[]> {
