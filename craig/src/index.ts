@@ -85,41 +85,57 @@ async function main(): Promise<void> {
     });
 
     // 6. Create GitHub adapter for analyzers
-    const githubToken = process.env["GITHUB_TOKEN"] || process.env["GH_TOKEN"] || "";
+    //    Try GITHUB_TOKEN env var first, then fall back to gh CLI auth
+    let githubToken = process.env["GITHUB_TOKEN"] || process.env["GH_TOKEN"] || "";
+    if (!githubToken) {
+      try {
+        const { execSync } = await import("node:child_process");
+        githubToken = execSync("gh auth token", { encoding: "utf-8" }).trim();
+        console.error("[Craig] Using GitHub token from gh CLI auth");
+      } catch {
+        console.error("[Craig] Warning: No GITHUB_TOKEN and gh CLI not authenticated. GitHub operations will fail.");
+      }
+    }
     const repoFullName = cfg.repo ?? defaultRepo;
     const [owner = "", repo = ""] = repoFullName.split("/");
-    const github = GitHubAdapter.create({ token: githubToken, owner, repo });
+    const github = githubToken
+      ? GitHubAdapter.create({ token: githubToken, owner, repo })
+      : null;
 
     // 7. Create result parser
     const resultParser = createResultParser();
 
-    // 8. Build analyzer registry
+    // 8. Build analyzer registry (requires GitHub adapter)
     const analyzers: AnalyzerPort[] = [];
 
-    if (cfg.capabilities.merge_review) {
-      analyzers.push(createMergeReviewAnalyzer({
-        copilot, github, parser: resultParser, state,
-      }));
-    }
-    if (cfg.capabilities.bug_detection) {
-      analyzers.push(createSecurityScanAnalyzer({
-        copilot, github, parser: resultParser, state,
-      }));
-    }
-    if (cfg.capabilities.coverage_gaps) {
-      analyzers.push(createCoverageScanAnalyzer({
-        copilot, github, parser: resultParser, state,
-      }));
-    }
-    if (cfg.capabilities.po_audit) {
-      analyzers.push(createTechDebtAnalyzer({
-        copilot, github, parser: resultParser, state,
-      }));
-    }
-    if (cfg.capabilities.pr_monitor) {
-      analyzers.push(createPrReviewAnalyzer({
-        copilot, github, parser: resultParser, state,
-      }));
+    if (github) {
+      if (cfg.capabilities.merge_review) {
+        analyzers.push(createMergeReviewAnalyzer({
+          copilot, github, parser: resultParser, state,
+        }));
+      }
+      if (cfg.capabilities.bug_detection) {
+        analyzers.push(createSecurityScanAnalyzer({
+          copilot, github, parser: resultParser, state,
+        }));
+      }
+      if (cfg.capabilities.coverage_gaps) {
+        analyzers.push(createCoverageScanAnalyzer({
+          copilot, github, parser: resultParser, state,
+        }));
+      }
+      if (cfg.capabilities.po_audit) {
+        analyzers.push(createTechDebtAnalyzer({
+          copilot, github, parser: resultParser, state,
+        }));
+      }
+      if (cfg.capabilities.pr_monitor) {
+        analyzers.push(createPrReviewAnalyzer({
+          copilot, github, parser: resultParser, state,
+        }));
+      }
+    } else {
+      console.error("[Craig] No GitHub token — analyzers disabled");
     }
 
     const registry = createAnalyzerRegistry(analyzers);
