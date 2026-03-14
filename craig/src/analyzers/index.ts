@@ -73,3 +73,7 @@ export { formatPrReviewComment } from "./pr-review/pr-comment-formatter.js";
 export type { PrCommentInput } from "./pr-review/pr-comment-formatter.js";
 export { createDeliveryAuditAnalyzer } from "./delivery-audit/index.js";
 export type { DeliveryAuditAnalyzerDeps } from "./delivery-audit/index.js";
+
+// Workflow Orchestrator (SDLC loop — Issue #59)
+export { createWorkflowOrchestrator } from "../workflow/index.js";
+export type { WorkflowOrchestratorDeps } from "../workflow/index.js";
