@@ -157,14 +157,33 @@ async function main(): Promise<void> {
     const registry = createAnalyzerRegistry(analyzers);
     console.error(`[Craig] ${registry.size} analyzers registered`);
 
-    // 9. Create and configure MCP server
-    const server = createCraigServer({ state, config, copilot, repoManager, registry });
+    // 9. Build shutdown deps for the craig_shutdown MCP tool.
+    //    In daemon mode, onShutdown is deferred — set after startDaemonServer().
+    //    [CLEAN-CODE] Deferred callback pattern: closure captures the ref.
+    const shutdownRef: { fn?: () => Promise<void> } = {};
+    const shutdownDeps = {
+      mode: (args.daemon ? "daemon" : "stdio") as "daemon" | "stdio",
+      onShutdown: async (): Promise<void> => {
+        await shutdownRef.fn?.();
+        console.error("[Craig] Daemon stopped.");
+        process.exit(0);
+      },
+    };
+
+    // 10. Create and configure MCP server
+    const server = createCraigServer({
+      state, config, copilot, repoManager, registry,
+      shutdown: shutdownDeps,
+    });
 
     if (args.daemon) {
       // 6b. Daemon mode: SSE transport over HTTP
       const { shutdown } = await startDaemonServer(server, {
         port: args.port,
       });
+
+      // Wire the deferred shutdown callback for craig_shutdown tool
+      shutdownRef.fn = shutdown;
 
       console.error(
         `[Craig] Daemon mode: listening on http://127.0.0.1:${args.port}`,

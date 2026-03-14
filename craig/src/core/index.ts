@@ -16,7 +16,9 @@ export {
   createScheduleHandler,
   createConfigHandler,
   createDigestHandler,
+  createShutdownHandler,
 } from "./tool-handlers.js";
+export type { ShutdownHandlerOpts, Stoppable } from "./tool-handlers.js";
 export type {
   StatusResult,
   RunTaskSuccess,
@@ -24,6 +26,7 @@ export type {
   ScheduleResult,
   ConfigResult,
   DigestResult,
+  ShutdownResult,
   ToolError,
   RunTaskParams,
   FindingsParams,
@@ -31,6 +34,7 @@ export type {
   ConfigParams,
   DigestParams,
   StatusParams,
+  ShutdownParams,
   ValidTask,
 } from "./core.types.js";
 export { VALID_TASKS, isValidTask } from "./core.types.js";
