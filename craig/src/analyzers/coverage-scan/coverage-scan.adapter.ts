@@ -26,7 +26,8 @@ import type {
   ActionTaken,
 } from "../analyzer.types.js";
 import type { CoverageScanDeps } from "./coverage-scan.types.js";
-import type { CoverageGap, Severity } from "../../result-parser/index.js";
+import type { CoverageGap } from "../../result-parser/index.js";
+import type { Severity } from "../../shared/severity.js";
 
 // ---------------------------------------------------------------------------
 // Constants

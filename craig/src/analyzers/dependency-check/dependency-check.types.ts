@@ -7,7 +7,7 @@
  * @module analyzers/dependency-check
  */
 
-import type { Severity } from "../../state/index.js";
+import type { Severity } from "../../shared/severity.js";
 
 /* ------------------------------------------------------------------ */
 /*  Package Manager Detection                                          */

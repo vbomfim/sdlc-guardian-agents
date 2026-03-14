@@ -11,7 +11,7 @@
  * @module analyzers/dependency-check
  */
 
-import type { Severity } from "../../state/index.js";
+import type { Severity } from "../../shared/severity.js";
 import type { Vulnerability } from "./dependency-check.types.js";
 
 /* ------------------------------------------------------------------ */
