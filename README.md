@@ -184,10 +184,11 @@ The security auditor. Runs a deterministic scan pipeline (Semgrep, Gitleaks, Tri
 
 <img src="assets/banner-codereview.svg" alt="Code Review Guardian" width="500">
 
-The quality auditor. Runs language-specific linters in parallel, then reviews for architecture, design patterns, naming, performance, and documentation quality. Every finding cites its source standard.
+The quality auditor. Runs language-specific linters in parallel, then reviews for architecture, design patterns, naming, performance, and documentation quality. Every finding cites its source standard. **Runs two instances in parallel with different AI models** (Claude Opus 4.6 + GPT 5.4) for independent perspectives — findings from both are merged with confidence scoring.
 
 | Capability | Standards |
 |---|---|
+| **Dual-model review:** Claude Opus 4.6 + GPT 5.4 in parallel | — |
 | Parallel linters: ESLint, Pylint+Ruff, Clippy, dotnet format, Checkstyle | — |
 | 8 review domains: quality, design, rewritability, testing, naming, errors, performance, documentation | Google Engineering Practices |
 | SOLID principle and component boundary validation | Clean Code (Martin), SOLID |
