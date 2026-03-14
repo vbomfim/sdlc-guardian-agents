@@ -11,6 +11,7 @@
  */
 
 import { Octokit } from "@octokit/rest";
+import type { GitPort } from "../git-port/git.port.js";
 import type { GitHubPort } from "./github.port.js";
 import type {
   CreateIssueParams,
@@ -51,7 +52,7 @@ interface CreateAdapterOptions {
   readonly token: string;
 }
 
-export class GitHubAdapter implements GitHubPort {
+export class GitHubAdapter implements GitPort, GitHubPort {
   private readonly octokit: Octokit;
   private readonly owner: string;
   private readonly repo: string;
