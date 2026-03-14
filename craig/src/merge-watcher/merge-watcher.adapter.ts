@@ -43,6 +43,8 @@ export class MergeWatcherAdapter implements MergeWatcherPort {
   private running = false;
   private consecutiveFailures = 0;
   private polling = false;
+  /** Generation counter to prevent duplicate timer chains on rapid start/stop/start. */
+  private generation = 0;
 
   constructor(options: MergeWatcherOptions) {
     this.github = options.github;
@@ -63,6 +65,7 @@ export class MergeWatcherAdapter implements MergeWatcherPort {
     }
 
     this.running = true;
+    this.generation++;
     this.schedulePoll();
   }
 
@@ -97,11 +100,13 @@ export class MergeWatcherAdapter implements MergeWatcherPort {
   /**
    * Schedule the next poll cycle using setTimeout.
    * Uses setTimeout instead of setInterval to prevent overlapping polls.
+   * Captures generation to prevent duplicate timer chains on rapid start/stop/start.
    */
   private schedulePoll(): void {
+    const currentGeneration = this.generation;
     this.timerId = setTimeout(async () => {
       await this.executePoll();
-      if (this.running) {
+      if (this.running && this.generation === currentGeneration) {
         this.schedulePoll();
       }
     }, this.pollIntervalMs);
@@ -119,11 +124,12 @@ export class MergeWatcherAdapter implements MergeWatcherPort {
     this.polling = true;
     try {
       const lastSha = this.state.get("last_processed_sha");
+      const lastTimestamp = this.state.get("last_processed_timestamp");
 
-      if (lastSha === null) {
+      if (lastSha === null || lastTimestamp === null) {
         await this.handleFirstRun();
       } else {
-        await this.pollForNewMerges(lastSha);
+        await this.pollForNewMerges(lastSha, lastTimestamp);
       }
 
       this.consecutiveFailures = 0;
@@ -138,7 +144,7 @@ export class MergeWatcherAdapter implements MergeWatcherPort {
 
   /**
    * Handle the first poll when no last_processed_sha exists.
-   * Sets SHA to current HEAD without emitting events (AC4).
+   * Sets SHA and timestamp to current HEAD without emitting events (AC4).
    */
   private async handleFirstRun(): Promise<void> {
     const commits = await this.github.getLatestCommits(
@@ -150,9 +156,13 @@ export class MergeWatcherAdapter implements MergeWatcherPort {
       return;
     }
 
-    const headSha = commits[0]?.sha;
-    if (headSha) {
-      this.state.set("last_processed_sha", headSha);
+    const head = commits[0];
+    if (head?.sha) {
+      this.state.set("last_processed_sha", head.sha);
+      this.state.set(
+        "last_processed_timestamp",
+        head.timestamp || new Date(0).toISOString(),
+      );
       await this.state.save();
     }
   }
@@ -160,13 +170,16 @@ export class MergeWatcherAdapter implements MergeWatcherPort {
   // ─── Private: Merge Detection ───────────────────────────────────
 
   /**
-   * Poll for new merge commits since the last processed SHA.
-   * Emits MergeEvent for each new merge and updates state.
+   * Poll for new merge commits since the last processed timestamp.
+   * Uses timestamp for the API query and SHA for deduplication.
    */
-  private async pollForNewMerges(lastSha: string): Promise<void> {
+  private async pollForNewMerges(
+    lastSha: string,
+    lastTimestamp: string,
+  ): Promise<void> {
     let merges;
     try {
-      merges = await this.github.getMergeCommits(lastSha);
+      merges = await this.github.getMergeCommits(lastTimestamp);
     } catch (error: unknown) {
       if (this.isNotFoundError(error)) {
         await this.handleForcePush();
@@ -212,6 +225,7 @@ export class MergeWatcherAdapter implements MergeWatcherPort {
       const event = this.toMergeEvent(merge);
       this.emitMerge(event);
       this.state.set("last_processed_sha", merge.sha);
+      this.state.set("last_processed_timestamp", merge.timestamp);
       await this.state.save();
     }
   }
@@ -264,7 +278,7 @@ export class MergeWatcherAdapter implements MergeWatcherPort {
   }
 
   /**
-   * Handle force push: reset last_processed_sha to current HEAD.
+   * Handle force push: reset last_processed_sha and timestamp to current HEAD.
    */
   private async handleForcePush(): Promise<void> {
     console.warn(
@@ -278,6 +292,10 @@ export class MergeWatcherAdapter implements MergeWatcherPort {
 
     if (commits.length > 0 && commits[0]?.sha) {
       this.state.set("last_processed_sha", commits[0].sha);
+      this.state.set(
+        "last_processed_timestamp",
+        commits[0].timestamp || new Date(0).toISOString(),
+      );
       await this.state.save();
     }
   }

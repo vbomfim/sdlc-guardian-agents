@@ -27,6 +27,7 @@ export function createDefaultState(): CraigState {
   return {
     version: CURRENT_STATE_VERSION,
     last_processed_sha: null,
+    last_processed_timestamp: null,
     last_runs: {},
     running_tasks: [],
     findings: [],

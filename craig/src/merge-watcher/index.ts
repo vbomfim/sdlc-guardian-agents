@@ -11,7 +11,3 @@ export { MergeWatcherAdapter } from "./merge-watcher.adapter.js";
 export type { MergeWatcherPort } from "./merge-watcher.port.js";
 export type { MergeEvent, MergeHandler } from "./merge-watcher.types.js";
 export type { MergeWatcherOptions } from "./merge-watcher.adapter.js";
-export {
-  ForcePushDetectedError,
-  ConsecutiveFailureWarning,
-} from "./merge-watcher.errors.js";

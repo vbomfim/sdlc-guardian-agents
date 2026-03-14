@@ -32,17 +32,24 @@ function createMockGitHub(): GitHubPort {
   };
 }
 
-function createMockState(lastSha: string | null = null): StatePort {
+function createMockState(
+  lastSha: string | null = null,
+  lastTimestamp: string | null = null,
+): StatePort {
   let storedSha: string | null = lastSha;
+  let storedTimestamp: string | null = lastTimestamp;
   return {
     load: vi.fn().mockResolvedValue(undefined),
     save: vi.fn().mockResolvedValue(undefined),
     get: vi.fn().mockImplementation((key: string) => {
       if (key === "last_processed_sha") return storedSha;
+      if (key === "last_processed_timestamp") return storedTimestamp;
       return undefined;
     }),
     set: vi.fn().mockImplementation((key: string, value: unknown) => {
       if (key === "last_processed_sha") storedSha = value as string | null;
+      if (key === "last_processed_timestamp")
+        storedTimestamp = value as string | null;
     }),
     addFinding: vi.fn(),
     getFindings: vi.fn().mockReturnValue([]),
@@ -121,7 +128,7 @@ describe("MergeWatcherAdapter", () => {
   // -------------------------------------------------------------------------
   describe("AC1: Detect new merge", () => {
     it("calls onMerge handler when a new merge is found after last_processed_sha", async () => {
-      const state = createMockState("abc123");
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
       const github = createMockGitHub();
 
       const newMerge = {
@@ -157,7 +164,7 @@ describe("MergeWatcherAdapter", () => {
     });
 
     it("updates last_processed_sha after processing a merge", async () => {
-      const state = createMockState("abc123");
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
       const github = createMockGitHub();
 
       (github.getMergeCommits as ReturnType<typeof vi.fn>).mockResolvedValue([
@@ -182,7 +189,7 @@ describe("MergeWatcherAdapter", () => {
     });
 
     it("includes diff_url in emitted MergeEvent", async () => {
-      const state = createMockState("abc123");
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
       const github = createMockGitHub();
       const config = createMockConfig({ repo: "test-owner/test-repo" });
 
@@ -223,7 +230,7 @@ describe("MergeWatcherAdapter", () => {
   // -------------------------------------------------------------------------
   describe("AC2: No new merges", () => {
     it("does not emit events when no new merges exist", async () => {
-      const state = createMockState("abc123");
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
       const github = createMockGitHub();
 
       (github.getMergeCommits as ReturnType<typeof vi.fn>).mockResolvedValue([]);
@@ -242,7 +249,7 @@ describe("MergeWatcherAdapter", () => {
     });
 
     it("does not modify state when no merges found", async () => {
-      const state = createMockState("abc123");
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
       const github = createMockGitHub();
 
       (github.getMergeCommits as ReturnType<typeof vi.fn>).mockResolvedValue([]);
@@ -266,7 +273,7 @@ describe("MergeWatcherAdapter", () => {
   // -------------------------------------------------------------------------
   describe("AC3: Multiple merges between polls", () => {
     it("emits events in chronological order for multiple merges", async () => {
-      const state = createMockState("old-sha");
+      const state = createMockState("old-sha", "2024-01-14T09:00:00Z");
       const github = createMockGitHub();
 
       const merges = [
@@ -309,7 +316,7 @@ describe("MergeWatcherAdapter", () => {
     });
 
     it("updates last_processed_sha after each merge in the batch", async () => {
-      const state = createMockState("old-sha");
+      const state = createMockState("old-sha", "2024-01-14T09:00:00Z");
       const github = createMockGitHub();
 
       const merges = [
@@ -422,7 +429,7 @@ describe("MergeWatcherAdapter", () => {
   // -------------------------------------------------------------------------
   describe("AC5: API failure resilience", () => {
     it("logs error and continues polling on API failure", async () => {
-      const state = createMockState("abc123");
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
       const github = createMockGitHub();
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -450,7 +457,7 @@ describe("MergeWatcherAdapter", () => {
     });
 
     it("does not modify state on API failure", async () => {
-      const state = createMockState("abc123");
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
       const github = createMockGitHub();
 
       vi.spyOn(console, "error").mockImplementation(() => {});
@@ -475,7 +482,7 @@ describe("MergeWatcherAdapter", () => {
     });
 
     it("logs warning after 3+ consecutive failures", async () => {
-      const state = createMockState("abc123");
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
       const github = createMockGitHub();
 
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -500,7 +507,7 @@ describe("MergeWatcherAdapter", () => {
     });
 
     it("resets consecutive failure count on successful poll", async () => {
-      const state = createMockState("abc123");
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
       const github = createMockGitHub();
 
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -554,7 +561,7 @@ describe("MergeWatcherAdapter", () => {
     });
 
     it("start is idempotent — calling twice does not create duplicate timers", async () => {
-      const state = createMockState("abc123");
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
       const github = createMockGitHub();
 
       (github.getMergeCommits as ReturnType<typeof vi.fn>).mockResolvedValue([]);
@@ -579,7 +586,7 @@ describe("MergeWatcherAdapter", () => {
     });
 
     it("does not poll after stop", async () => {
-      const state = createMockState("abc123");
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
       const github = createMockGitHub();
 
       (github.getMergeCommits as ReturnType<typeof vi.fn>).mockResolvedValue([]);
@@ -600,7 +607,7 @@ describe("MergeWatcherAdapter", () => {
     });
 
     it("can be restarted after stop", async () => {
-      const state = createMockState("abc123");
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
       const github = createMockGitHub();
 
       (github.getMergeCommits as ReturnType<typeof vi.fn>).mockResolvedValue([]);
@@ -629,7 +636,7 @@ describe("MergeWatcherAdapter", () => {
   // -------------------------------------------------------------------------
   describe("Multiple handlers", () => {
     it("calls all registered handlers for each merge", async () => {
-      const state = createMockState("abc123");
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
       const github = createMockGitHub();
 
       (github.getMergeCommits as ReturnType<typeof vi.fn>).mockResolvedValue([
@@ -663,7 +670,7 @@ describe("MergeWatcherAdapter", () => {
   // -------------------------------------------------------------------------
   describe("Edge case: Force push", () => {
     it("resets last_processed_sha to HEAD when force push detected (404 on getMergeCommits)", async () => {
-      const state = createMockState("gone-sha");
+      const state = createMockState("gone-sha", "2024-01-14T09:00:00Z");
       const github = createMockGitHub();
 
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -711,7 +718,7 @@ describe("MergeWatcherAdapter", () => {
   // -------------------------------------------------------------------------
   describe("Polling configuration", () => {
     it("uses the configured branch when calling getMergeCommits", async () => {
-      const state = createMockState("abc123");
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
       const github = createMockGitHub();
       const config = createMockConfig({ branch: "develop" });
 
@@ -740,7 +747,7 @@ describe("MergeWatcherAdapter", () => {
   // -------------------------------------------------------------------------
   describe("Edge case: Already-processed commits", () => {
     it("filters out the current last_processed_sha from results", async () => {
-      const state = createMockState("abc123");
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
       const github = createMockGitHub();
 
       // API returns the current SHA plus a new one
@@ -772,6 +779,148 @@ describe("MergeWatcherAdapter", () => {
       expect(handler).toHaveBeenCalledWith(
         expect.objectContaining({ sha: "def456" }),
       );
+
+      watcher.stop();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Regression: Fix 1 — getMergeCommits receives timestamp, not SHA
+  // -------------------------------------------------------------------------
+  describe("Regression: getMergeCommits receives timestamp, not SHA", () => {
+    it("passes last_processed_timestamp (not SHA) to getMergeCommits", async () => {
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
+      const github = createMockGitHub();
+
+      (github.getMergeCommits as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+      const { watcher } = createWatcher({ github, state, pollIntervalMs: 100 });
+      watcher.start();
+
+      await vi.advanceTimersByTimeAsync(150);
+
+      // CRITICAL: getMergeCommits should receive the timestamp, not the SHA
+      expect(github.getMergeCommits).toHaveBeenCalledWith("2024-01-15T09:00:00Z");
+
+      watcher.stop();
+    });
+
+    it("stores last_processed_timestamp alongside SHA after processing a merge", async () => {
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
+      const github = createMockGitHub();
+
+      (github.getMergeCommits as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          sha: "def456",
+          message: "Merge PR",
+          author: "alice",
+          timestamp: "2024-01-15T10:30:00Z",
+        },
+      ]);
+
+      const { watcher } = createWatcher({ github, state, pollIntervalMs: 100 });
+      watcher.onMerge(vi.fn());
+      watcher.start();
+
+      await vi.advanceTimersByTimeAsync(150);
+
+      expect(state.set).toHaveBeenCalledWith("last_processed_sha", "def456");
+      expect(state.set).toHaveBeenCalledWith(
+        "last_processed_timestamp",
+        "2024-01-15T10:30:00Z",
+      );
+
+      watcher.stop();
+    });
+
+    it("stores timestamp on first run initialization", async () => {
+      const state = createMockState(null);
+      const github = createMockGitHub();
+
+      (github.getLatestCommits as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          sha: "head-sha",
+          message: "Latest commit",
+          author: "alice",
+          timestamp: "2024-01-15T10:00:00Z",
+        },
+      ]);
+
+      const { watcher } = createWatcher({ github, state, pollIntervalMs: 100 });
+      watcher.start();
+
+      await vi.advanceTimersByTimeAsync(150);
+
+      expect(state.set).toHaveBeenCalledWith("last_processed_sha", "head-sha");
+      expect(state.set).toHaveBeenCalledWith(
+        "last_processed_timestamp",
+        "2024-01-15T10:00:00Z",
+      );
+
+      watcher.stop();
+    });
+
+    it("uses SHA for deduplication in filterNewMerges, not for API query", async () => {
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
+      const github = createMockGitHub();
+
+      // API returns results including the already-processed SHA
+      (github.getMergeCommits as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          sha: "abc123",
+          message: "Already processed",
+          author: "alice",
+          timestamp: "2024-01-15T09:00:00Z",
+        },
+        {
+          sha: "new-merge",
+          message: "New merge",
+          author: "bob",
+          timestamp: "2024-01-15T11:00:00Z",
+        },
+      ]);
+
+      const { watcher } = createWatcher({ github, state, pollIntervalMs: 100 });
+      const handler = vi.fn<MergeHandler>();
+      watcher.onMerge(handler);
+      watcher.start();
+
+      await vi.advanceTimersByTimeAsync(150);
+
+      // SHA deduplication should filter out abc123
+      expect(handler).toHaveBeenCalledOnce();
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({ sha: "new-merge" }),
+      );
+
+      watcher.stop();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Regression: Fix 2 — Generation counter prevents duplicate timer chains
+  // -------------------------------------------------------------------------
+  describe("Regression: rapid start/stop/start does not create duplicate timers", () => {
+    it("stop/start cycle only produces one timer chain (no duplicate polls)", async () => {
+      const state = createMockState("abc123", "2024-01-15T09:00:00Z");
+      const github = createMockGitHub();
+
+      (github.getMergeCommits as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+      const { watcher } = createWatcher({ github, state, pollIntervalMs: 100 });
+
+      // Rapidly start/stop/start
+      watcher.start();
+      watcher.stop();
+      watcher.start();
+
+      // Wait for several poll cycles
+      await vi.advanceTimersByTimeAsync(350);
+
+      // Should only have ~3 polls from a single timer chain, not 6 from two
+      const callCount = (github.getMergeCommits as ReturnType<typeof vi.fn>).mock
+        .calls.length;
+      expect(callCount).toBeLessThanOrEqual(4);
 
       watcher.stop();
     });
