@@ -272,11 +272,7 @@ const session = await joinSession({
 
     // ── Session End: summary ───────────────────────────────────────────────
     onSessionEnd: async () => {
-      const duration = Math.round((Date.now() - sessionStartTime) / 1000 / 60);
-      await session.log(
-        `🛡️ SDLC Guardian session ended (${duration} min). Extension will reload on next session.`,
-        { level: "info" }
-      );
+      // Silent — no message needed on session end
     },
   },
 

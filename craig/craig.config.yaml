@@ -1,12 +1,10 @@
-repo: vbomfim/sdlc-guardian-agents
+repo: vbomfim/openasr
 branch: main
-
 schedule:
   merge_monitor: on_push
-  coverage_scan: "0 8 * * *"
-  tech_debt_audit: "0 9 * * 1"
-  dependency_check: "0 10 * * 1"
-
+  coverage_scan: 0 8 * * *
+  tech_debt_audit: 0 9 * * 1
+  dependency_check: 0 10 * * 1
 capabilities:
   merge_review: true
   coverage_gaps: true
@@ -15,15 +13,15 @@ capabilities:
   po_audit: true
   auto_fix: true
   dependency_updates: true
-
 models:
   code_review:
     - claude-opus-4.6
     - gpt-5.4
   security: claude-opus-4.6
   default: claude-opus-4.6
-
 autonomy:
   create_issues: true
   create_draft_prs: true
   auto_merge: false
+guardians:
+  path: ~/.copilot/
