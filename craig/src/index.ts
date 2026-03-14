@@ -126,10 +126,17 @@ async function main(): Promise<void> {
     // 8. Build analyzer registry (requires GitHub adapter)
     const analyzers: AnalyzerPort[] = [];
 
+    // Lazy registry ref for merge_review → auto_develop chaining
+    let registryInstance: ReturnType<typeof createAnalyzerRegistry> | undefined;
+    const lazyRegistry = {
+      get: (name: string) => registryInstance?.get(name),
+    };
+
     if (github) {
       if (cfg.capabilities.merge_review) {
         analyzers.push(createMergeReviewAnalyzer({
           copilot, github, parser: resultParser, state,
+          registry: lazyRegistry,
         }));
       }
       if (cfg.capabilities.bug_detection) {
@@ -174,6 +181,8 @@ async function main(): Promise<void> {
     }
 
     const registry = createAnalyzerRegistry(analyzers);
+    // Wire lazy registry ref so merge_review can trigger auto_develop
+    registryInstance = registry;
     console.error(`[Craig] ${registry.size} analyzers registered`);
 
     // 9. Build shutdown deps for the craig_shutdown MCP tool.

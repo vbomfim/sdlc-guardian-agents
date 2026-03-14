@@ -71,6 +71,8 @@ export interface MergeReviewAnalyzerDeps {
   readonly github: GitHubPort;
   readonly state: StatePort;
   readonly parser: ResultParserPort;
+  /** Optional: analyzer registry to trigger auto_develop after review. */
+  readonly registry?: { get(name: string): AnalyzerPort | undefined };
 }
 
 // ---------------------------------------------------------------------------
@@ -196,6 +198,23 @@ export function createMergeReviewAnalyzer(
         // Step 6: Store findings in state
         await recordFindings(allFindings, deps.state);
         console.error(`[Craig] [${ts()}] Merge review complete: ${allFindings.length} findings, ${actions.length} actions`);
+
+        // Step 7: Trigger auto_develop for critical/high findings
+        const severeCount = allFindings.filter(f => ISSUE_WORTHY_SEVERITIES.has(f.severity)).length;
+        if (severeCount > 0 && deps.registry) {
+          const autoDevelop = deps.registry.get("auto_develop");
+          if (autoDevelop) {
+            console.error(`[Craig] [${ts()}] Triggering auto_develop for ${severeCount} critical/high findings...`);
+            const devContext: AnalyzerContext = {
+              task: "auto_develop",
+              taskId: `${context.taskId}-autodev`,
+              timestamp: new Date().toISOString(),
+            };
+            const devResult = await autoDevelop.execute(devContext);
+            console.error(`[Craig] [${ts()}] auto_develop: ${devResult.summary}`);
+            actions.push(...devResult.actions);
+          }
+        }
 
         return {
           success: true,
