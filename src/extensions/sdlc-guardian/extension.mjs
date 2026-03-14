@@ -205,6 +205,39 @@ const session = await joinSession({
           securitySensitiveEdits = false;
         }
       }
+
+      // After a background agent (task tool) completes, notify and suggest next step
+      if (input.toolName === "task" || input.toolName === "read_agent") {
+        const agentType = String(input.toolArgs?.agent_type || input.toolArgs?.description || "");
+        const result = String(input.toolResult || "").substring(0, 200);
+
+        if (/dev-guardian/i.test(agentType)) {
+          await session.log(
+            "🛡️ Developer Guardian completed. SDLC workflow: trigger QA + Security + Code Review reviews.",
+            { level: "info" }
+          );
+        } else if (/security-guardian/i.test(agentType)) {
+          await session.log(
+            "🛡️ Security Guardian review completed. Check findings — fix critical/high before merge.",
+            { level: "info" }
+          );
+        } else if (/code-review/i.test(agentType)) {
+          await session.log(
+            "🛡️ Code Review Guardian completed. Check findings — fix critical/high before merge.",
+            { level: "info" }
+          );
+        } else if (/qa-guardian/i.test(agentType)) {
+          await session.log(
+            "🛡️ QA Guardian completed. Review test coverage report.",
+            { level: "info" }
+          );
+        } else if (/po-guardian/i.test(agentType)) {
+          await session.log(
+            "🛡️ PO Guardian completed. Review ticket specification and create GitHub issue.",
+            { level: "info" }
+          );
+        }
+      }
     },
 
     // ── Session End: summary ───────────────────────────────────────────────
