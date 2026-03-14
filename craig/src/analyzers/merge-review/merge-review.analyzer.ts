@@ -13,7 +13,8 @@
  */
 
 import type { CopilotPort, InvokeResult } from "../../copilot/index.js";
-import type { GitHubPort, CommitDiff } from "../../github/index.js";
+import type { GitPort } from "../../git-port/git.port.js";
+import type { CommitDiff } from "../../github/index.js";
 import type { StatePort, Finding } from "../../state/index.js";
 import type {
   ResultParserPort,
@@ -28,6 +29,12 @@ import type {
   ActionTaken,
 } from "../analyzer.types.js";
 import { formatReviewComment } from "./comment-formatter.js";
+import {
+  gatherProjectContext,
+  parseClassification,
+  buildClassificationPrompt,
+} from "./project-context.js";
+import type { ProjectContext, FindingClassification } from "./project-context.js";
 
 // ---------------------------------------------------------------------------
 // Extended Context — merge-review needs SHA + diff beyond base context
@@ -53,6 +60,9 @@ export interface MergeReviewContext extends AnalyzerContext {
 /** Maximum number of lines in a diff before truncation. */
 const MAX_DIFF_LINES = 5_000;
 
+/** Minimum output length from PO Guardian to use as a rich ticket body. */
+const MIN_PO_TICKET_LENGTH = 50;
+
 /** Severity levels that trigger automatic GitHub issue creation. */
 const ISSUE_WORTHY_SEVERITIES = new Set(["critical", "high"]);
 
@@ -68,7 +78,7 @@ function ts(): string {
 /** Dependencies required by the MergeReviewAnalyzer. */
 export interface MergeReviewAnalyzerDeps {
   readonly copilot: CopilotPort;
-  readonly github: GitHubPort;
+  readonly github: GitPort;
   readonly state: StatePort;
   readonly parser: ResultParserPort;
   /** Optional: analyzer registry to trigger auto_develop after review. */
@@ -144,8 +154,7 @@ export function createMergeReviewAnalyzer(
             ].join("\n"),
             context: diff,
           }).then(r => {
-            console.error(`[Craig] [${ts()}] Security Guardian finished: success=${String(r.success)}, ${r.duration_ms}ms`);
-            console.error(`[Craig] [${ts()}] Security output (first 500 chars): ${r.output.slice(0, 500)}`);
+            console.error(`[Craig] [${ts()}] Security Guardian finished: success=${String(r.success)}, ${r.duration_ms}ms, output_length=${r.output.length}`);
             return r;
           }),
           deps.copilot.invoke({
@@ -164,8 +173,7 @@ export function createMergeReviewAnalyzer(
             ].join("\n"),
             context: diff,
           }).then(r => {
-            console.error(`[Craig] [${ts()}] Code Review Guardian finished: success=${String(r.success)}, ${r.duration_ms}ms`);
-            console.error(`[Craig] [${ts()}] Code Review output (first 500 chars): ${r.output.slice(0, 500)}`);
+            console.error(`[Craig] [${ts()}] Code Review Guardian finished: success=${String(r.success)}, ${r.duration_ms}ms, output_length=${r.output.length}`);
             return r;
           }),
         ]);
@@ -212,27 +220,32 @@ export function createMergeReviewAnalyzer(
         console.error(`[Craig] [${ts()}] Comment posted: ${commentRef.url}`);
 
         // Step 5: Create issues for critical/high findings (via PO Guardian)
-        const issueActions = await createIssuesForSevereFindings(
+        console.error(`[Craig] [${ts()}] Gathering project context for scope classification...`);
+        const projectContext = await gatherProjectContext(deps.github);
+        console.error(`[Craig] [${ts()}] Project context: primary=${projectContext.primaryLanguage}, languages=${Object.keys(projectContext.languages).join(",")}`);
+
+        const { actions: issueActions, inScopeCount } = await createIssuesForSevereFindings(
           allFindings,
           securityReport.guardian,
+          resolvedSha,
           deps.github,
           deps.copilot,
+          projectContext,
         );
         actions.push(...issueActions);
         if (issueActions.length > 0) {
-          console.error(`[Craig] [${ts()}] Created ${issueActions.length} issues for critical/high findings`);
+          console.error(`[Craig] [${ts()}] Created ${issueActions.length} actions for critical/high findings (${inScopeCount} in-scope)`);
         }
 
         // Step 6: Store findings in state
         await recordFindings(allFindings, deps.state);
         console.error(`[Craig] [${ts()}] Merge review complete: ${allFindings.length} findings, ${actions.length} actions`);
 
-        // Step 7: Trigger auto_develop for critical/high findings
-        const severeCount = allFindings.filter(f => ISSUE_WORTHY_SEVERITIES.has(f.severity)).length;
-        if (severeCount > 0 && deps.registry) {
+        // Step 7: Trigger auto_develop only for IN_SCOPE findings
+        if (inScopeCount > 0 && deps.registry) {
           const autoDevelop = deps.registry.get("auto_develop");
           if (autoDevelop) {
-            console.error(`[Craig] [${ts()}] Triggering auto_develop for ${severeCount} critical/high findings...`);
+            console.error(`[Craig] [${ts()}] Triggering auto_develop for ${inScopeCount} in-scope critical/high findings...`);
             const devContext: AnalyzerContext = {
               task: "auto_develop",
               taskId: `${context.taskId}-autodev`,
@@ -269,7 +282,7 @@ export function createMergeReviewAnalyzer(
  */
 async function fetchAndTruncateDiff(
   sha: string,
-  github: GitHubPort,
+  github: GitPort,
 ): Promise<{ diff: string; truncated: boolean }> {
   const commitDiff: CommitDiff = await github.getCommitDiff(sha);
   const diff = buildDiffText(commitDiff);
@@ -316,18 +329,21 @@ function parseIfSuccessful(
   };
 }
 
-/** Create GitHub issues for critical/high findings via PO Guardian. */
+/** Create GitHub issues for critical/high findings via PO Guardian with scope classification. */
 async function createIssuesForSevereFindings(
   findings: readonly ParsedFinding[],
   source: string,
-  github: GitHubPort,
-  copilot?: CopilotPort,
-): Promise<ActionTaken[]> {
+  sha: string,
+  github: GitPort,
+  copilot: CopilotPort | undefined,
+  projectContext: ProjectContext,
+): Promise<{ actions: ActionTaken[]; inScopeCount: number }> {
   const actions: ActionTaken[] = [];
+  let inScopeCount = 0;
   const severeFindings = findings.filter(f => ISSUE_WORTHY_SEVERITIES.has(f.severity));
 
   if (severeFindings.length === 0) {
-    return actions;
+    return { actions, inScopeCount };
   }
 
   for (const finding of severeFindings) {
@@ -339,53 +355,217 @@ async function createIssuesForSevereFindings(
       continue;
     }
 
-    // Try PO Guardian for rich ticket, fall back to basic template
-    let body: string;
-    if (copilot) {
-      console.error(`[Craig] [${ts()}] Invoking PO Guardian for issue: ${finding.issue}`);
-      const poResult = await copilot.invoke({
-        agent: "po-guardian",
-        prompt: [
-          "Write a GitHub issue ticket for the following finding from a merge review.",
-          "Include: summary, acceptance criteria, technical context, and suggested fix.",
-          "Format as a proper GitHub issue body in markdown.",
-          "",
-          `Severity: ${finding.severity.toUpperCase()}`,
-          `Category: ${finding.category}`,
-          `File: ${finding.file_line || "N/A"}`,
-          `Source: ${source}`,
-          `Issue: ${finding.issue}`,
-          `Justification: ${finding.source_justification}`,
-          `Suggested Fix: ${finding.suggested_fix}`,
-        ].join("\n"),
+    // Classify finding scope via PO Guardian
+    const classification = await classifyFinding(finding, projectContext, copilot);
+    console.error(`[Craig] [${ts()}] Classification for "${finding.issue}": ${classification}`);
+
+    if (classification === "IN_SCOPE") {
+      // IN_SCOPE: Create fix ticket (existing behavior)
+      inScopeCount++;
+      const body = await buildTicketBody(finding, source, copilot);
+      const issue = await github.createIssue({
+        title,
+        body,
+        labels: ["craig", source],
       });
 
-      if (poResult.success && poResult.output.trim().length > 50) {
-        body = poResult.output;
-        console.error(`[Craig] [${ts()}] PO Guardian wrote ticket (${body.length} chars)`);
-      } else {
-        console.error(`[Craig] [${ts()}] PO Guardian failed, using basic template`);
-        body = buildIssueBody(finding, source);
-      }
+      actions.push({
+        type: "issue_created",
+        url: issue.url,
+        description: `Created issue for ${finding.severity} finding: ${finding.issue}`,
+      });
+      console.error(`[Craig] [${ts()}] Issue created (IN_SCOPE): ${issue.url}`);
     } else {
-      body = buildIssueBody(finding, source);
+      // QUESTIONABLE or OUT_OF_SCOPE: Post commit comment + clarification issue
+      const commentBody = classification === "QUESTIONABLE"
+        ? buildQuestionableComment(finding)
+        : buildOutOfScopeComment(finding);
+
+      const commentRef = await github.createCommitComment(sha, commentBody);
+      actions.push({
+        type: "comment_added",
+        url: commentRef.url,
+        description: `Posted ${classification} comment for: ${finding.issue}`,
+      });
+      console.error(`[Craig] [${ts()}] Commit comment posted (${classification}): ${commentRef.url}`);
+
+      // Create clarification issue (not for auto_develop)
+      const clarificationBody = buildClarificationIssueBody(finding, source, classification);
+      const issue = await github.createIssue({
+        title,
+        body: clarificationBody,
+        labels: ["craig", source, "craig:needs-clarification"],
+      });
+
+      actions.push({
+        type: "issue_created",
+        url: issue.url,
+        description: `Created clarification issue (${classification}) for: ${finding.issue}`,
+      });
+      console.error(`[Craig] [${ts()}] Clarification issue created (${classification}): ${issue.url}`);
     }
-
-    const issue = await github.createIssue({
-      title,
-      body,
-      labels: ["craig", source],
-    });
-
-    actions.push({
-      type: "issue_created",
-      url: issue.url,
-      description: `Created issue for ${finding.severity} finding: ${finding.issue}`,
-    });
-    console.error(`[Craig] [${ts()}] Issue created: ${issue.url}`);
   }
 
-  return actions;
+  return { actions, inScopeCount };
+}
+
+/**
+ * Classify a finding's scope via PO Guardian.
+ *
+ * Sends the finding + project context to PO Guardian and parses the
+ * classification response. Defaults to IN_SCOPE if PO Guardian is
+ * unavailable or returns an unparseable response.
+ *
+ * [CLEAN-CODE] Never throws — returns IN_SCOPE on any failure.
+ */
+async function classifyFinding(
+  finding: ParsedFinding,
+  projectContext: ProjectContext,
+  copilot: CopilotPort | undefined,
+): Promise<FindingClassification> {
+  if (!copilot) {
+    return "IN_SCOPE";
+  }
+
+  try {
+    console.error(`[Craig] [${ts()}] Classifying finding: ${finding.issue}`);
+    const prompt = buildClassificationPrompt(finding, projectContext);
+    const result = await copilot.invoke({
+      agent: "po-guardian",
+      prompt,
+    });
+
+    if (result.success) {
+      return parseClassification(result.output);
+    }
+
+    console.error(`[Craig] [${ts()}] PO Guardian classification failed, defaulting to IN_SCOPE`);
+    return "IN_SCOPE";
+  } catch {
+    console.error(`[Craig] [${ts()}] PO Guardian classification error, defaulting to IN_SCOPE`);
+    return "IN_SCOPE";
+  }
+}
+
+/**
+ * Build issue body via PO Guardian or fallback template.
+ *
+ * [CLEAN-CODE] Extracted from createIssuesForSevereFindings for clarity.
+ */
+async function buildTicketBody(
+  finding: ParsedFinding,
+  source: string,
+  copilot: CopilotPort | undefined,
+): Promise<string> {
+  if (!copilot) {
+    return buildIssueBody(finding, source);
+  }
+
+  console.error(`[Craig] [${ts()}] Invoking PO Guardian for issue: ${finding.issue}`);
+  const findingContext = [
+    `Severity: ${finding.severity.toUpperCase()}`,
+    `Category: ${finding.category}`,
+    `File: ${finding.file_line || "N/A"}`,
+    `Source: ${source}`,
+    `Issue: ${finding.issue}`,
+    `Justification: ${finding.source_justification}`,
+    `Suggested Fix: ${finding.suggested_fix}`,
+  ].join("\n");
+
+  const poResult = await copilot.invoke({
+    agent: "po-guardian",
+    prompt: [
+      "Write a GitHub issue ticket for the following finding from a merge review.",
+      "Include: summary, acceptance criteria, technical context, and suggested fix.",
+      "Format as a proper GitHub issue body in markdown.",
+      "The finding details are provided in the context below.",
+    ].join("\n"),
+    context: findingContext,
+  });
+
+  if (poResult.success && poResult.output.trim().length > MIN_PO_TICKET_LENGTH) {
+    console.error(`[Craig] [${ts()}] PO Guardian wrote ticket (${poResult.output.length} chars)`);
+    return poResult.output;
+  }
+
+  console.error(`[Craig] [${ts()}] PO Guardian failed, using basic template`);
+  return buildIssueBody(finding, source);
+}
+
+/** Build commit comment for QUESTIONABLE findings. */
+function buildQuestionableComment(finding: ParsedFinding): string {
+  return [
+    `## 🤔 Craig — Needs Clarification`,
+    "",
+    `A ${finding.severity.toUpperCase()} finding was detected but its relevance to this project is unclear.`,
+    "",
+    `**Finding:** ${finding.issue}`,
+    `**File:** ${finding.file_line || "N/A"}`,
+    `**Category:** ${finding.category}`,
+    "",
+    `**Question for the author:** Does this file belong in this project? ` +
+      `If so, the finding should be addressed. If not, consider removing the file.`,
+    "",
+    `_Craig created an issue tagged \`craig:needs-clarification\` for tracking._`,
+  ].join("\n");
+}
+
+/** Build commit comment for OUT_OF_SCOPE findings. */
+function buildOutOfScopeComment(finding: ParsedFinding): string {
+  return [
+    `## ⚠️ Craig — Out of Scope File Detected`,
+    "",
+    `A ${finding.severity.toUpperCase()} finding was detected in a file that appears ` +
+      `to not belong in this project.`,
+    "",
+    `**Finding:** ${finding.issue}`,
+    `**File:** ${finding.file_line || "N/A"}`,
+    `**Category:** ${finding.category}`,
+    "",
+    `**Recommendation:** This file does not match the project's language/technology stack. ` +
+      `Consider removing it or moving it to the appropriate repository.`,
+    "",
+    `_Craig created an issue tagged \`craig:needs-clarification\` for tracking._`,
+  ].join("\n");
+}
+
+/** Build clarification issue body for QUESTIONABLE/OUT_OF_SCOPE findings. */
+function buildClarificationIssueBody(
+  finding: ParsedFinding,
+  source: string,
+  classification: FindingClassification,
+): string {
+  const statusLabel = classification === "QUESTIONABLE" ? "🤔 Questionable" : "⚠️ Out of Scope";
+  return [
+    `## ${statusLabel} Finding — Needs Clarification`,
+    "",
+    `Craig detected a ${finding.severity.toUpperCase()} finding but classified it as **${classification}**.`,
+    `Human review is needed before taking action.`,
+    "",
+    `### Finding`,
+    "",
+    `**Severity:** ${finding.severity.toUpperCase()}`,
+    `**Category:** ${finding.category}`,
+    `**File:** ${finding.file_line || "N/A"}`,
+    `**Source:** ${source}`,
+    "",
+    `### Issue`,
+    finding.issue,
+    "",
+    `### Justification`,
+    finding.source_justification,
+    "",
+    `### Suggested Fix`,
+    finding.suggested_fix,
+    "",
+    `### Why ${classification}?`,
+    classification === "QUESTIONABLE"
+      ? "The file or finding's relevance to this project is unclear. The commit author should clarify."
+      : "The file does not appear to match the project's language or technology stack. Consider removing it.",
+    "",
+    "---",
+    `_Created automatically by Craig merge review. **Not queued for auto_develop** — awaiting human input._`,
+  ].join("\n");
 }
 
 /** Build the body for a GitHub issue from a finding. */
