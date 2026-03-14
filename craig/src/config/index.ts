@@ -8,7 +8,8 @@
  */
 
 export { ConfigLoader } from "./config.loader.js";
-export type { ConfigPort, CraigConfig } from "./config.port.js";
+export type { ConfigPort } from "./config.port.js";
+export type { CraigConfig } from "./config.schema.js";
 export {
   ConfigNotFoundError,
   ConfigValidationError,

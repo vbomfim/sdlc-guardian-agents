@@ -87,7 +87,7 @@ describe("ConfigLoader", () => {
 
   beforeEach(async () => {
     tmpDir = await makeTempDir();
-    loader = new ConfigLoader();
+    loader = new ConfigLoader({ baseDir: tmpDir });
     // Clear env var before each test
     delete process.env.CRAIG_CONFIG;
   });
@@ -314,7 +314,9 @@ schedule:
       const otherDir = await makeTempDir();
       const argConfig = await writeConfig(otherDir, FULL_VALID_YAML);
 
-      const config = await loader.load(argConfig);
+      // Use a loader scoped to otherDir for this test
+      const otherLoader = new ConfigLoader({ baseDir: otherDir });
+      const config = await otherLoader.load(argConfig);
 
       expect(config.repo).toBe("owner/repo-name");
 
@@ -341,7 +343,7 @@ schedule:
       await expect(loader.load(configPath)).rejects.toThrow(ConfigParseError);
     });
 
-    it("should ignore extra unknown fields (forward-compatible)", async () => {
+    it("should strip unknown fields silently (forward-compatible safety)", async () => {
       const yaml = `
 repo: owner/repo
 future_field: some_value
@@ -353,7 +355,9 @@ nested_future:
       const config = await loader.load(configPath);
 
       expect(config.repo).toBe("owner/repo");
-      // Unknown fields should not cause errors
+      // Unknown fields are stripped — they should NOT appear in the result
+      expect((config as Record<string, unknown>).future_field).toBeUndefined();
+      expect((config as Record<string, unknown>).nested_future).toBeUndefined();
     });
 
     it("should override auto_merge: true to false", async () => {
@@ -428,6 +432,276 @@ models:
 
     it("should throw ConfigValidationError for undefined input", () => {
       expect(() => loader.validate(undefined)).toThrow(ConfigValidationError);
+    });
+  });
+
+  /* ================================================================== */
+  /*  Regression tests — Security & Code Review Guardian findings       */
+  /*  PR #17 fixes                                                      */
+  /* ================================================================== */
+
+  /* ----- Fix 1: Prototype pollution denylist ----- */
+  describe("Fix 1: Prototype pollution in setNestedValue", () => {
+    it("should reject update with __proto__ key segment", async () => {
+      const configPath = await writeConfig(tmpDir, FULL_VALID_YAML);
+      await loader.load(configPath);
+
+      await expect(
+        loader.update("__proto__.polluted", "malicious"),
+      ).rejects.toThrow(ConfigValidationError);
+      await expect(
+        loader.update("__proto__.polluted", "malicious"),
+      ).rejects.toThrow(/prototype pollution/i);
+    });
+
+    it("should reject update with prototype key segment", async () => {
+      const configPath = await writeConfig(tmpDir, FULL_VALID_YAML);
+      await loader.load(configPath);
+
+      await expect(
+        loader.update("constructor.prototype.polluted", "malicious"),
+      ).rejects.toThrow(ConfigValidationError);
+    });
+
+    it("should reject update with constructor key segment", async () => {
+      const configPath = await writeConfig(tmpDir, FULL_VALID_YAML);
+      await loader.load(configPath);
+
+      await expect(
+        loader.update("constructor.name", "malicious"),
+      ).rejects.toThrow(ConfigValidationError);
+    });
+
+    it("should NOT pollute Object.prototype even on failure", async () => {
+      const configPath = await writeConfig(tmpDir, FULL_VALID_YAML);
+      await loader.load(configPath);
+
+      try {
+        await loader.update("__proto__.polluted", true);
+      } catch {
+        // Expected to throw
+      }
+
+      // Verify Object.prototype was NOT modified
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    });
+  });
+
+  /* ----- Fix 2: Write validated+transformed data to disk ----- */
+  describe("Fix 2: update() writes validated data to disk", () => {
+    it("should persist auto_merge as false even when updated to true", async () => {
+      const configPath = await writeConfig(tmpDir, FULL_VALID_YAML);
+      await loader.load(configPath);
+
+      // Attempt to set auto_merge to true — schema transform forces it to false
+      const updated = await loader.update("autonomy.auto_merge", true);
+      expect(updated.autonomy.auto_merge).toBe(false);
+
+      // Verify the file on disk contains the transformed value
+      const fileContent = await fs.readFile(configPath, "utf-8");
+      // The YAML on disk should NOT contain "true" for auto_merge
+      expect(fileContent).toContain("auto_merge: false");
+      expect(fileContent).not.toMatch(/auto_merge:\s*true/);
+    });
+
+    it("should strip unknown fields from persisted data", async () => {
+      const yaml = `
+repo: owner/repo
+future_field: some_value
+`;
+      const configPath = await writeConfig(tmpDir, yaml);
+      await loader.load(configPath);
+
+      // After loading (which strips unknown fields), update a known field
+      await loader.update("branch", "develop");
+
+      // The file on disk should NOT contain the unknown field
+      const fileContent = await fs.readFile(configPath, "utf-8");
+      expect(fileContent).not.toContain("future_field");
+    });
+  });
+
+  /* ----- Fix 3: Path traversal protection ----- */
+  describe("Fix 3: Path traversal protection", () => {
+    it("should reject a path that escapes the base directory", async () => {
+      const escapingPath = path.join(tmpDir, "..", "etc", "shadow.yaml");
+
+      await expect(loader.load(escapingPath)).rejects.toThrow(
+        ConfigValidationError,
+      );
+      await expect(loader.load(escapingPath)).rejects.toThrow(
+        /outside the allowed base directory/i,
+      );
+    });
+
+    it("should reject an absolute path outside base dir", async () => {
+      await expect(loader.load("/etc/passwd.yaml")).rejects.toThrow(
+        ConfigValidationError,
+      );
+    });
+
+    it("should reject a file without .yaml or .yml extension", async () => {
+      const badPath = path.join(tmpDir, "config.json");
+      await fs.writeFile(badPath, "{}", "utf-8");
+
+      await expect(loader.load(badPath)).rejects.toThrow(
+        ConfigValidationError,
+      );
+      await expect(loader.load(badPath)).rejects.toThrow(
+        /\.yaml or \.yml extension/i,
+      );
+    });
+
+    it("should accept .yml extension", async () => {
+      const ymlPath = path.join(tmpDir, "craig.config.yml");
+      await fs.writeFile(ymlPath, MINIMAL_VALID_YAML, "utf-8");
+
+      const config = await loader.load(ymlPath);
+
+      expect(config.repo).toBe("owner/my-repo");
+    });
+
+    it("should accept files within the base directory", async () => {
+      const subDir = path.join(tmpDir, "subdir");
+      await fs.mkdir(subDir, { recursive: true });
+      const configPath = path.join(subDir, "craig.config.yaml");
+      await fs.writeFile(configPath, MINIMAL_VALID_YAML, "utf-8");
+
+      const config = await loader.load(configPath);
+
+      expect(config.repo).toBe("owner/my-repo");
+    });
+  });
+
+  /* ----- Fix 4: .strip() + superRefine secret scan ----- */
+  describe("Fix 4: Secret detection in unknown/nested fields", () => {
+    it("should strip unknown fields that contain secrets", async () => {
+      const yaml = `
+repo: owner/repo
+sneaky_secret: ghp_1234567890abcdef
+`;
+      const configPath = await writeConfig(tmpDir, yaml);
+
+      // With .strip(), the unknown field is removed before superRefine,
+      // so this should succeed (field is dropped, not validated)
+      const config = await loader.load(configPath);
+      expect(config.repo).toBe("owner/repo");
+      expect((config as Record<string, unknown>).sneaky_secret).toBeUndefined();
+    });
+
+    it("should still detect secrets in known schema fields", async () => {
+      const yaml = `
+repo: owner/repo
+branch: ghp_secretbranch12345
+`;
+      const configPath = await writeConfig(tmpDir, yaml);
+
+      await expect(loader.load(configPath)).rejects.toThrow(
+        ConfigValidationError,
+      );
+    });
+
+    it("should detect secrets in known nested fields like guardians.path", async () => {
+      const yaml = `
+repo: owner/repo
+guardians:
+  path: github_pat_secretvalue123
+`;
+      const configPath = await writeConfig(tmpDir, yaml);
+
+      await expect(loader.load(configPath)).rejects.toThrow(
+        ConfigValidationError,
+      );
+    });
+  });
+
+  /* ----- Fix 5: CraigConfig derived from z.infer ----- */
+  describe("Fix 5: CraigConfig type derived from schema", () => {
+    it("should produce a CraigConfig with all expected fields from minimal input", async () => {
+      const configPath = await writeConfig(tmpDir, MINIMAL_VALID_YAML);
+
+      const config = await loader.load(configPath);
+
+      // Type-level test: these properties must exist on the inferred type.
+      // If the schema and type drifted, this would be a compile error.
+      const _repo: string = config.repo;
+      const _branch: string = config.branch;
+      const _autoMerge: false = config.autonomy.auto_merge;
+      const _default: string = config.models.default;
+
+      expect(_repo).toBe("owner/my-repo");
+      expect(_branch).toBe("main");
+      expect(_autoMerge).toBe(false);
+      expect(_default).toBe("claude-sonnet-4.5");
+    });
+  });
+
+  /* ----- Fix 6: Type guard after parseYaml ----- */
+  describe("Fix 6: Type guard after parseYaml in update()", () => {
+    it("should throw ConfigValidationError if YAML root is a scalar", async () => {
+      const configPath = await writeConfig(tmpDir, FULL_VALID_YAML);
+      await loader.load(configPath);
+
+      // Overwrite file with a scalar value (not a mapping)
+      await fs.writeFile(configPath, '"just a string"', "utf-8");
+
+      await expect(
+        loader.update("branch", "develop"),
+      ).rejects.toThrow(ConfigValidationError);
+    });
+
+    it("should throw ConfigValidationError if YAML root is an array", async () => {
+      const configPath = await writeConfig(tmpDir, FULL_VALID_YAML);
+      await loader.load(configPath);
+
+      // Overwrite file with an array
+      await fs.writeFile(configPath, "- item1\n- item2\n", "utf-8");
+
+      await expect(
+        loader.update("branch", "develop"),
+      ).rejects.toThrow(ConfigValidationError);
+    });
+  });
+
+  /* ----- Fix 7: Error cause chain preserved ----- */
+  describe("Fix 7: Error cause chain", () => {
+    it("should preserve the cause on ConfigNotFoundError", async () => {
+      const missingPath = path.join(tmpDir, "does-not-exist.yaml");
+
+      try {
+        await loader.load(missingPath);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ConfigNotFoundError);
+        expect((error as ConfigNotFoundError).cause).toBeDefined();
+        expect((error as ConfigNotFoundError).cause).toBeInstanceOf(Error);
+      }
+    });
+
+    it("should preserve the cause on ConfigParseError", async () => {
+      const configPath = await writeConfig(tmpDir, "{{{{invalid: [[[");
+
+      try {
+        await loader.load(configPath);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ConfigParseError);
+        expect((error as ConfigParseError).cause).toBeDefined();
+      }
+    });
+
+    it("ConfigValidationError should accept an optional cause", () => {
+      const original = new Error("original error");
+      const error = new ConfigValidationError("test", [], { cause: original });
+
+      expect(error.cause).toBe(original);
+    });
+
+    it("ConfigNotFoundError should accept an optional cause", () => {
+      const original = new Error("ENOENT");
+      const error = new ConfigNotFoundError("/missing.yaml", { cause: original });
+
+      expect(error.cause).toBe(original);
     });
   });
 });

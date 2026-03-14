@@ -30,6 +30,31 @@ function isNotSecret(value: string): boolean {
   return !SECRET_PREFIXES.some((prefix) => value.startsWith(prefix));
 }
 
+/**
+ * Recursively scan an object for string values that look like secrets.
+ * Returns an array of dot-notation paths where secrets were found.
+ */
+function findSecrets(obj: unknown, currentPath: string = ""): string[] {
+  const found: string[] = [];
+
+  if (typeof obj === "string") {
+    if (!isNotSecret(obj)) {
+      found.push(currentPath || "(root)");
+    }
+  } else if (Array.isArray(obj)) {
+    for (let i = 0; i < obj.length; i++) {
+      found.push(...findSecrets(obj[i], `${currentPath}[${i}]`));
+    }
+  } else if (typeof obj === "object" && obj !== null) {
+    for (const [key, value] of Object.entries(obj)) {
+      const childPath = currentPath ? `${currentPath}.${key}` : key;
+      found.push(...findSecrets(value, childPath));
+    }
+  }
+
+  return found;
+}
+
 /** Non-secret string — reusable refinement. */
 const safeString = z.string().refine(isNotSecret, {
   message:
@@ -117,4 +142,26 @@ export const craigConfigSchema = z
       })
       .default({ path: "~/.copilot/" }),
   })
-  .passthrough(); // Allow unknown fields for forward-compatibility
+  .strip() // Drop unknown fields — prevents secret smuggling via unvalidated keys
+  .superRefine((data, ctx) => {
+    // Recursive secret scan catches secrets in any remaining field,
+    // including those in nested records like `schedule`.
+    const secretPaths = findSecrets(data);
+    for (const secretPath of secretPaths) {
+      ctx.addIssue({
+        code: "custom",
+        message: `Secret-like value detected at "${secretPath}". Config values must not contain tokens.`,
+        path: secretPath.split("."),
+      });
+    }
+  });
+
+/**
+ * CraigConfig type derived from the Zod schema.
+ *
+ * This replaces the manually-maintained interface, ensuring the type
+ * and schema can never drift out of sync.
+ *
+ * @see [DRY] — single source of truth
+ */
+export type CraigConfig = z.infer<typeof craigConfigSchema>;
