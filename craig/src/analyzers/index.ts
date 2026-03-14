@@ -27,3 +27,12 @@ export {
   createCoverageScanAnalyzer,
 } from "./coverage-scan/index.js";
 export type { CoverageScanDeps } from "./coverage-scan/coverage-scan.types.js";
+export { AutoFixAnalyzer } from "./auto-fix/index.js";
+export type {
+  CommandRunnerPort,
+  CommandResult,
+  GitOpsPort,
+} from "./auto-fix/auto-fix.ports.js";
+export type { LinterDefinition, FixerResult } from "./auto-fix/auto-fix.types.js";
+export { SUPPORTED_LINTERS } from "./auto-fix/auto-fix.types.js";
+export { FixVerificationError, GitOpsError } from "./auto-fix/auto-fix.errors.js";
