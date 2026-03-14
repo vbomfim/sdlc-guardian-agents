@@ -248,4 +248,65 @@ describe("startDaemonServer", () => {
     const addr = result.httpServer.address();
     expect(addr).toBeNull(); // Server unref'd after close
   });
+
+  it("shutdown completes when active SSE connections exist (issue #55)", async () => {
+    const mockMcpServer = createMockMcpServer();
+    const result = await startDaemonServer(
+      mockMcpServer as unknown as Parameters<typeof startDaemonServer>[0],
+      { port: 0 },
+    );
+    const addr = result.httpServer.address();
+    const port = typeof addr === "object" && addr !== null ? addr.port : 0;
+
+    // Track SSE connection lifecycle with separate promises
+    let onEstablished!: () => void;
+    const establishedPromise = new Promise<void>((r) => { onEstablished = r; });
+    let onClosed!: () => void;
+    const closedPromise = new Promise<void>((r) => { onClosed = r; });
+
+    const req = http.get(
+      { hostname: "127.0.0.1", port, path: "/sse" },
+      (res) => {
+        res.on("close", () => onClosed());
+        res.once("data", () => onEstablished());
+      },
+    );
+    req.on("error", (err) => {
+      // Ignore ECONNRESET — expected when server destroys the socket
+      if ((err as NodeJS.ErrnoException).code !== "ECONNRESET") {
+        throw err;
+      }
+    });
+
+    // Wait for SSE to fully establish (received initial endpoint event)
+    await establishedPromise;
+
+    // Shutdown should complete quickly, NOT hang indefinitely
+    const shutdownStart = Date.now();
+    await result.shutdown();
+    const shutdownDurationMs = Date.now() - shutdownStart;
+
+    // Verify: shutdown completed in < 1s (not stuck waiting for SSE to close)
+    expect(shutdownDurationMs).toBeLessThan(1000);
+
+    // Verify: SSE connection was force-closed by the server
+    await closedPromise;
+
+    // Verify: server is no longer listening
+    expect(result.httpServer.address()).toBeNull();
+  });
+
+  it("shutdown is idempotent — calling twice does not error", async () => {
+    const mockMcpServer = createMockMcpServer();
+    const result = await startDaemonServer(
+      mockMcpServer as unknown as Parameters<typeof startDaemonServer>[0],
+      { port: 0 },
+    );
+
+    await result.shutdown();
+    // Second call should resolve immediately, not throw
+    await result.shutdown();
+
+    expect(result.httpServer.address()).toBeNull();
+  });
 });

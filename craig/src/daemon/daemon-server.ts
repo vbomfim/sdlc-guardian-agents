@@ -18,6 +18,7 @@
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type http from "node:http";
+import type { Socket } from "node:net";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
@@ -47,6 +48,9 @@ export interface DaemonServerResult {
 
 /** Default hostname — localhost only for security. */
 const DEFAULT_HOSTNAME = "127.0.0.1";
+
+/** Maximum time (ms) to wait for graceful shutdown before force-exiting. */
+const SHUTDOWN_TIMEOUT_MS = 5_000;
 
 /** Timestamp when the daemon started, for uptime calculation. */
 let startTime: number = Date.now();
@@ -269,6 +273,19 @@ export async function startDaemonServer(
   const handler = createRequestHandler(mcpServer);
   const httpServer = createServer(handler);
 
+  /**
+   * Track active TCP sockets so we can force-close them on shutdown.
+   * SSE connections are long-lived — httpServer.close() won't complete
+   * until they disconnect. Destroying sockets unblocks the close.
+   *
+   * [CLEAN-CODE] Socket lifecycle is managed in one place.
+   */
+  const activeSockets = new Set<Socket>();
+  httpServer.on("connection", (socket: Socket) => {
+    activeSockets.add(socket);
+    socket.once("close", () => activeSockets.delete(socket));
+  });
+
   await new Promise<void>((resolve, reject) => {
     httpServer.once("error", reject);
     httpServer.listen(options.port, hostname, () => {
@@ -277,9 +294,34 @@ export async function startDaemonServer(
     });
   });
 
+  let isShuttingDown = false;
+
   const shutdown = async (): Promise<void> => {
-    await new Promise<void>((resolve, reject) => {
-      httpServer.close((err) => (err ? reject(err) : resolve()));
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+
+    // 1. Force-close all active connections (SSE keep-alive prevents server.close())
+    for (const socket of activeSockets) {
+      socket.destroy();
+    }
+    activeSockets.clear();
+
+    // 2. Close the HTTP server (stop accepting new connections)
+    //    With sockets destroyed, this resolves immediately.
+    //    Timeout is a safety net in case something unexpected keeps the server alive.
+    await new Promise<void>((resolve) => {
+      const timer = setTimeout(() => {
+        console.error(
+          `[Craig] Shutdown timed out after ${SHUTDOWN_TIMEOUT_MS / 1000}s — forcing exit`,
+        );
+        resolve();
+      }, SHUTDOWN_TIMEOUT_MS);
+      timer.unref();
+
+      httpServer.close(() => {
+        clearTimeout(timer);
+        resolve();
+      });
     });
   };
 

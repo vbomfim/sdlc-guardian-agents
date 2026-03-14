@@ -159,12 +159,32 @@ async function main(): Promise<void> {
       );
 
       // Graceful shutdown on SIGTERM/SIGINT (systemd, pm2, Ctrl+C)
+      let isShuttingDown = false;
+
       const handleShutdown = (): void => {
+        if (isShuttingDown) return;
+        isShuttingDown = true;
+
         console.error("[Craig] Shutting down daemon...");
-        void shutdown().then(() => {
-          console.error("[Craig] Daemon stopped.");
+
+        // Safety net: force exit if graceful shutdown hangs
+        const forceExitTimer = setTimeout(() => {
+          console.error("[Craig] Shutdown timed out — forcing exit");
           process.exit(0);
-        });
+        }, 5_000);
+
+        void shutdown()
+          .catch((err: unknown) => {
+            console.error(
+              "[Craig] Shutdown error:",
+              err instanceof Error ? err.message : String(err),
+            );
+          })
+          .finally(() => {
+            clearTimeout(forceExitTimer);
+            console.error("[Craig] Daemon stopped.");
+            process.exit(0);
+          });
       };
 
       process.on("SIGTERM", handleShutdown);
