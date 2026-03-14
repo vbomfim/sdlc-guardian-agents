@@ -37,6 +37,8 @@ import { createPlatformAuditAnalyzer } from "./analyzers/platform-audit/index.js
 import { createDeliveryAuditAnalyzer } from "./analyzers/delivery-audit/index.js";
 import { createResultParser } from "./result-parser/index.js";
 import { GitHubAdapter } from "./github/index.js";
+import { createAutoDevelopAnalyzer } from "./analyzers/auto-develop/index.js";
+import { GitOpsAdapter, toAnalyzerGitOps } from "./git-ops/index.js";
 
 /**
  * Bootstrap and start the Craig MCP server.
@@ -137,8 +139,11 @@ async function main(): Promise<void> {
         }));
       }
       if ((cfg.capabilities as Record<string, unknown>).auto_develop) {
-        // Auto-develop needs GitOpsPort adapter (not yet built) — skip for now
-        console.error("[Craig] auto_develop capability requires GitOpsPort — skipping (follow-up ticket)");
+        const gitOpsAdapter = new GitOpsAdapter(process.cwd());
+        const analyzerGitOps = toAnalyzerGitOps(gitOpsAdapter, cfg.branch);
+        analyzers.push(createAutoDevelopAnalyzer({
+          copilot, git: github, state, config, gitOps: analyzerGitOps,
+        }));
       }
       if ((cfg.capabilities as Record<string, unknown>).platform_audit) {
         analyzers.push(createPlatformAuditAnalyzer({
