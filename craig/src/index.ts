@@ -26,6 +26,15 @@ import { parseCliArgs } from "./cli/index.js";
 import { startDaemonServer } from "./daemon/index.js";
 import { RepoManager } from "./repo-manager/index.js";
 import type { StateFactory } from "./repo-manager/index.js";
+import type { AnalyzerPort } from "./analyzers/analyzer.port.js";
+import { createAnalyzerRegistry } from "./core/analyzer-registry.js";
+import { createMergeReviewAnalyzer } from "./analyzers/merge-review/index.js";
+import { createSecurityScanAnalyzer } from "./analyzers/security-scan/index.js";
+import { createCoverageScanAnalyzer } from "./analyzers/coverage-scan/index.js";
+import { createTechDebtAnalyzer } from "./analyzers/tech-debt/index.js";
+import { createPrReviewAnalyzer } from "./analyzers/pr-review/index.js";
+import { createResultParser } from "./result-parser/index.js";
+import { GitHubAdapter } from "./github/index.js";
 
 /**
  * Bootstrap and start the Craig MCP server.
@@ -75,8 +84,49 @@ async function main(): Promise<void> {
       guardiansPath: cfg.guardians.path,
     });
 
-    // 6. Create and configure MCP server
-    const server = createCraigServer({ state, config, copilot, repoManager });
+    // 6. Create GitHub adapter for analyzers
+    const githubToken = process.env["GITHUB_TOKEN"] || process.env["GH_TOKEN"] || "";
+    const repoFullName = cfg.repo ?? defaultRepo;
+    const [owner = "", repo = ""] = repoFullName.split("/");
+    const github = GitHubAdapter.create({ token: githubToken, owner, repo });
+
+    // 7. Create result parser
+    const resultParser = createResultParser();
+
+    // 8. Build analyzer registry
+    const analyzers: AnalyzerPort[] = [];
+
+    if (cfg.capabilities.merge_review) {
+      analyzers.push(createMergeReviewAnalyzer({
+        copilot, github, parser: resultParser, state,
+      }));
+    }
+    if (cfg.capabilities.bug_detection) {
+      analyzers.push(createSecurityScanAnalyzer({
+        copilot, github, parser: resultParser, state,
+      }));
+    }
+    if (cfg.capabilities.coverage_gaps) {
+      analyzers.push(createCoverageScanAnalyzer({
+        copilot, github, parser: resultParser, state,
+      }));
+    }
+    if (cfg.capabilities.po_audit) {
+      analyzers.push(createTechDebtAnalyzer({
+        copilot, github, parser: resultParser, state,
+      }));
+    }
+    if (cfg.capabilities.pr_monitor) {
+      analyzers.push(createPrReviewAnalyzer({
+        copilot, github, parser: resultParser, state,
+      }));
+    }
+
+    const registry = createAnalyzerRegistry(analyzers);
+    console.error(`[Craig] ${registry.size} analyzers registered`);
+
+    // 9. Create and configure MCP server
+    const server = createCraigServer({ state, config, copilot, repoManager, registry });
 
     if (args.daemon) {
       // 6b. Daemon mode: SSE transport over HTTP

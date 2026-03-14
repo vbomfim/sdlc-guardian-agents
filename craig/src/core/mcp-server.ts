@@ -18,6 +18,7 @@ import type { StatePort } from "../state/index.js";
 import type { ConfigPort } from "../config/index.js";
 import type { CopilotPort } from "../copilot/index.js";
 import type { RepoManagerPort } from "../repo-manager/index.js";
+import type { AnalyzerRegistry } from "./analyzer-registry.js";
 import { VALID_TASKS } from "./core.types.js";
 import {
   createStatusHandler,
@@ -46,6 +47,7 @@ export interface CraigServerDeps {
   readonly config: ConfigPort;
   readonly copilot: CopilotPort;
   readonly repoManager?: RepoManagerPort;
+  readonly registry?: AnalyzerRegistry;
 }
 
 /* ------------------------------------------------------------------ */
@@ -143,7 +145,7 @@ function registerRunTaskTool(server: McpServer, deps: CraigServerDeps): void {
   const handler = createRunTaskHandler(
     deps.state,
     deps.copilot,
-    undefined,
+    deps.registry,
     deps.repoManager,
   );
 
