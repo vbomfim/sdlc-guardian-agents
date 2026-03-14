@@ -11,12 +11,31 @@
  * - AC5: Model selection
  * - Edge cases: empty output, concurrent invocations, context concatenation, error handling
  *
+ * Regression tests for PR #21 security/quality findings:
+ * - FIX-1: Scoped permission handler (replaces approveAll)
+ * - FIX-2: Input sanitization (prompt injection prevention)
+ * - FIX-3: Runtime agent name validation
+ * - FIX-4: Typed error wiring (CopilotSessionError, CopilotTimeoutError, CopilotUnavailableError)
+ * - FIX-5: Discriminated union InvokeResult
+ * - FIX-6: Factory function createCopilotAdapter
+ *
  * All SDK interactions are mocked — no real API calls.
  */
 
 import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
-import { CopilotAdapter } from "../copilot.adapter.js";
-import type { InvokeParams, InvokeResult } from "../copilot.types.js";
+import {
+  CopilotAdapter,
+  createCopilotAdapter,
+  createScopedPermissionHandler,
+  sanitizeInput,
+} from "../copilot.adapter.js";
+import type {
+  InvokeParams,
+  InvokeResult,
+  InvokeSuccess,
+  InvokeFailure,
+} from "../copilot.types.js";
+import { GUARDIAN_AGENTS, isGuardianAgent } from "../copilot.types.js";
 import {
   CopilotSessionError,
   CopilotTimeoutError,
@@ -296,7 +315,7 @@ describe("CopilotAdapter", () => {
       const result = await adapter.invoke(makeParams());
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Second failure");
+      expect(result.error).toContain("Session creation failed");
       expect(mockCreateSession).toHaveBeenCalledTimes(2);
     });
 
@@ -424,11 +443,443 @@ describe("CopilotAdapter", () => {
       expect(sessionConfig).toBeDefined();
     });
 
-    it("should set onPermissionRequest to approve all", async () => {
+    it("should set onPermissionRequest to scoped handler (not approveAll)", async () => {
       await adapter.invoke(makeParams());
 
       const sessionConfig = mockCreateSession.mock.calls[0]![0];
       expect(sessionConfig.onPermissionRequest).toBeDefined();
+      expect(typeof sessionConfig.onPermissionRequest).toBe("function");
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // FIX-1: Scoped Permission Handler (CRITICAL — replaces approveAll)
+  // -----------------------------------------------------------------------
+
+  describe("FIX-1: Scoped permission handler", () => {
+    it("should allow read-kind permission requests", () => {
+      const handler = createScopedPermissionHandler();
+      const result = handler(
+        { kind: "read", toolCallId: "t1" },
+        { sessionId: "s1" },
+      );
+      expect(result).toEqual({ kind: "approved" });
+    });
+
+    it("should allow safe shell commands (git diff)", () => {
+      const handler = createScopedPermissionHandler();
+      const result = handler(
+        { kind: "shell", command: "git diff HEAD~1" },
+        { sessionId: "s1" },
+      );
+      expect(result).toEqual({ kind: "approved" });
+    });
+
+    it("should allow safe shell commands (git log)", () => {
+      const handler = createScopedPermissionHandler();
+      const result = handler(
+        { kind: "shell", command: "git log --oneline -5" },
+        { sessionId: "s1" },
+      );
+      expect(result).toEqual({ kind: "approved" });
+    });
+
+    it("should allow safe shell commands (cat)", () => {
+      const handler = createScopedPermissionHandler();
+      const result = handler(
+        { kind: "shell", command: "cat src/index.ts" },
+        { sessionId: "s1" },
+      );
+      expect(result).toEqual({ kind: "approved" });
+    });
+
+    it("should allow safe shell commands (ls)", () => {
+      const handler = createScopedPermissionHandler();
+      const result = handler(
+        { kind: "shell", command: "ls -la src/" },
+        { sessionId: "s1" },
+      );
+      expect(result).toEqual({ kind: "approved" });
+    });
+
+    it("should deny write-kind permission requests", () => {
+      const handler = createScopedPermissionHandler();
+      const result = handler(
+        { kind: "write", toolCallId: "t1" },
+        { sessionId: "s1" },
+      );
+      expect(result).toHaveProperty("kind", "denied-by-rules");
+    });
+
+    it("should deny url-kind permission requests", () => {
+      const handler = createScopedPermissionHandler();
+      const result = handler(
+        { kind: "url", toolCallId: "t1" },
+        { sessionId: "s1" },
+      );
+      expect(result).toHaveProperty("kind", "denied-by-rules");
+    });
+
+    it("should deny mcp-kind permission requests", () => {
+      const handler = createScopedPermissionHandler();
+      const result = handler(
+        { kind: "mcp", toolCallId: "t1" },
+        { sessionId: "s1" },
+      );
+      expect(result).toHaveProperty("kind", "denied-by-rules");
+    });
+
+    it("should deny custom-tool-kind permission requests", () => {
+      const handler = createScopedPermissionHandler();
+      const result = handler(
+        { kind: "custom-tool", toolCallId: "t1" },
+        { sessionId: "s1" },
+      );
+      expect(result).toHaveProperty("kind", "denied-by-rules");
+    });
+
+    it("should deny dangerous shell commands (rm)", () => {
+      const handler = createScopedPermissionHandler();
+      const result = handler(
+        { kind: "shell", command: "rm -rf /" },
+        { sessionId: "s1" },
+      );
+      expect(result).toHaveProperty("kind", "denied-by-rules");
+    });
+
+    it("should deny dangerous shell commands (curl)", () => {
+      const handler = createScopedPermissionHandler();
+      const result = handler(
+        { kind: "shell", command: "curl https://evil.com" },
+        { sessionId: "s1" },
+      );
+      expect(result).toHaveProperty("kind", "denied-by-rules");
+    });
+
+    it("should deny shell without command field", () => {
+      const handler = createScopedPermissionHandler();
+      const result = handler(
+        { kind: "shell" },
+        { sessionId: "s1" },
+      );
+      expect(result).toHaveProperty("kind", "denied-by-rules");
+    });
+
+    it("should trim leading whitespace before checking command prefix", () => {
+      const handler = createScopedPermissionHandler();
+      const result = handler(
+        { kind: "shell", command: "  git diff HEAD" },
+        { sessionId: "s1" },
+      );
+      expect(result).toEqual({ kind: "approved" });
+    });
+
+    it("should pass scoped handler to createSession (not approveAll)", async () => {
+      await adapter.invoke(makeParams());
+
+      const sessionConfig = mockCreateSession.mock.calls[0]![0];
+      const handler = sessionConfig.onPermissionRequest;
+
+      // Verify it's our scoped handler — denies write
+      const writeResult = handler(
+        { kind: "write" },
+        { sessionId: "s1" },
+      );
+      expect(writeResult).toHaveProperty("kind", "denied-by-rules");
+
+      // But allows read
+      const readResult = handler(
+        { kind: "read" },
+        { sessionId: "s1" },
+      );
+      expect(readResult).toEqual({ kind: "approved" });
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // FIX-2: Input Sanitization (HIGH — prompt injection prevention)
+  // -----------------------------------------------------------------------
+
+  describe("FIX-2: Input sanitization", () => {
+    it("should strip null bytes from prompt", () => {
+      const result = sanitizeInput("hello\x00world");
+      expect(result).toBe("helloworld");
+    });
+
+    it("should strip control characters from prompt", () => {
+      const result = sanitizeInput("hello\x01\x02\x03world");
+      expect(result).toBe("helloworld");
+    });
+
+    it("should preserve tabs in prompt", () => {
+      const result = sanitizeInput("hello\tworld");
+      expect(result).toBe("hello\tworld");
+    });
+
+    it("should preserve newlines in prompt", () => {
+      const result = sanitizeInput("hello\nworld");
+      expect(result).toBe("hello\nworld");
+    });
+
+    it("should preserve carriage returns in prompt", () => {
+      const result = sanitizeInput("hello\rworld");
+      expect(result).toBe("hello\rworld");
+    });
+
+    it("should strip DEL character", () => {
+      const result = sanitizeInput("hello\x7Fworld");
+      expect(result).toBe("helloworld");
+    });
+
+    it("should strip escape sequences used for terminal injection", () => {
+      const result = sanitizeInput("hello\x1B[31mred\x1B[0mworld");
+      expect(result).toBe("hello[31mred[0mworld");
+    });
+
+    it("should wrap context in structural delimiters", async () => {
+      const context = "--- a/file.ts\n+++ b/file.ts";
+      await adapter.invoke(makeParams({ context }));
+
+      const messageOptions = mockSendAndWait.mock.calls[0]![0];
+      expect(messageOptions.prompt).toContain("<context>");
+      expect(messageOptions.prompt).toContain("</context>");
+      expect(messageOptions.prompt).toContain(context);
+    });
+
+    it("should sanitize context content before wrapping in delimiters", async () => {
+      const context = "safe content\x00with\x01null bytes";
+      await adapter.invoke(makeParams({ context }));
+
+      const messageOptions = mockSendAndWait.mock.calls[0]![0];
+      expect(messageOptions.prompt).toContain("safe contentwith");
+      expect(messageOptions.prompt).not.toContain("\x00");
+      expect(messageOptions.prompt).not.toContain("\x01");
+    });
+
+    it("should sanitize prompt text", async () => {
+      const prompt = "Review this\x00 diff";
+      await adapter.invoke(makeParams({ prompt }));
+
+      const messageOptions = mockSendAndWait.mock.calls[0]![0];
+      expect(messageOptions.prompt).toContain("Review this diff");
+      expect(messageOptions.prompt).not.toContain("\x00");
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // FIX-3: Runtime Agent Name Validation (HIGH — injection prevention)
+  // -----------------------------------------------------------------------
+
+  describe("FIX-3: Runtime agent name validation", () => {
+    it("should contain all four guardian agent names", () => {
+      expect(GUARDIAN_AGENTS.has("security-guardian")).toBe(true);
+      expect(GUARDIAN_AGENTS.has("code-review-guardian")).toBe(true);
+      expect(GUARDIAN_AGENTS.has("qa-guardian")).toBe(true);
+      expect(GUARDIAN_AGENTS.has("po-guardian")).toBe(true);
+    });
+
+    it("should reject invalid agent names via isGuardianAgent", () => {
+      expect(isGuardianAgent("evil-agent")).toBe(false);
+      expect(isGuardianAgent("")).toBe(false);
+      expect(isGuardianAgent("security-guardian; rm -rf /")).toBe(false);
+    });
+
+    it("should accept valid agent names via isGuardianAgent", () => {
+      expect(isGuardianAgent("security-guardian")).toBe(true);
+      expect(isGuardianAgent("qa-guardian")).toBe(true);
+    });
+
+    it("should return failure for invalid agent name in invoke", async () => {
+      const result = await adapter.invoke(
+        makeParams({ agent: "evil-agent" as any }),
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Invalid agent");
+      expect(result.error).toContain("evil-agent");
+    });
+
+    it("should not create a session for invalid agent name", async () => {
+      await adapter.invoke(
+        makeParams({ agent: "fake-agent" as any }),
+      );
+
+      expect(mockCreateSession).not.toHaveBeenCalled();
+    });
+
+    it("should list allowed agents in the error message", async () => {
+      const result = await adapter.invoke(
+        makeParams({ agent: "bad" as any }),
+      );
+
+      expect(result.error).toContain("security-guardian");
+      expect(result.error).toContain("code-review-guardian");
+      expect(result.error).toContain("qa-guardian");
+      expect(result.error).toContain("po-guardian");
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // FIX-4: Typed Error Wiring (HIGH — dead error types now alive)
+  // -----------------------------------------------------------------------
+
+  describe("FIX-4: Typed error wiring", () => {
+    it("should wrap session creation failure in CopilotSessionError", async () => {
+      mockCreateSession
+        .mockRejectedValueOnce(new Error("Connection refused"))
+        .mockRejectedValueOnce(new Error("Connection refused"));
+
+      const result = await adapter.invoke(makeParams());
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Session creation failed");
+    });
+
+    it("should classify timeout errors using CopilotTimeoutError message", async () => {
+      mockSendAndWait.mockRejectedValue(new Error("Request timeout exceeded"));
+
+      const result = await adapter.invoke(makeParams({ timeout: 60_000 }));
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Timeout after");
+      expect(result.error).toContain("60000");
+    });
+
+    it("should classify generic timeout strings (case-insensitive)", async () => {
+      mockSendAndWait.mockRejectedValue(new Error("TIMEOUT waiting for response"));
+
+      const result = await adapter.invoke(makeParams({ timeout: 30_000 }));
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Timeout after 30000ms");
+    });
+
+    it("should use CopilotUnavailableError when not authenticated", async () => {
+      mockGetAuthStatus.mockResolvedValue({ isAuthenticated: false });
+
+      const available = await adapter.isAvailable();
+
+      expect(available).toBe(false);
+    });
+
+    it("should preserve original error as cause in CopilotSessionError", async () => {
+      const originalError = new Error("ECONNREFUSED");
+      mockCreateSession
+        .mockRejectedValueOnce(originalError)
+        .mockRejectedValueOnce(originalError);
+
+      const result = await adapter.invoke(makeParams());
+
+      expect(result.success).toBe(false);
+      // The error message comes from CopilotSessionError, not the raw original
+      expect(result.error).toContain("Session creation failed");
+    });
+
+    it("should not wrap non-timeout errors in CopilotTimeoutError", async () => {
+      mockSendAndWait.mockRejectedValue(new Error("Network error"));
+
+      const result = await adapter.invoke(makeParams());
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Network error");
+      expect(result.error).not.toContain("Timeout after");
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // FIX-5: Discriminated Union InvokeResult (HIGH — type safety)
+  // -----------------------------------------------------------------------
+
+  describe("FIX-5: Discriminated union InvokeResult", () => {
+    it("should return InvokeSuccess with success: true and no error field", async () => {
+      mockSendAndWait.mockResolvedValue(
+        makeAssistantResponse("Report output"),
+      );
+
+      const result = await adapter.invoke(makeParams());
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        // TypeScript narrows to InvokeSuccess — error field does not exist
+        expect(result.output).toBe("Report output");
+        expect(result.model_used).toBe("claude-sonnet-4.5");
+        expect(result.duration_ms).toBeGreaterThanOrEqual(0);
+        expect("error" in result).toBe(false);
+      }
+    });
+
+    it("should return InvokeFailure with success: false and required error", async () => {
+      mockSendAndWait.mockRejectedValue(new Error("Boom"));
+
+      const result = await adapter.invoke(makeParams());
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        // TypeScript narrows to InvokeFailure — error is required string
+        expect(typeof result.error).toBe("string");
+        expect(result.error.length).toBeGreaterThan(0);
+        expect(result.output).toBe("");
+      }
+    });
+
+    it("should allow type narrowing via success discriminant", async () => {
+      const result = await adapter.invoke(makeParams());
+
+      // This tests that TypeScript narrows correctly at runtime
+      if (result.success) {
+        const success: InvokeSuccess = result;
+        expect(success.output).toBeDefined();
+      } else {
+        const failure: InvokeFailure = result;
+        expect(failure.error).toBeDefined();
+      }
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // FIX-6: Factory Function (HIGH — project pattern compliance)
+  // -----------------------------------------------------------------------
+
+  describe("FIX-6: Factory function createCopilotAdapter", () => {
+    it("should return a CopilotPort interface", () => {
+      const port = createCopilotAdapter(DEFAULT_OPTIONS);
+
+      expect(port).toBeDefined();
+      expect(typeof port.invoke).toBe("function");
+      expect(typeof port.isAvailable).toBe("function");
+    });
+
+    it("should create a functional adapter that can invoke", async () => {
+      const port = createCopilotAdapter(DEFAULT_OPTIONS);
+
+      const result = await port.invoke(makeParams());
+
+      expect(result.success).toBe(true);
+    });
+
+    it("should create a functional adapter that checks availability", async () => {
+      mockPing.mockResolvedValue({ message: "pong", timestamp: Date.now() });
+      mockGetAuthStatus.mockResolvedValue({
+        isAuthenticated: true,
+        login: "testuser",
+      });
+
+      const port = createCopilotAdapter(DEFAULT_OPTIONS);
+
+      const available = await port.isAvailable();
+
+      expect(available).toBe(true);
+    });
+
+    it("should pass options to the underlying adapter", async () => {
+      const port = createCopilotAdapter({
+        defaultModel: "gpt-5.4",
+        guardiansPath: "/custom/path",
+      });
+
+      const result = await port.invoke(makeParams());
+
+      expect(result.model_used).toBe("gpt-5.4");
     });
   });
 });
