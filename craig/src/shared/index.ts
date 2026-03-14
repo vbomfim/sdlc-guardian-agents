@@ -9,3 +9,4 @@
 
 export type { Severity } from "./severity.js";
 export { SEVERITY_ORDER, isSeverity } from "./severity.js";
+export { sanitizeGitHubContent } from "./sanitize.js";
