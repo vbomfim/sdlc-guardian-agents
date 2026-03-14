@@ -18,6 +18,8 @@
 import type { StatePort, FindingFilter, Severity } from "../state/index.js";
 import type { ConfigPort } from "../config/index.js";
 import type { CopilotPort } from "../copilot/index.js";
+import type { AnalyzerContext } from "../analyzers/index.js";
+import type { AnalyzerRegistry } from "./analyzer-registry.js";
 import type {
   StatusResult,
   RunTaskSuccess,
@@ -77,12 +79,14 @@ export function createStatusHandler(
  * the task in state, and starts the analyzer asynchronously.
  * Returns immediately with a task_id.
  *
- * [HEXAGONAL] Adapter layer — validates, delegates to StatePort + CopilotPort.
+ * [HEXAGONAL] Adapter layer — validates, delegates to StatePort + AnalyzerRegistry.
  * [CLEAN-CODE] Fail-fast validation, then happy path.
+ * [SOLID/OCP] New analyzers are added via registry — no handler changes needed.
  */
 export function createRunTaskHandler(
   state: StatePort,
   copilot: CopilotPort,
+  registry?: AnalyzerRegistry,
 ): (params: RunTaskParams) => Promise<RunTaskSuccess | ToolError> {
   return async (params) => {
     try {
@@ -112,7 +116,7 @@ export function createRunTaskHandler(
 
       // Start analyzer asynchronously (fire-and-forget)
       // The task will update state when complete.
-      startTaskAsync(params.task, taskId, state, copilot);
+      startTaskAsync(params.task, taskId, state, copilot, registry);
 
       return {
         task_id: taskId,
@@ -332,25 +336,50 @@ function coerceValue(value: string): unknown {
 /**
  * Start a task asynchronously (fire-and-forget).
  *
- * Invokes the appropriate Guardian agent via CopilotPort, then
- * removes the task from running_tasks when complete. Errors are
- * logged to stderr (not stdout — MCP uses stdout for JSON-RPC).
+ * Looks up the analyzer in the registry and executes it if found.
+ * When an analyzer produces findings, they are persisted to state
+ * via state.addFinding(). After execution (or if no analyzer is
+ * registered), updates last_runs and removes from running_tasks.
  *
+ * [SOLID/OCP] New analyzers require zero changes here — just register.
  * [CLEAN-CODE] Fire-and-forget pattern — caller gets immediate response.
  * [SECURITY] Logs to stderr to avoid corrupting MCP JSON-RPC on stdout.
  */
 function startTaskAsync(
   task: string,
-  _taskId: string,
+  taskId: string,
   state: StatePort,
   _copilot: CopilotPort,
+  registry?: AnalyzerRegistry,
 ): void {
   // Fire-and-forget: task completes in background
   void (async () => {
     try {
-      // Task execution will be implemented by analyzer components.
-      // For now, we mark the task as complete after a brief delay.
-      // This will be replaced by actual Copilot invocations in issue #7+.
+      // Dispatch to registered analyzer if available [SOLID/OCP]
+      const analyzer = registry?.get(task);
+      if (analyzer) {
+        const context: AnalyzerContext = {
+          task,
+          taskId,
+          timestamp: new Date().toISOString(),
+        };
+
+        const result = await analyzer.execute(context);
+
+        // Persist findings to state
+        for (const finding of result.findings) {
+          state.addFinding({
+            id: crypto.randomUUID(),
+            severity: finding.severity,
+            category: finding.category,
+            file: finding.file,
+            issue: finding.issue,
+            source: finding.source,
+            detected_at: new Date().toISOString(),
+            task,
+          });
+        }
+      }
 
       // Record last run timestamp
       const lastRuns = state.get("last_runs");

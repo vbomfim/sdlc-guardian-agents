@@ -33,3 +33,5 @@ export type {
   ValidTask,
 } from "./core.types.js";
 export { VALID_TASKS, isValidTask } from "./core.types.js";
+export type { AnalyzerRegistry } from "./analyzer-registry.js";
+export { createAnalyzerRegistry } from "./analyzer-registry.js";

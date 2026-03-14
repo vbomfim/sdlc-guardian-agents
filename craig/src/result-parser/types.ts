@@ -14,8 +14,14 @@
 /** Supported Guardian agent types. */
 export type GuardianType = "security" | "code-review" | "qa" | "po" | "dev";
 
-/** Severity levels used across all Guardian reports. */
-export type Severity = "critical" | "high" | "medium" | "low" | "info";
+/**
+ * Severity levels used across all Guardian reports.
+ *
+ * [DRY] Imported from shared module (single source of truth)
+ * and re-exported for backward compatibility.
+ */
+import type { Severity } from "../shared/severity.js";
+export type { Severity };
 
 // ---------------------------------------------------------------------------
 // Data Models

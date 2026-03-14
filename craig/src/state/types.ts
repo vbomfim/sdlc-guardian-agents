@@ -4,11 +4,16 @@
  * Defines the shape of Craig's persistent operational state,
  * including findings, daily stats, and filter criteria.
  *
+ * [DRY] Severity is imported from the shared module (single source of truth)
+ * and re-exported for backward compatibility.
+ *
  * @module state/types
  */
 
-/** Severity levels for findings, ordered from most to least critical. */
-export type Severity = "critical" | "high" | "medium" | "low" | "info";
+import type { Severity } from "../shared/severity.js";
+
+/** Re-export Severity so existing consumers of state/ are unaffected. */
+export type { Severity };
 
 /**
  * A single finding discovered by a Guardian agent.
