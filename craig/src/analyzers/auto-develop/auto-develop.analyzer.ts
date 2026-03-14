@@ -38,6 +38,11 @@ const QUALIFYING_SEVERITIES: ReadonlySet<string> = new Set([
   "high",
 ]);
 
+/** Short timestamp for log lines. */
+function ts(): string {
+  return new Date().toISOString().slice(11, 19);
+}
+
 /** Emoji mapping for severity levels in PR titles. */
 const SEVERITY_EMOJI: Readonly<Record<string, string>> = {
   critical: "🔴",
@@ -249,10 +254,12 @@ export function createAutoDevelopAnalyzer(
     const cfg = config.get();
 
     if (!cfg.capabilities.auto_develop) {
+      console.error(`[Craig] [${ts()}] auto_develop: disabled by config`);
       return skipResult("auto-develop disabled by config", startTime);
     }
 
     if (!cfg.autonomy.create_draft_prs) {
+      console.error(`[Craig] [${ts()}] auto_develop: draft PRs disabled by config`);
       return skipResult("draft PRs disabled by config", startTime);
     }
 
@@ -263,23 +270,32 @@ export function createAutoDevelopAnalyzer(
     );
 
     if (qualifyingFindings.length === 0) {
+      console.error(`[Craig] [${ts()}] auto_develop: no qualifying findings`);
       return skipResult("no qualifying findings (CRITICAL/HIGH)", startTime);
     }
+
+    console.error(`[Craig] [${ts()}] auto_develop: processing ${qualifyingFindings.length} qualifying findings`);
 
     // Step 3: Process each finding independently
     const actionsTaken: ActionTaken[] = [];
     let fixesApplied = 0;
 
-    for (const finding of qualifyingFindings) {
+    for (let i = 0; i < qualifyingFindings.length; i++) {
+      const finding = qualifyingFindings[i]!;
+      console.error(`[Craig] [${ts()}] auto_develop: [${i + 1}/${qualifyingFindings.length}] ${finding.severity.toUpperCase()}: ${finding.issue.slice(0, 80)}`);
       const action = await processFinding(finding, cfg.branch);
       if (action) {
         actionsTaken.push(action);
         fixesApplied++;
+        console.error(`[Craig] [${ts()}] auto_develop: [${i + 1}/${qualifyingFindings.length}] ✅ PR created`);
+      } else {
+        console.error(`[Craig] [${ts()}] auto_develop: [${i + 1}/${qualifyingFindings.length}] ⏭️ skipped (no changes or failure)`);
       }
     }
 
     // Step 4: Save state
     await state.save();
+    console.error(`[Craig] [${ts()}] auto_develop complete: ${fixesApplied}/${qualifyingFindings.length} fixes applied`);
 
     return {
       success: true,
@@ -311,9 +327,11 @@ export function createAutoDevelopAnalyzer(
 
     try {
       // Create fix branch
+      console.error(`[Craig] [${ts()}]   Creating branch: ${branchName}`);
       await gitOps.createBranch(branchName);
 
       // Invoke Developer Guardian
+      console.error(`[Craig] [${ts()}]   Invoking Developer Guardian...`);
       const invokeResult = await copilot.invoke({
         agent: "dev-guardian",
         prompt: buildFixPrompt(finding),
@@ -321,25 +339,27 @@ export function createAutoDevelopAnalyzer(
 
       // Handle Guardian failure
       if (!invokeResult.success) {
-        console.error(
-          `[Craig] Developer Guardian failed for finding ${finding.id}: ${invokeResult.error}`,
-        );
+        console.error(`[Craig] [${ts()}]   Developer Guardian failed: ${invokeResult.error}`);
         await safeCleanup(branchName, baseBranch);
         return null;
       }
+      console.error(`[Craig] [${ts()}]   Developer Guardian finished: ${invokeResult.duration_ms}ms`);
 
       // Check if Guardian made any changes
       const hasChanges = await gitOps.hasChanges();
       if (!hasChanges) {
+        console.error(`[Craig] [${ts()}]   No file changes detected, skipping`);
         await safeCleanup(branchName, baseBranch);
         return null;
       }
 
       // Commit, push, create PR
+      console.error(`[Craig] [${ts()}]   Committing and pushing to ${branchName}...`);
       const commitMessage = `fix: address ${finding.severity} finding — ${finding.issue}`;
       await gitOps.commitAll(commitMessage);
       await gitOps.push(branchName);
 
+      console.error(`[Craig] [${ts()}]   Creating draft PR...`);
       const pr = await git.createDraftPR({
         title: buildPRTitle(finding),
         body: buildPRBody(finding, invokeResult.output),

@@ -382,7 +382,9 @@ export class CopilotAdapter implements CopilotPort {
    */
   private buildPrompt(params: InvokeParams): string {
     const sanitizedPrompt = sanitizeInput(params.prompt);
-    let prompt = `@${params.agent} ${sanitizedPrompt}`;
+    // Don't use @agent-name — it triggers delegation in the SDLC workflow instructions.
+    // Instead, send the prompt directly so the session model performs the work inline.
+    let prompt = sanitizedPrompt;
 
     if (params.context) {
       const sanitizedContext = escapeContextDelimiters(sanitizeInput(params.context));

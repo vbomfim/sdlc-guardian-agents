@@ -130,16 +130,44 @@ export function createMergeReviewAnalyzer(
         const [securityResult, codeReviewResult] = await Promise.all([
           deps.copilot.invoke({
             agent: "security-guardian",
-            prompt:
-              "Perform a security review of the following merge diff. Report all findings.",
+            prompt: [
+              "You are a security reviewer. Review the following code diff for security vulnerabilities.",
+              "Do NOT delegate to any other agent or background task. Perform the review yourself, right now.",
+              "Report ALL findings in this exact markdown table format:",
+              "",
+              "| # | Severity | Category | File:Line | Issue | Source & Justification | Suggested Fix |",
+              "|---|----------|----------|-----------|-------|------------------------|---------------|",
+              "",
+              "Use severity levels: 🔴 CRITICAL, 🟠 HIGH, 🟡 MEDIUM, 🔵 LOW",
+              "Check for: SQL injection, hardcoded secrets, command injection, XSS, insecure crypto, OWASP Top 10.",
+              "If no issues found, write: '✅ No security issues found.'",
+            ].join("\n"),
             context: diff,
-          }).then(r => { console.error(`[Craig] [${ts()}] Security Guardian finished: success=${String(r.success)}, ${r.duration_ms}ms`); return r; }),
+          }).then(r => {
+            console.error(`[Craig] [${ts()}] Security Guardian finished: success=${String(r.success)}, ${r.duration_ms}ms`);
+            console.error(`[Craig] [${ts()}] Security output (first 500 chars): ${r.output.slice(0, 500)}`);
+            return r;
+          }),
           deps.copilot.invoke({
             agent: "code-review-guardian",
-            prompt:
-              "Perform a code quality review of the following merge diff. Report all findings.",
+            prompt: [
+              "You are a code quality reviewer. Review the following code diff for quality issues.",
+              "Do NOT delegate to any other agent or background task. Perform the review yourself, right now.",
+              "Report ALL findings in this exact markdown table format:",
+              "",
+              "| # | Severity | Category | File:Line | Issue | Source & Justification | Suggested Fix |",
+              "|---|----------|----------|-----------|-------|------------------------|---------------|",
+              "",
+              "Use severity levels: 🔴 CRITICAL, 🟠 HIGH, 🟡 MEDIUM, 🔵 LOW",
+              "Check for: SOLID violations, complexity, naming, error handling, missing tests, design issues.",
+              "If no issues found, write: '✅ No quality issues found.'",
+            ].join("\n"),
             context: diff,
-          }).then(r => { console.error(`[Craig] [${ts()}] Code Review Guardian finished: success=${String(r.success)}, ${r.duration_ms}ms`); return r; }),
+          }).then(r => {
+            console.error(`[Craig] [${ts()}] Code Review Guardian finished: success=${String(r.success)}, ${r.duration_ms}ms`);
+            console.error(`[Craig] [${ts()}] Code Review output (first 500 chars): ${r.output.slice(0, 500)}`);
+            return r;
+          }),
         ]);
 
         // Step 3: Parse reports
