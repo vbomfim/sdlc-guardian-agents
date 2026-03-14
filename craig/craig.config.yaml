@@ -1,5 +1,6 @@
 repo: vbomfim/openasr
 branch: main
+provider: github
 schedule:
   merge_monitor: on_push
   coverage_scan: 0 8 * * *
@@ -15,6 +16,10 @@ capabilities:
   auto_fix: true
   dependency_updates: true
   pr_monitor: true
+  delivery_audit: true
+  auto_develop: false
+  platform_audit: true
+  autonomous_workflow: true
 models:
   code_review:
     - claude-opus-4.6
