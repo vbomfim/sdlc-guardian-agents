@@ -2,4 +2,8 @@ node_modules/
 dist/
 *.tsbuildinfo
 coverage/
+<<<<<<< HEAD
 .vitest/
+=======
+.DS_Store
+>>>>>>> d60800c (feat(result-parser): implement Guardian report parser with TDD)

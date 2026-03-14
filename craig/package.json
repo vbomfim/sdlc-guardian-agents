@@ -1,7 +1,11 @@
 {
   "name": "craig",
   "version": "0.1.0",
+<<<<<<< HEAD
   "description": "Craig — Autonomous AI Developer. An always-on MCP server that monitors your repository 24/7.",
+=======
+  "description": "Autonomous AI Developer — MCP server that monitors your repository 24/7",
+>>>>>>> d60800c (feat(result-parser): implement Guardian report parser with TDD)
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
@@ -11,6 +15,7 @@
     "test:coverage": "vitest run --coverage",
     "lint": "tsc --noEmit"
   },
+<<<<<<< HEAD
   "engines": {
     "node": ">=20.0.0"
   },
@@ -18,5 +23,14 @@
     "typescript": "^5.7.0",
     "vitest": "^3.1.0",
     "@types/node": "^22.0.0"
+=======
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0",
+    "@types/node": "^22.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+>>>>>>> d60800c (feat(result-parser): implement Guardian report parser with TDD)
   }
 }
