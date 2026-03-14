@@ -161,6 +161,28 @@ export function sanitizeInput(input: string): string {
   return input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
 }
 
+/**
+ * Escape context delimiter tags in user-provided content.
+ *
+ * [SECURITY] Prevents prompt injection via context delimiter breakout
+ * (issue #38). Attacker-controlled content (e.g. code being reviewed)
+ * could contain `</context>` to close the structural delimiter early
+ * and inject arbitrary instructions.
+ *
+ * Replaces `<context>`, `</context>`, and `<context/>` (case-insensitive)
+ * with angle-bracket-escaped equivalents that are visually similar but
+ * do not function as XML-like structural delimiters.
+ *
+ * @param input - Content to be placed inside context delimiters
+ * @returns Content with context delimiter tags neutralized
+ */
+export function escapeContextDelimiters(input: string): string {
+  // Escape closing tag: </context> → &lt;/context&gt;
+  // Escape opening tag: <context>  → &lt;context&gt;
+  // Escape self-closing: <context/> → &lt;context/&gt;
+  return input.replace(/<(\/?context\s*\/?)>/gi, "&lt;$1&gt;");
+}
+
 // ---------------------------------------------------------------------------
 // Adapter Options
 // ---------------------------------------------------------------------------
@@ -347,7 +369,7 @@ export class CopilotAdapter implements CopilotPort {
     let prompt = `@${params.agent} ${sanitizedPrompt}`;
 
     if (params.context) {
-      const sanitizedContext = sanitizeInput(params.context);
+      const sanitizedContext = escapeContextDelimiters(sanitizeInput(params.context));
       prompt += `\n\n<context>\n${sanitizedContext}\n</context>`;
     }
 
