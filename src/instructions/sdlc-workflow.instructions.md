@@ -94,10 +94,63 @@ When the user asks to deploy, release, or push to an environment:
   PR / Merge / Deploy
 ```
 
+## Iteration & Consultation Pattern
+
+Reviews may require iteration. To prevent infinite loops and leverage diversity of perspective, follow this escalation ladder:
+
+### Iteration Rules
+
+| Pass | What Happens | Scope |
+|------|-------------|-------|
+| **1st pass** | Guardian reviews with primary model | Full codebase / full diff |
+| **2nd pass** | Guardian reviews only what changed since the fix | Diff only — not the whole codebase |
+| **3rd pass — Consultation** | Same Guardian, **different model** — fresh perspective on the disputed finding | Disputed findings only |
+| **Disagreement** | Both model perspectives presented to user — human decides | — |
+
+### How Consultation Works
+
+When a fix introduces a new finding, or the same finding persists after two attempts:
+
+1. **Do NOT loop with the same model** — it will likely repeat the same feedback
+2. **Escalate to consultation** — re-invoke the Guardian with a different model for an independent assessment
+3. The consulting model receives: the original finding, the attempted fix, and the new finding
+4. If both models agree on the resolution → apply it
+5. If models disagree → present both perspectives to the user with reasoning
+
+```
+Iteration 1: Code Review (Opus 4.6) → "Extract this into a service class" [SOLID SRP]
+  → Developer extracts
+Iteration 2: Code Review (Opus 4.6) → "Service class has too many dependencies" [SOLID DIP]
+  → CONSULTATION: invoke Code Review (GPT 5.4) on the same code
+  → GPT 5.4: "Dependencies are appropriate — each is a port interface. No violation."
+  → Present both: "Opus sees a DIP concern, GPT considers it well-designed. Your call."
+```
+
+### Severity Gate for Re-Iteration
+
+Not all findings warrant another pass:
+
+| Severity | Action |
+|----------|--------|
+| 🔴 CRITICAL | Must fix — re-iterate until resolved or consulted |
+| 🟠 HIGH | Should fix — one re-iteration, then consult if unresolved |
+| 🟡 MEDIUM | Create a ticket for later — do not block or re-iterate |
+| 🔵 LOW / ℹ️ INFO | Note in report — never re-iterate |
+
+### Cross-Guardian Disputes
+
+When different Guardians give contradictory feedback:
+
+- Security says "add input validation here" → Code Review says "function is too long"
+- **Resolution:** Both are valid. The Developer should add validation AND extract a function. Present both findings — they're complementary, not contradictory.
+- If truly contradictory (one says add, other says remove) → consult with a different model, then escalate to user.
+
 ## Rules
 
 - **Never skip a gate** — if a Guardian hasn't run, invoke it before proceeding
 - **Parallel when possible** — QA, Security, Code Review run simultaneously
 - **Sequential when required** — Developer must finish before reviews start
+- **Max 3 iterations per Guardian** — then consult or escalate to user
+- **Diff-only on re-iteration** — second pass reviews only what changed
 - **User decides, not the agent** — present findings, recommend, but let the user choose
 - **Track what ran** — when presenting results, show which Guardians completed and which are pending
