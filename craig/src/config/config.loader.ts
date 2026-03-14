@@ -140,8 +140,8 @@ export class ConfigLoader implements ConfigPort {
   validate(raw: unknown): CraigConfig {
     if (raw === null || raw === undefined) {
       throw new ConfigValidationError(
-        "Config data is empty. At minimum, 'repo' is required.",
-        ["repo is required"],
+        "Config data is empty. At minimum, 'repo' or 'repos' is required.",
+        ["At least one of 'repo' or 'repos' is required"],
       );
     }
 

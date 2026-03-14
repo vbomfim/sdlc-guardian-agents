@@ -76,6 +76,55 @@ const CRON_OR_ON_PUSH = z.string().refine(
 );
 
 /* ------------------------------------------------------------------ */
+/*  Per-repo config (used in repos[] array)                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Schema for a single entry in the repos[] array.
+ * Each entry can override branch, schedule, and capabilities
+ * for that specific repository.
+ *
+ * @see https://github.com/vbomfim/sdlc-guardian-agents/issues/34
+ */
+export const repoEntrySchema = z.object({
+  repo: z
+    .string()
+    .min(1, "repo is required")
+    .regex(REPO_PATTERN, 'repo must be in "owner/repo" format')
+    .refine(isNotSecret, {
+      message: "repo must not contain secrets",
+    }),
+
+  branch: safeString.default("main"),
+
+  schedule: z.record(z.string(), CRON_OR_ON_PUSH).optional(),
+
+  capabilities: z
+    .object({
+      merge_review: z.boolean().optional(),
+      coverage_gaps: z.boolean().optional(),
+      bug_detection: z.boolean().optional(),
+      pattern_enforcement: z.boolean().optional(),
+      po_audit: z.boolean().optional(),
+      auto_fix: z.boolean().optional(),
+      dependency_updates: z.boolean().optional(),
+      pr_monitor: z.boolean().optional(),
+    })
+    .optional(),
+
+  models: z
+    .object({
+      code_review: z.array(safeString).optional(),
+      security: safeString.optional(),
+      default: safeString.optional(),
+    })
+    .optional(),
+});
+
+/** Type for a single repo entry in the repos[] array. */
+export type RepoEntry = z.infer<typeof repoEntrySchema>;
+
+/* ------------------------------------------------------------------ */
 /*  Schema                                                             */
 /* ------------------------------------------------------------------ */
 
@@ -87,7 +136,13 @@ export const craigConfigSchema = z
       .regex(REPO_PATTERN, 'repo must be in "owner/repo" format')
       .refine(isNotSecret, {
         message: "repo must not contain secrets",
-      }),
+      })
+      .optional(),
+
+    repos: z
+      .array(repoEntrySchema)
+      .min(1, "repos array must contain at least one entry")
+      .optional(),
 
     branch: safeString.default("main"),
 
@@ -146,6 +201,16 @@ export const craigConfigSchema = z
   })
   .strip() // Drop unknown fields — prevents secret smuggling via unvalidated keys
   .superRefine((data, ctx) => {
+    // At least one of repo or repos must be present [AC4/AC1]
+    if (!data.repo && (!data.repos || data.repos.length === 0)) {
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "At least one of 'repo' or 'repos' must be configured.",
+        path: ["repo"],
+      });
+    }
+
     // Recursive secret scan catches secrets in any remaining field,
     // including those in nested records like `schedule`.
     const secretPaths = findSecrets(data);

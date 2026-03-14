@@ -17,6 +17,7 @@ import { z } from "zod";
 import type { StatePort } from "../state/index.js";
 import type { ConfigPort } from "../config/index.js";
 import type { CopilotPort } from "../copilot/index.js";
+import type { RepoManagerPort } from "../repo-manager/index.js";
 import { VALID_TASKS } from "./core.types.js";
 import {
   createStatusHandler,
@@ -36,11 +37,15 @@ import {
  *
  * [SOLID/DIP] Depends on port interfaces, not concrete implementations.
  * All components are injected — the server has no knowledge of adapters.
+ *
+ * @see https://github.com/vbomfim/sdlc-guardian-agents/issues/34
+ *   Added optional repoManager for multi-repo support.
  */
 export interface CraigServerDeps {
   readonly state: StatePort;
   readonly config: ConfigPort;
   readonly copilot: CopilotPort;
+  readonly repoManager?: RepoManagerPort;
 }
 
 /* ------------------------------------------------------------------ */
@@ -111,16 +116,19 @@ function wrapToolResult(
 
 /**
  * Register craig_status — returns current health, running tasks, last runs.
- * No parameters required.
+ * Accepts optional repo parameter for multi-repo mode.
  */
 function registerStatusTool(server: McpServer, deps: CraigServerDeps): void {
-  const handler = createStatusHandler(deps.state);
+  const handler = createStatusHandler(deps.state, deps.repoManager);
 
   server.tool(
     "craig_status",
     "Current state: running tasks, last run times, health",
-    async () => {
-      const result = await handler();
+    {
+      repo: z.string().optional(),
+    },
+    async (args) => {
+      const result = await handler(args);
       return wrapToolResult(result);
     },
   );
@@ -129,15 +137,22 @@ function registerStatusTool(server: McpServer, deps: CraigServerDeps): void {
 /**
  * Register craig_run_task — triggers a specific analyzer task on demand.
  * Validates task name and checks for duplicate runs.
+ * Accepts optional repo parameter for multi-repo mode.
  */
 function registerRunTaskTool(server: McpServer, deps: CraigServerDeps): void {
-  const handler = createRunTaskHandler(deps.state, deps.copilot);
+  const handler = createRunTaskHandler(
+    deps.state,
+    deps.copilot,
+    undefined,
+    deps.repoManager,
+  );
 
   server.tool(
     "craig_run_task",
     "Trigger a specific task on demand",
     {
       task: z.enum(VALID_TASKS),
+      repo: z.string().optional(),
     },
     async (args) => {
       const result = await handler(args);
@@ -148,10 +163,11 @@ function registerRunTaskTool(server: McpServer, deps: CraigServerDeps): void {
 }
 
 /**
- * Register craig_findings — get recent findings filtered by severity or date.
+ * Register craig_findings — get recent findings filtered by severity, date, or repo.
+ * Accepts optional repo parameter: specific repo, "all" for cross-repo, or omit for default.
  */
 function registerFindingsTool(server: McpServer, deps: CraigServerDeps): void {
-  const handler = createFindingsHandler(deps.state);
+  const handler = createFindingsHandler(deps.state, deps.repoManager);
 
   server.tool(
     "craig_findings",
@@ -161,6 +177,7 @@ function registerFindingsTool(server: McpServer, deps: CraigServerDeps): void {
         .enum(["critical", "high", "medium", "low"])
         .optional(),
       since: z.string().optional(),
+      repo: z.string().optional(),
     },
     async (args) => {
       const result = await handler(args);
@@ -215,15 +232,17 @@ function registerConfigTool(server: McpServer, deps: CraigServerDeps): void {
 
 /**
  * Register craig_digest — get the daily/weekly digest summary.
+ * In multi-repo mode, aggregates across all repos or filters by specific repo.
  */
 function registerDigestTool(server: McpServer, deps: CraigServerDeps): void {
-  const handler = createDigestHandler(deps.state);
+  const handler = createDigestHandler(deps.state, deps.repoManager);
 
   server.tool(
     "craig_digest",
     "Get the daily/weekly digest summary",
     {
       period: z.enum(["today", "week", "month"]).optional(),
+      repo: z.string().optional(),
     },
     async (args) => {
       const result = await handler(args);

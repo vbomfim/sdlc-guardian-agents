@@ -30,6 +30,7 @@ export type {
   ScheduleParams,
   ConfigParams,
   DigestParams,
+  StatusParams,
   ValidTask,
 } from "./core.types.js";
 export { VALID_TASKS, isValidTask } from "./core.types.js";
