@@ -74,6 +74,12 @@ const session = await joinSession({
           { level: "warning" }
         );
       }
+
+      // Auto-resume: remind the agent to check for completed background tasks
+      await session.log(
+        "🛡️ Resuming — check /tasks for completed background agents and continue the SDLC pipeline.",
+        { level: "info", ephemeral: true }
+      );
     },
 
     // ── User Prompt: detect intent, inject workflow context ────────────────
