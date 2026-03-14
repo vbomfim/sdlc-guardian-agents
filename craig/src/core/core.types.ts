@@ -26,11 +26,9 @@ export const VALID_TASKS = [
   "dependency_check",
   "pattern_check",
   "auto_fix",
-<<<<<<< HEAD
   "platform_audit",
-=======
   "delivery_audit",
->>>>>>> 50f1973 (feat(craig): wire Delivery Guardian as delivery_audit analyzer)
+  "auto_develop",
 ] as const;
 
 export type ValidTask = (typeof VALID_TASKS)[number];

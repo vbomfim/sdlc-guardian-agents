@@ -33,6 +33,7 @@ import { createSecurityScanAnalyzer } from "./analyzers/security-scan/index.js";
 import { createCoverageScanAnalyzer } from "./analyzers/coverage-scan/index.js";
 import { createTechDebtAnalyzer } from "./analyzers/tech-debt/index.js";
 import { createPrReviewAnalyzer } from "./analyzers/pr-review/index.js";
+import { createPlatformAuditAnalyzer } from "./analyzers/platform-audit/index.js";
 import { createDeliveryAuditAnalyzer } from "./analyzers/delivery-audit/index.js";
 import { createResultParser } from "./result-parser/index.js";
 import { GitHubAdapter } from "./github/index.js";
@@ -133,6 +134,15 @@ async function main(): Promise<void> {
       if (cfg.capabilities.pr_monitor) {
         analyzers.push(createPrReviewAnalyzer({
           copilot, github, parser: resultParser, state,
+        }));
+      }
+      if ((cfg.capabilities as Record<string, unknown>).auto_develop) {
+        // Auto-develop needs GitOpsPort adapter (not yet built) — skip for now
+        console.error("[Craig] auto_develop capability requires GitOpsPort — skipping (follow-up ticket)");
+      }
+      if ((cfg.capabilities as Record<string, unknown>).platform_audit) {
+        analyzers.push(createPlatformAuditAnalyzer({
+          copilot, git: github, parser: resultParser, state,
         }));
       }
       if (cfg.capabilities.delivery_audit) {

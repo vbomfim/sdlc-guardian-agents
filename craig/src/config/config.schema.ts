@@ -110,6 +110,8 @@ export const repoEntrySchema = z.object({
       dependency_updates: z.boolean().optional(),
       pr_monitor: z.boolean().optional(),
       delivery_audit: z.boolean().optional(),
+        auto_develop: z.boolean().optional(),
+        platform_audit: z.boolean().optional(),
     })
     .optional(),
 
@@ -175,6 +177,8 @@ export const craigConfigSchema = z
         dependency_updates: z.boolean().default(true),
         pr_monitor: z.boolean().default(false),
         delivery_audit: z.boolean().default(false),
+          auto_develop: z.boolean().default(false),
+          platform_audit: z.boolean().default(false),
       })
       .default({
         merge_review: true,
@@ -186,6 +190,8 @@ export const craigConfigSchema = z
         dependency_updates: true,
         pr_monitor: false,
         delivery_audit: false,
+          auto_develop: false,
+          platform_audit: false,
       }),
 
     models: z
