@@ -95,6 +95,7 @@ export function createRunTaskHandler(
   copilot: CopilotPort,
   registry?: AnalyzerRegistry,
   repoManager?: RepoManagerPort,
+  notify?: (level: string, data: string) => void,
 ): (params: RunTaskParams) => Promise<RunTaskSuccess | ToolError> {
   return async (params) => {
     try {
@@ -126,7 +127,7 @@ export function createRunTaskHandler(
       await targetState.save();
 
       // Start analyzer asynchronously (fire-and-forget)
-      startTaskAsync(params.task, taskId, targetState, copilot, registry);
+      startTaskAsync(params.task, taskId, targetState, copilot, registry, notify);
 
       return {
         task_id: taskId,
@@ -629,14 +630,20 @@ function startTaskAsync(
   state: StatePort,
   _copilot: CopilotPort,
   registry?: AnalyzerRegistry,
+  notify?: (level: string, data: string) => void,
 ): void {
+  const log = (msg: string, level = "info") => {
+    console.error(msg);
+    notify?.(level, msg);
+  };
+
   // Fire-and-forget: task completes in background
   void (async () => {
     try {
       // Dispatch to registered analyzer if available [SOLID/OCP]
       const analyzer = registry?.get(task);
       if (analyzer) {
-        console.error(`[Craig] Running analyzer: ${task} (${taskId})`);
+        log(`[Craig] Running analyzer: ${task} (${taskId})`);
         const context: AnalyzerContext = {
           task,
           taskId,
@@ -644,7 +651,8 @@ function startTaskAsync(
         };
 
         const result = await analyzer.execute(context);
-        console.error(`[Craig] Analyzer ${task} completed: ${result.findings.length} findings, success=${String(result.success)}${result.success ? '' : `, error: ${result.summary}`}`);
+        const statusMsg = `[Craig] Analyzer ${task} completed: ${result.findings.length} findings, success=${String(result.success)}${result.success ? '' : `, error: ${result.summary}`}`;
+        log(statusMsg, result.success ? "info" : "warning");
 
         // Persist findings to state
         for (const finding of result.findings) {
@@ -660,7 +668,7 @@ function startTaskAsync(
           });
         }
       } else {
-        console.error(`[Craig] No analyzer registered for task: ${task}`);
+        log(`[Craig] No analyzer registered for task: ${task}`, "warning");
       }
 
       // Record last run timestamp

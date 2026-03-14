@@ -74,6 +74,8 @@ export function createCraigServer(deps: CraigServerDeps): McpServer {
   const server = new McpServer({
     name: "craig",
     version: "0.1.0",
+  }, {
+    capabilities: { logging: {} },
   });
 
   registerStatusTool(server, deps);
@@ -147,11 +149,20 @@ function registerStatusTool(server: McpServer, deps: CraigServerDeps): void {
  * Accepts optional repo parameter for multi-repo mode.
  */
 function registerRunTaskTool(server: McpServer, deps: CraigServerDeps): void {
+  // MCP logging notification callback — pushes progress to the client
+  const notify = (level: string, data: string): void => {
+    void server.sendLoggingMessage({
+      level: level as "info" | "warning" | "error" | "debug",
+      data,
+    }).catch(() => { /* swallow notification errors */ });
+  };
+
   const handler = createRunTaskHandler(
     deps.state,
     deps.copilot,
     deps.registry,
     deps.repoManager,
+    notify,
   );
 
   server.tool(
