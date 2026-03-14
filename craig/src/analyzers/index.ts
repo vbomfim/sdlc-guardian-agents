@@ -51,3 +51,16 @@ export {
 } from "./pattern-check/errors.js";
 export { createTechDebtAnalyzer } from "./tech-debt/index.js";
 export type { TechDebtAnalyzerDeps } from "./tech-debt/tech-debt.analyzer.js";
+export { DependencyCheckAnalyzer } from "./dependency-check/index.js";
+export type {
+  PackageManager,
+  Vulnerability,
+  ShellPort,
+  DependencyCheckDeps,
+} from "./dependency-check/dependency-check.types.js";
+export { PACKAGE_MANAGER_FILES } from "./dependency-check/dependency-check.types.js";
+export {
+  parseNpmAudit,
+  parsePipAudit,
+  parseCargoAudit,
+} from "./dependency-check/dependency-check.parsers.js";
