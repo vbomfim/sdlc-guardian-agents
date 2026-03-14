@@ -226,9 +226,13 @@ export class CronSchedulerAdapter implements SchedulerPort {
     try {
       await this.dispatcher(taskName);
       scheduled.lastRun = new Date().toISOString();
-    } catch {
+    } catch (error: unknown) {
       // Scheduler must survive dispatcher failures [CLEAN-CODE]
       // Error is caught but lastRun is NOT updated on failure
+      console.error(
+        `[Craig] Scheduler dispatch failed for task "${taskName}":`,
+        error instanceof Error ? error.message : String(error),
+      );
     } finally {
       scheduled.isRunning = false;
     }

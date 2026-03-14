@@ -470,7 +470,7 @@ describe("CronSchedulerAdapter", () => {
       expect(failingDispatcher).toHaveBeenCalledTimes(2);
     });
 
-    it("should update lastRun even when dispatcher throws (sync error)", async () => {
+    it("should NOT update lastRun when dispatcher throws (sync error)", async () => {
       const now = new Date("2025-03-14T08:00:00Z");
       vi.setSystemTime(now);
 
