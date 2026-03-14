@@ -22,3 +22,8 @@ export type {
   MergeReviewAnalyzerDeps,
   MergeReviewContext,
 } from "./merge-review/merge-review.analyzer.js";
+export {
+  CoverageScanAnalyzer,
+  createCoverageScanAnalyzer,
+} from "./coverage-scan/index.js";
+export type { CoverageScanDeps } from "./coverage-scan/coverage-scan.types.js";
