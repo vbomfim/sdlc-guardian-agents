@@ -12,7 +12,7 @@
 // ---------------------------------------------------------------------------
 
 /** Supported Guardian agent types. */
-export type GuardianType = "security" | "code-review" | "qa" | "po" | "dev";
+export type GuardianType = "security" | "code-review" | "qa" | "po" | "dev" | "platform";
 
 /**
  * Severity levels used across all Guardian reports.
