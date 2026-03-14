@@ -179,41 +179,39 @@ const session = await joinSession({
     onPostToolUse: async (input) => {
       if (input.toolName === "edit" || input.toolName === "create") {
         const filePath = String(input.toolArgs?.path || "");
-        editedFiles.push(filePath);
+        // Only track source code files — not configs, docs, extensions
+        const NON_CODE = /\.(md|yaml|yml|json|svg|txt|mjs|css|html)$|\.copilot\/|\.gitignore/i;
+        if (!NON_CODE.test(filePath)) {
+          editedFiles.push(filePath);
 
-        // Detect security-sensitive file edits
-        if (SECURITY_SENSITIVE_PATHS.test(filePath)) {
-          securitySensitiveEdits = true;
-          await session.log(
-            `🛡️ Security-sensitive file edited: ${filePath.split("/").pop()} — Security Guardian review recommended.`,
-            { level: "warning", ephemeral: true }
-          );
+          // Detect security-sensitive file edits
+          if (SECURITY_SENSITIVE_PATHS.test(filePath)) {
+            securitySensitiveEdits = true;
+            await session.log(
+              `🛡️ Security-sensitive file edited: ${filePath.split("/").pop()} — Security Guardian review recommended.`,
+              { level: "warning", ephemeral: true }
+            );
+          }
         }
       }
 
-      // After a git commit, enforce post-implementation reviews (only for source code changes)
+      // After a git commit, enforce post-implementation reviews
       if (input.toolName === "bash") {
         const cmd = String(input.toolArgs?.command || "");
         if (/git\s+commit/.test(cmd) && editedFiles.length > 0) {
-          // Filter: only trigger for source code files, not configs/docs/extensions
-          const NON_CODE_PATTERNS = /\.(md|yaml|yml|json|svg|txt|mjs)$|\.copilot\/|extension\.|\.gitignore/i;
-          const codeFiles = editedFiles.filter(f => !NON_CODE_PATTERNS.test(f));
+          const secWarning = securitySensitiveEdits
+            ? " (includes security-sensitive files!)"
+            : "";
 
-          if (codeFiles.length > 0) {
-            const secWarning = securitySensitiveEdits
-              ? " (includes security-sensitive files!)"
-              : "";
+          await session.log(
+            `🛡️ Committed ${editedFiles.length} source files${secWarning}. Enforcing post-implementation gate.`,
+            { level: "info" }
+          );
 
-            await session.log(
-              `🛡️ Committed ${codeFiles.length} source files${secWarning}. Enforcing post-implementation gate.`,
-              { level: "info" }
-            );
-
-            // ENFORCE: trigger review pipeline
-            setTimeout(() => session.send({
-              prompt: `Post-implementation gate triggered. ${codeFiles.length} source files committed${secWarning}. Invoke QA Guardian + Security Guardian + Code Review Guardian in parallel (background, model: claude-opus-4.6). Code Review uses dual-model: Opus 4.6 + GPT 5.4.`
-            }), 0);
-          }
+          // ENFORCE: trigger review pipeline
+          setTimeout(() => session.send({
+            prompt: `Post-implementation gate triggered. ${editedFiles.length} source files committed${secWarning}. Invoke QA Guardian + Security Guardian + Code Review Guardian in parallel (background, model: claude-opus-4.6). Code Review uses dual-model: Opus 4.6 + GPT 5.4.`
+          }), 0);
 
           // Reset tracking
           editedFiles = [];
