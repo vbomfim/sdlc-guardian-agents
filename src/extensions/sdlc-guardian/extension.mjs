@@ -211,7 +211,7 @@ const session = await joinSession({
     onSessionEnd: async () => {
       const duration = Math.round((Date.now() - sessionStartTime) / 1000 / 60);
       await session.log(
-        `🛡️ Session ended (${duration} min). SDLC Guardian Extension shutting down.`,
+        `🛡️ SDLC Guardian session ended (${duration} min). Extension will reload on next session.`,
         { level: "info" }
       );
     },
