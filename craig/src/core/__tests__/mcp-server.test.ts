@@ -9,85 +9,11 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { createCraigServer } from "../mcp-server.js";
-import type { StatePort } from "../../state/index.js";
-import type { ConfigPort } from "../../config/index.js";
-import type { CopilotPort } from "../../copilot/index.js";
-
-/* ------------------------------------------------------------------ */
-/*  Mock Factories                                                     */
-/* ------------------------------------------------------------------ */
-
-function createMockState(): StatePort {
-  return {
-    load: vi.fn().mockResolvedValue(undefined),
-    save: vi.fn().mockResolvedValue(undefined),
-    get: vi.fn().mockReturnValue([]),
-    set: vi.fn(),
-    addFinding: vi.fn(),
-    getFindings: vi.fn().mockReturnValue([]),
-  };
-}
-
-function createMockConfig(): ConfigPort {
-  return {
-    load: vi.fn().mockResolvedValue({
-      repo: "owner/repo",
-      branch: "main",
-      schedule: {},
-      capabilities: {
-        merge_review: true,
-        coverage_gaps: true,
-        bug_detection: true,
-        pattern_enforcement: true,
-        po_audit: true,
-        auto_fix: true,
-        dependency_updates: true,
-      },
-      models: { default: "claude-sonnet-4.5" },
-      autonomy: {
-        create_issues: true,
-        create_draft_prs: true,
-        auto_merge: false as const,
-      },
-      guardians: { path: "~/.copilot/" },
-    }),
-    get: vi.fn().mockReturnValue({
-      repo: "owner/repo",
-      branch: "main",
-      schedule: {},
-      capabilities: {
-        merge_review: true,
-        coverage_gaps: true,
-        bug_detection: true,
-        pattern_enforcement: true,
-        po_audit: true,
-        auto_fix: true,
-        dependency_updates: true,
-      },
-      models: { default: "claude-sonnet-4.5" },
-      autonomy: {
-        create_issues: true,
-        create_draft_prs: true,
-        auto_merge: false as const,
-      },
-      guardians: { path: "~/.copilot/" },
-    }),
-    update: vi.fn(),
-    validate: vi.fn(),
-  };
-}
-
-function createMockCopilot(): CopilotPort {
-  return {
-    invoke: vi.fn().mockResolvedValue({
-      success: true,
-      output: "Review complete",
-      duration_ms: 1500,
-      model_used: "claude-sonnet-4.5",
-    }),
-    isAvailable: vi.fn().mockResolvedValue(true),
-  };
-}
+import {
+  createMockState,
+  createMockConfig,
+  createMockCopilot,
+} from "./mock-factories.js";
 
 /* ------------------------------------------------------------------ */
 /*  AC1: Server starts and registers tools                             */

@@ -17,6 +17,7 @@ import { z } from "zod";
 import type { StatePort } from "../state/index.js";
 import type { ConfigPort } from "../config/index.js";
 import type { CopilotPort } from "../copilot/index.js";
+import { VALID_TASKS } from "./core.types.js";
 import {
   createStatusHandler,
   createRunTaskHandler,
@@ -75,6 +76,36 @@ export function createCraigServer(deps: CraigServerDeps): McpServer {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Response formatting helper                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Wrap a tool handler result into the MCP text content format.
+ *
+ * All MCP tool responses return JSON.stringify(result) wrapped in a
+ * text content array. This helper eliminates that repetition.
+ *
+ * @param result - The result object from a tool handler
+ * @param isError - Whether the result represents an error
+ * @returns MCP-compliant response object
+ */
+function wrapToolResult(
+  result: unknown,
+  isError = false,
+): { content: [{ type: "text"; text: string }]; isError?: boolean } {
+  const response: {
+    content: [{ type: "text"; text: string }];
+    isError?: boolean;
+  } = {
+    content: [{ type: "text" as const, text: JSON.stringify(result) }],
+  };
+  if (isError) {
+    response.isError = true;
+  }
+  return response;
+}
+
+/* ------------------------------------------------------------------ */
 /*  Tool Registration — one function per tool                          */
 /* ------------------------------------------------------------------ */
 
@@ -90,9 +121,7 @@ function registerStatusTool(server: McpServer, deps: CraigServerDeps): void {
     "Current state: running tasks, last run times, health",
     async () => {
       const result = await handler();
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify(result) }],
-      };
+      return wrapToolResult(result);
     },
   );
 }
@@ -108,23 +137,12 @@ function registerRunTaskTool(server: McpServer, deps: CraigServerDeps): void {
     "craig_run_task",
     "Trigger a specific task on demand",
     {
-      task: z.enum([
-        "merge_review",
-        "coverage_scan",
-        "security_scan",
-        "tech_debt_audit",
-        "dependency_check",
-        "pattern_check",
-        "auto_fix",
-      ]),
+      task: z.enum(VALID_TASKS),
     },
     async (args) => {
       const result = await handler(args);
       const isError = "error" in result;
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify(result) }],
-        isError,
-      };
+      return wrapToolResult(result, isError);
     },
   );
 }
@@ -146,9 +164,7 @@ function registerFindingsTool(server: McpServer, deps: CraigServerDeps): void {
     },
     async (args) => {
       const result = await handler(args);
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify(result) }],
-      };
+      return wrapToolResult(result);
     },
   );
 }
@@ -170,10 +186,7 @@ function registerScheduleTool(server: McpServer, deps: CraigServerDeps): void {
     async (args) => {
       const result = await handler(args);
       const isError = "error" in result;
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify(result) }],
-        isError,
-      };
+      return wrapToolResult(result, isError);
     },
   );
 }
@@ -195,10 +208,7 @@ function registerConfigTool(server: McpServer, deps: CraigServerDeps): void {
     async (args) => {
       const result = await handler(args);
       const isError = "error" in result;
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify(result) }],
-        isError,
-      };
+      return wrapToolResult(result, isError);
     },
   );
 }
@@ -217,9 +227,7 @@ function registerDigestTool(server: McpServer, deps: CraigServerDeps): void {
     },
     async (args) => {
       const result = await handler(args);
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify(result) }],
-      };
+      return wrapToolResult(result);
     },
   );
 }
