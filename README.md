@@ -334,7 +334,11 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
 │   ├── security-guardian.instructions.md
 │   ├── code-review-guardian.instructions.md
 │   ├── platform-guardian.instructions.md
-│   └── delivery-guardian.instructions.md
+│   ├── delivery-guardian.instructions.md
+│   └── sdlc-workflow.instructions.md    ← Workflow orchestration rules
+├── extensions/                          ← Copilot CLI extensions
+│   └── sdlc-guardian/                   ← Local-only workflow helper
+│       └── extension.mjs
 └── skills/                              ← Operational tooling
     ├── security-guardian/               ← Tool definitions
     │   └── SKILL.md
