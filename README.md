@@ -97,7 +97,11 @@ The Guardians are not invoked manually — the default Copilot agent enforces th
   ▼
 👨‍💻 Developer Guardian implements (TDD + unit tests)
   │
-  │ ── Post-Implementation Gate (auto-triggered, parallel) ──
+  │ ── UAT Checkpoint (offered to user — opt-in or auto in autopilot) ──
+  │
+  │ User tests the worktree checkout + pair-fixes with Developer Guardian
+  │
+  │ ── Post-Implementation Gate (auto-triggered after UAT done/skipped, parallel) ──
   │
   ├─── 🧪 QA Guardian ──────────────┐
   ├─── 🛡️ Security Guardian ────────┤  background, simultaneous
@@ -115,12 +119,13 @@ The Guardians are not invoked manually — the default Copilot agent enforces th
 ✅ PR → Merge → Deploy
 ```
 
-**Four quality gates, enforced automatically:**
+**Five quality gates, enforced automatically:**
 
 | Gate | When | What happens |
 |------|------|-------------|
 | **Pre-Implementation** | User asks to implement without a ticket | PO Guardian invoked to create specification first |
-| **Post-Implementation** | Developer Guardian completes | QA + Security + Code Review invoked in parallel automatically |
+| **UAT Checkpoint** | Developer Guardian completes | User offered a chance to test the worktree + pair-fix with Developer Guardian (auto-entered in autopilot mode). After 3 pair-fix iterations the orchestrator recommends moving to the review gate. |
+| **Post-Implementation** | UAT done or skipped | QA + Security + Code Review invoked in parallel automatically |
 | **Pre-Merge** | All Guardian reviews pass + CI checks pass | Default agent presents combined results; user confirms merge approval |
 | **Pre-Deployment** | User asks to deploy | Platform + Delivery Guardians verify infrastructure and operations readiness |
 
@@ -338,7 +343,9 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
 │   └── sdlc-workflow.instructions.md    ← Workflow orchestration rules
 ├── extensions/                          ← Copilot CLI extensions
 │   └── sdlc-guardian/                   ← Local-only workflow helper
-│       └── extension.mjs
+│       ├── extension.mjs                ← SDK wiring shell (thin)
+│       ├── uat-state-machine.mjs        ← Pure state-machine logic (testable)
+│       └── uat-state-machine.test.mjs   ← Zero-dep tests (node --test)
 └── skills/                              ← Operational tooling
     ├── security-guardian/               ← Tool definitions
     │   └── SKILL.md

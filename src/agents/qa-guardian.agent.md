@@ -216,7 +216,7 @@ Write performance test scripts for critical paths:
 3. Run the full test suite: `[test command]`
 4. All [N] new tests passing
 5. If user overrides an assumption, re-invoke QA Guardian with the clarification
-6. Consider invoking Security Guardian for security review
+6. Security + Code Review run in parallel as part of the automated review gate — no separate invocation needed
 ```
 
 ## Behavior Rules

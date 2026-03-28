@@ -6,4 +6,6 @@ When the user asks to write tests (beyond unit tests), analyze coverage, create 
 
 **Do NOT** write integration, E2E, or performance tests yourself. The QA Guardian traces tests to PO ticket acceptance criteria, finds coverage gaps, tests edge cases, and writes API contract tests. Unit tests are NOT QA scope — they belong to the Developer Guardian.
 
-**Workflow:** PO ticket → Developer (TDD: unit tests + code) → QA Guardian (integration, E2E, contract, edge cases, performance) → Security + Code Review audit.
+**Workflow:** PO ticket → Developer (TDD: unit tests + code) → UAT checkpoint (user tests + pair-fix loop) → QA + Security + Code Review gate (parallel, mandatory) → commit.
+
+**Post-implementation gate:** QA Guardian runs as part of the mandatory review gate after the UAT checkpoint is done or skipped. It is invoked in parallel with Security Guardian and Code Review Guardian — all three must complete before the code is committed.

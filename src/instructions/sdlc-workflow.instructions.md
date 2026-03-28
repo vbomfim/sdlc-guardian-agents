@@ -14,15 +14,50 @@ When the user asks to implement, build, or code something:
 Do NOT allow implementation without a specification. Say:
 > "There's no ticket for this yet. Let me invoke the PO Guardian to spec it out first."
 
-## Post-Implementation Gate — AUTOMATIC
+## UAT Checkpoint — After Implementation, Before Review Gate
 
-**After the Developer Guardian completes, automatically invoke the review pipeline.**
+**After the Developer Guardian completes, offer the user a chance to test before the review pipeline runs.**
 
-When the Developer Guardian hands off its report, do NOT just commit. Instead:
+When the Developer Guardian hands off its report:
 
-1. Present the Developer's handoff report to the user
+1. Present the Developer's handoff report to the user (including the **worktree path**, **branch name**, and any **run/test commands**)
 2. Ask the user to confirm assumptions and answer open questions
-3. Then **automatically invoke in parallel** (all three as background tasks):
+3. **Offer the UAT checkpoint:**
+
+   > "Implementation is ready for testing. The worktree is at `[path]` on branch `[branch]`.
+   > Would you like to manually test before I run the full review pipeline (QA + Security + Code Review)?
+   > - **Yes** — I'll wait while you test. Tell me when you're done or if you find issues to fix.
+   > - **Skip** — I'll proceed directly to the review gate."
+
+4. **If the user opts in (or if Copilot CLI autopilot is enabled):**
+   - Enter the **UAT loop**: the user tests manually against the worktree checkout
+   - If the user reports issues, pair-program the fix with Developer Guardian (re-invoke on the same branch/worktree)
+   - Repeat until the user says "done" or "looks good"
+   - **Iteration cap:** After **3 pair-fix iterations**, recommend proceeding to the review gate. The user can override, but the default is to escalate. This cap applies universally (interactive and autopilot mode) — it prevents infinite fix loops and ensures the review Guardians provide a comprehensive assessment.
+   - Then proceed to the Post-Implementation Review Gate
+
+5. **If the user says "skip" (or declines):**
+   - Proceed directly to the Post-Implementation Review Gate
+
+**Autopilot behavior:** When Copilot CLI autopilot is enabled, the orchestrator auto-enters the UAT loop without asking. The user can still say "skip" or "done" at any time to move on. The 3-iteration pair-fix cap applies in both interactive and autopilot modes.
+
+**Handoff information — MANDATORY:** The UAT offer MUST include these details so the user can test the exact checkout the agent modified:
+- **Worktree path** — the `/tmp/dev-guardian-*` directory (or working directory if no worktree was used)
+- **Branch name** — the feature branch created by Developer Guardian
+- **Run/test commands** — any build, start, or test commands from the Developer's handoff report
+
+**Worktree cleanup:** The Developer Guardian does NOT remove its worktree — it must stay alive for UAT. The orchestrator (default agent) is responsible for removing the worktree after the review gate completes and the branch is merged or abandoned:
+```bash
+git worktree remove /tmp/dev-guardian-XXXXXXXX
+```
+
+## Post-Implementation Review Gate — AUTOMATIC
+
+**After UAT is complete (or skipped), automatically invoke the review pipeline.**
+
+This gate ALWAYS runs — UAT does not replace it.
+
+1. **Automatically invoke in parallel** (all three as background tasks):
    - **QA Guardian** — integration, E2E, contract tests
    - **Security Guardian** — OWASP scans + manual review
    - **Code Review Guardian** — linters + design review
@@ -30,8 +65,14 @@ When the Developer Guardian hands off its report, do NOT just commit. Instead:
 ```
 Developer Guardian completes
   ↓
-Default agent: "Implementation done. Running review pipeline..."
+Default agent: presents handoff + UAT offer
   ↓
+  ┌─────────────────────────────────┐
+  │ UAT Checkpoint (optional)       │
+  │ User tests → pair-fix if needed │
+  │ "done" or "skip" to proceed     │
+  └───────────────┬─────────────────┘
+                  ↓
   ┌──────────────┐  ┌──────────────────┐  ┌───────────────────┐
   │ QA Guardian  │  │ Security Guardian │  │ Code Review Guard. │
   │ (background) │  │ (background)      │  │ (background)       │
@@ -44,9 +85,9 @@ Default agent: "Implementation done. Running review pipeline..."
                 Fix these before committing?"
 ```
 
-4. Present combined results from all three Guardians
-5. If critical or high findings exist → recommend fixing before committing
-6. If all pass → proceed to commit and PR
+2. Present combined results from all three Guardians
+3. If critical or high findings exist → recommend fixing before committing
+4. If all pass → proceed to commit and PR
 
 ## Pre-Merge Gate
 
@@ -82,7 +123,9 @@ When the user asks to deploy, release, or push to an environment:
 🎯 PO Guardian ticket exists
   ↓
 👨‍💻 Developer Guardian implements (TDD)
-  ↓ (auto-triggered)
+  ↓
+🧑‍🔬 UAT Checkpoint (optional — user tests + pair-fix loop)
+  ↓ (auto-triggered after UAT done/skipped)
   ├─ 🧪 QA Guardian ──────────┐
   ├─ 🛡️ Security Guardian ────┤ (parallel, background)
   ├─ 📋 Code Review Guardian ─┘

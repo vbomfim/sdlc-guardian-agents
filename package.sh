@@ -72,9 +72,10 @@ install() {
   cp -r "$SRC_DIR/skills/code-review-guardian/"* "$TARGET_DIR/skills/code-review-guardian/"
   cp -r "$SRC_DIR/skills/platform-guardian/"* "$TARGET_DIR/skills/platform-guardian/"
 
-  # ── Install extensions ──
+  # ── Install extensions (runtime modules only — no test files) ──
   mkdir -p "$TARGET_DIR/extensions/sdlc-guardian"
   cp "$SRC_DIR/extensions/sdlc-guardian/extension.mjs" "$TARGET_DIR/extensions/sdlc-guardian/"
+  cp "$SRC_DIR/extensions/sdlc-guardian/uat-state-machine.mjs" "$TARGET_DIR/extensions/sdlc-guardian/"
 
   echo -e "${BOLD}Security Guardian:${NC}"
   echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/security-guardian.agent.md"
@@ -109,6 +110,7 @@ install() {
   echo ""
   echo -e "${BOLD}SDLC Guardian Extension:${NC}"
   echo -e "${GREEN}✔${NC}  Extension:    ~/.copilot/extensions/sdlc-guardian/extension.mjs"
+  echo -e "${GREEN}✔${NC}  State machine: ~/.copilot/extensions/sdlc-guardian/uat-state-machine.mjs"
   echo ""
   echo -e "${BOLD}You're set!${NC} Open Copilot CLI and:"
   echo -e "  • Global instructions are ${GREEN}already active${NC}"
