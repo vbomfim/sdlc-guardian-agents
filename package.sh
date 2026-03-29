@@ -22,9 +22,10 @@ NC='\033[0m'
 package() {
   echo -e "${BOLD}${CYAN}📦 Packaging SDLC Guardian Agents...${NC}"
   mkdir -p "$DIST_DIR"
+  rm -f "$DIST_DIR/sdlc-guardian-agents.zip"
 
   cd "$SRC_DIR"
-  zip -r "$DIST_DIR/sdlc-guardian-agents.zip" . -x ".*"
+  zip -r "$DIST_DIR/sdlc-guardian-agents.zip" . -x ".*" "*.test.*"
   cd "$SCRIPT_DIR"
 
   local size
