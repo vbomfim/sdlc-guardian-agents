@@ -44,14 +44,11 @@ git worktree add /tmp/dev-guardian-$(date +%s) -b feature/[branch-name] main
 cd /tmp/dev-guardian-*  # work here, not in the main checkout
 ```
 
-After completing work:
-```bash
-# Clean up the worktree
-cd [original-directory]
-git worktree remove /tmp/dev-guardian-*
-```
+**Do NOT remove the worktree when you finish.** The worktree must stay alive so the user can test the exact checkout during UAT. Include the worktree path in your handoff report.
 
-**Why:** Multiple agents may run in parallel on the same repo. Without worktree isolation, `git checkout` in one agent breaks file state for another. Worktrees give each agent its own directory with its own branch — no conflicts.
+**Worktree cleanup responsibility:** The orchestrator (default agent) removes the worktree after the review gate completes and the branch is merged or abandoned — never the Developer Guardian.
+
+**Why:** Multiple agents may run in parallel on the same repo. Without worktree isolation, `git checkout` in one agent breaks file state for another. Worktrees give each agent its own directory with its own branch — no conflicts. The worktree also serves as the UAT test environment.
 
 ### Step 1: Understand the ticket
 - Read the PO Guardian ticket (GitHub issue or spec)
@@ -150,11 +147,21 @@ Before handoff, verify your code would pass the other Guardians:
 
 Present your work to the default agent. **You cannot ask the user questions during execution.** Instead, make the best decision, document it, and flag anything that needs user confirmation.
 
+**CRITICAL: Always include the worktree path, branch name, and run/test commands in the handoff.** The user needs these to test the exact checkout you modified during the UAT checkpoint.
+
 ```
 ## Developer Guardian — Implementation Complete
 
 ### What was implemented
 [Brief description of changes]
+
+### Workspace Details (for UAT testing)
+- **Worktree path:** `/tmp/dev-guardian-XXXXXXXX` (or working directory if no worktree)
+- **Branch:** `feature/[branch-name]`
+- **Run/test commands:**
+  - Build: `[build command]`
+  - Test: `[test command]`
+  - Start: `[start/run command, if applicable]`
 
 ### Files changed
 | File | Change | Tests |
@@ -185,12 +192,14 @@ Decisions made autonomously during implementation. Review before committing:
 
 ### For the Default Agent
 1. **Review assumptions above** — ask the user to confirm or override before committing
-2. **Update the ticket** — add a comment with the Assumptions & Open Questions sections
-3. Run the test suite to verify: `[test command]`
-4. Commit with descriptive message
-5. If user overrides an assumption, re-invoke Developer Guardian with the clarification
-6. Consider invoking QA Guardian for integration/E2E tests
-7. Consider invoking Security Guardian for security review
+2. **Offer UAT checkpoint** (first completion only) — present the worktree path, branch, and run/test commands; ask if the user wants to test before the review gate
+3. **If UAT requested** — enter the UAT loop: let the user test, pair-fix issues by re-invoking Developer Guardian on the same branch/worktree. **If this completion is already inside an active UAT loop** (pair-fix iteration), resume the loop — present the fix summary and let the user continue testing. Do NOT re-offer the UAT checkpoint from scratch.
+4. **After UAT done/skipped** — run the mandatory review gate (QA + Security + Code Review in parallel)
+5. **Update the ticket** — add a comment with the Assumptions & Open Questions sections
+6. Run the test suite to verify: `[test command]`
+7. Commit with descriptive message
+8. If user overrides an assumption, re-invoke Developer Guardian with the clarification
+9. **Clean up worktree** — after the review gate passes and the branch is merged or abandoned, remove the worktree
 ```
 
 ## Behavior Rules

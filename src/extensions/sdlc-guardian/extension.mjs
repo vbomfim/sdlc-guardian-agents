@@ -1,73 +1,40 @@
 /**
- * SDLC Guardian Extension — Minimal workflow enforcement.
+ * SDLC Guardian Extension — local-only workflow helper.
  *
- * Two hooks only:
- * 1. onSessionStart — inject SDLC workflow reminder
- * 2. onPostToolUse  — track file edits, trigger review pipeline after implementation
+ * User-scoped only on this machine.  Keep it thin, reversible, and free
+ * of hidden state.
  *
- * No stale state, no false triggers, no prompt rewriting.
+ * All pure logic lives in ./uat-state-machine.mjs so it can be tested
+ * with `node --test` without bootstrapping a live Copilot SDK session.
+ * This file is the thin SDK-wiring shell: it creates one
+ * `UatStateMachine` instance and delegates from the hooks.
  */
 import { approveAll } from "@github/copilot-sdk";
 import { joinSession } from "@github/copilot-sdk/extension";
+import { UatStateMachine, buildStartupContext } from "./uat-state-machine.mjs";
 
-// Track files edited by the agent in this session
-const editedFiles = new Set();
-let implementationInProgress = false;
+const sm = new UatStateMachine();
 
 const session = await joinSession({
+  // approveAll is acceptable here: the extension is local-only (user-scoped
+  // ~/.copilot/), performs no destructive tool actions, and only injects
+  // advisory context into the session.  It never writes files or runs commands.
   onPermissionRequest: approveAll,
   hooks: {
-    onSessionStart: async (input) => {
-      await session.log("🛡️ SDLC Guardian active", { ephemeral: true });
-      return {
-        additionalContext: [
-          "SDLC Guardian is active. Follow the workflow:",
-          "• Pre-implementation: verify a PO ticket exists before coding",
-          "• Post-implementation: after Developer Guardian completes, run QA + Security + Code Review in parallel",
-          "• All Guardians use model: claude-opus-4.6",
-          "• Code Review uses dual-model: Opus 4.6 + GPT 5.4",
-          "• React to system_notifications IMMEDIATELY — call read_agent right away",
-        ].join("\n"),
-      };
+    onSessionStart: async () => {
+      await session.log("🛡️ SDLC Guardian active (local-only)", { ephemeral: true });
+      return { additionalContext: buildStartupContext() };
     },
 
     onPostToolUse: async (input) => {
-      // Track source code edits (not docs, not session files)
-      if (input.toolName === "edit" || input.toolName === "create") {
-        const filePath = String(input.toolArgs?.path || "");
-        const isSourceCode = /\.(ts|js|py|rs|go|java|cpp|hpp|c|h|cs|rb|swift|kt)$/i.test(filePath);
-        const isSessionFile = filePath.includes(".copilot/session-state");
-
-        if (isSourceCode && !isSessionFile) {
-          editedFiles.add(filePath);
-        }
-      }
-
-      // Detect Developer Guardian completion (task tool with dev-guardian)
-      if (input.toolName === "task" && input.toolResult?.resultType === "success") {
-        const result = String(input.toolResult?.result || "");
-        if (result.includes("Developer Guardian") || result.includes("dev-guardian")) {
-          implementationInProgress = false;
-          const fileCount = editedFiles.size;
-          if (fileCount > 0) {
-            return {
-              additionalContext: [
-                `Developer Guardian completed. ${fileCount} file(s) changed.`,
-                "Post-implementation gate: invoke QA + Security + Code Review Guardians in parallel (background, model: claude-opus-4.6).",
-                "Code Review uses dual-model: Opus 4.6 + GPT 5.4.",
-              ].join("\n"),
-            };
-          }
-        }
-      }
+      return sm.handlePostToolUse(input);
     },
   },
   tools: [],
 });
 
-// Listen for session idle to log edit count
-session.on("session.idle", () => {
-  if (editedFiles.size > 0) {
-    session.log(`📝 ${editedFiles.size} file(s) edited this session`, { ephemeral: true });
+session.on("session.idle", async () => {
+  if (sm.fileCount > 0) {
+    await session.log(`📝 ${sm.fileCount} file(s) edited this session`, { ephemeral: true });
   }
 });

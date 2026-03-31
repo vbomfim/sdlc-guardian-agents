@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Security Guardian — Package & Deploy
+# SDLC Guardian Agents — Package & Deploy
 #
 # Usage:
-#   ./package.sh              # Build zip only (dist/security-guardian.zip)
+#   ./package.sh              # Build zip only (dist/sdlc-guardian-agents.zip)
 #   ./package.sh --install    # Build zip AND install to ~/.copilot/
 #   ./package.sh --uninstall  # Remove from ~/.copilot/
 
@@ -20,11 +20,12 @@ BOLD='\033[1m'
 NC='\033[0m'
 
 package() {
-  echo -e "${BOLD}${CYAN}📦 Packaging Security Guardian...${NC}"
+  echo -e "${BOLD}${CYAN}📦 Packaging SDLC Guardian Agents...${NC}"
   mkdir -p "$DIST_DIR"
+  rm -f "$DIST_DIR/sdlc-guardian-agents.zip"
 
   cd "$SRC_DIR"
-  zip -r "$DIST_DIR/sdlc-guardian-agents.zip" . -x ".*"
+  zip -r "$DIST_DIR/sdlc-guardian-agents.zip" . -x ".*" "*.test.*"
   cd "$SCRIPT_DIR"
 
   local size
@@ -72,6 +73,11 @@ install() {
   cp -r "$SRC_DIR/skills/code-review-guardian/"* "$TARGET_DIR/skills/code-review-guardian/"
   cp -r "$SRC_DIR/skills/platform-guardian/"* "$TARGET_DIR/skills/platform-guardian/"
 
+  # ── Install extensions (runtime modules only — no test files) ──
+  mkdir -p "$TARGET_DIR/extensions/sdlc-guardian"
+  cp "$SRC_DIR/extensions/sdlc-guardian/extension.mjs" "$TARGET_DIR/extensions/sdlc-guardian/"
+  cp "$SRC_DIR/extensions/sdlc-guardian/uat-state-machine.mjs" "$TARGET_DIR/extensions/sdlc-guardian/"
+
   echo -e "${BOLD}Security Guardian:${NC}"
   echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/security-guardian.agent.md"
   echo -e "${GREEN}✔${NC}  Instructions: ~/.copilot/instructions/security-guardian.instructions.md"
@@ -103,11 +109,14 @@ install() {
   echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/delivery-guardian.agent.md"
   echo -e "${GREEN}✔${NC}  Instructions: ~/.copilot/instructions/delivery-guardian.instructions.md"
   echo ""
+  echo -e "${BOLD}SDLC Guardian Extension:${NC}"
+  echo -e "${GREEN}✔${NC}  Extension:    ~/.copilot/extensions/sdlc-guardian/extension.mjs"
+  echo -e "${GREEN}✔${NC}  State machine: ~/.copilot/extensions/sdlc-guardian/uat-state-machine.mjs"
+  echo ""
   echo -e "${BOLD}You're set!${NC} Open Copilot CLI and:"
-  echo -e "  • Global security rules are ${GREEN}already active${NC}"
-  echo -e "  • Say ${CYAN}\"set up security\"${NC} to install tools"
-  echo -e "  • Say ${CYAN}\"adopt security guardian\"${NC} to add to a repo"
-  echo -e "  • Use ${CYAN}/agent${NC} → Security Guardian for full reviews"
+  echo -e "  • Global instructions are ${GREEN}already active${NC}"
+  echo -e "  • Use ${CYAN}/agent${NC} to pick any Guardian (Security, Code Review, PO, …)"
+  echo -e "  • Say ${CYAN}\"set up security\"${NC} to install scanning tools"
 }
 
 uninstall() {
@@ -119,6 +128,12 @@ uninstall() {
     [ -f "$TARGET_DIR/agents/$guardian.agent.md" ] && rm "$TARGET_DIR/agents/$guardian.agent.md" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/agents/$guardian.agent.md"
     [ -f "$TARGET_DIR/instructions/$guardian.instructions.md" ] && rm "$TARGET_DIR/instructions/$guardian.instructions.md" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/instructions/$guardian.instructions.md"
   done
+
+  # ── Remove shared instructions not covered by the guardian loop ──
+  [ -f "$TARGET_DIR/instructions/sdlc-workflow.instructions.md" ] && rm "$TARGET_DIR/instructions/sdlc-workflow.instructions.md" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/instructions/sdlc-workflow.instructions.md"
+
+  # ── Remove extensions ──
+  [ -d "$TARGET_DIR/extensions/sdlc-guardian" ] && rm -rf "$TARGET_DIR/extensions/sdlc-guardian" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/extensions/sdlc-guardian/"
 
   echo ""
   echo -e "${GREEN}Done.${NC} Repo-level files (.github/) are untouched — remove per-repo if needed."
