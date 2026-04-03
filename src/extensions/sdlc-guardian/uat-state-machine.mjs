@@ -127,7 +127,7 @@ export function buildStartupContext() {
   return [
     "Local-only SDLC Guardian helper is active on this machine.",
     "Use GPT-5.4 as the default/top-level orchestrator unless a task specifies otherwise.",
-    "Pre-implementation gate: verify a PO ticket/spec exists before coding.",
+    "Pre-implementation gate: verify a PO ticket/spec exists before coding. This applies to ALL work types — features, bugs, defects, refactors, hotfixes. NEVER skip the PO Guardian because the user provided a good description. A well-described bug is NOT a ticket. The PO Guardian's structured questionnaire must always run.",
     "Post-implementation flow: after Developer Guardian completes, offer a UAT checkpoint (user tests + pair-fix loop), then run QA + Security + Code Review in parallel.",
     "UAT checkpoint: present worktree path, branch name, and run/test commands. If autopilot is enabled, auto-enter the UAT loop (no question needed). Otherwise wait for user opt-in. The review gate ALWAYS runs after UAT is done or skipped.",
     `UAT pair-fix cap: after ${MAX_UAT_PAIR_FIX_ITERATIONS} pair-fix iterations in the UAT loop, recommend proceeding to the review gate. The user can override, but the default is to escalate.`,

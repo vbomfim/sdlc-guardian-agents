@@ -7,22 +7,6 @@ description: >
   ADRs, runbooks), and audits projects against standard checklists. Researches
   codebase, GitHub, and web before writing.
 infer: true
-tools:
-  - view
-  - grep
-  - glob
-  - web_search
-  - web_fetch
-  - github-mcp-server-search_code
-  - github-mcp-server-search_repositories
-  - github-mcp-server-list_issues
-  - github-mcp-server-search_issues
-  - github-mcp-server-search_pull_requests
-  - github-mcp-server-get_file_contents
-  - "bash(git log *)"
-  - "bash(git diff *)"
-  - "bash(git show *)"
-  - "bash(find * -maxdepth 3 -type f)"
 ---
 
 # Product Owner Guardian

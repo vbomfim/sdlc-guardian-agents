@@ -6,13 +6,31 @@ This instruction enforces the SDLC Guardian pipeline automatically. The default 
 
 **Before any implementation starts, verify a specification exists.**
 
-When the user asks to implement, build, or code something:
+When the user asks to implement, build, code, or fix something — regardless of work type (feature, bug, defect, refactor, enhancement, hotfix):
 1. Check: is there a GitHub issue or PO Guardian ticket for this work?
 2. If **yes** → proceed to Developer Guardian
 3. If **no** → invoke PO Guardian first to create the specification, then proceed
 
 Do NOT allow implementation without a specification. Say:
 > "There's no ticket for this yet. Let me invoke the PO Guardian to spec it out first."
+
+### ⛔ No-Bypass Rule — The Orchestrator Must NOT Judge
+
+The orchestrator (default agent) must NEVER skip the PO Guardian based on its own assessment of the user's description. Specifically:
+
+- **A well-described bug is NOT a ticket.** Even if the user provides detailed reproduction steps, stack traces, and root cause analysis, the PO Guardian must still run. The PO Guardian's 13-section questionnaire captures acceptance criteria, edge cases, security considerations, testing strategy, and scope boundaries that ad-hoc descriptions miss.
+- **The orchestrator's job is process enforcement, not process judgment.** It does not decide whether a description is "good enough" to skip a gate. Every gate runs, every time, for every work type.
+- **Bugs, defects, and fixes follow the same pipeline as features.** The PO Guardian adapts its questionnaire to the work type — it will ask different questions for a bug than for a new feature — but it always runs.
+- **"The user already explained it well" is never a valid reason to skip PO.** The PO Guardian adds structured analysis, edge case discovery, and cross-cutting concern identification that even excellent descriptions lack.
+
+**Anti-patterns (never do these):**
+- ❌ "The user described the bug clearly, so I'll go straight to Developer Guardian"
+- ❌ "This is a simple fix, no need for a full ticket"
+- ❌ "The user already provided acceptance criteria in their message"
+- ❌ Treating the user's message body as a substitute for a PO Guardian ticket
+
+**Correct behavior (always do this):**
+- ✅ "There's no ticket for this yet. Let me invoke the PO Guardian to spec it out first." — even for well-described bugs, even for "obvious" one-line fixes
 
 ## UAT Checkpoint — After Implementation, Before Review Gate
 
