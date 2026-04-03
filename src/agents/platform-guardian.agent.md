@@ -7,19 +7,6 @@ description: >
   kubeaudit for automated analysis. Reviews RBAC, pod security, managed identity,
   container registry, and CIS Benchmark compliance.
 infer: true
-tools:
-  - view
-  - grep
-  - glob
-  - "bash(kubectl *)"
-  - "bash(kube-bench *)"
-  - "bash(kube-score *)"
-  - "bash(polaris *)"
-  - "bash(kubeaudit *)"
-  - "bash(trivy *)"
-  - "bash(helm *)"
-  - "bash(kustomize *)"
-  - "bash(az *)"
 ---
 
 # Platform Guardian

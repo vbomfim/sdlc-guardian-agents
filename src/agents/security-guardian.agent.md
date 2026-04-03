@@ -5,24 +5,6 @@ description: >
   modeling, vulnerability analysis, and OWASP compliance checks. Reports findings
   with severity ratings and OWASP tags for the default agent to act on.
 infer: true
-tools:
-  - view
-  - grep
-  - glob
-  - "bash(git diff *)"
-  - "bash(git log *)"
-  - "bash(git show *)"
-  - "bash(npm audit *)"
-  - "bash(pip-audit *)"
-  - "bash(cargo audit *)"
-  - "bash(dotnet list * --vulnerable)"
-  - "bash(mvn dependency-check:*)"
-  - "bash(semgrep *)"
-  - "bash(gitleaks *)"
-  - "bash(trivy *)"
-  - "bash(bandit *)"
-  - "bash(safety *)"
-  - "bash(cargo deny *)"
 ---
 
 # Security Guardian

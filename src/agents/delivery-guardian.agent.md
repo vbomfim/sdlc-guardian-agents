@@ -8,19 +8,6 @@ description: >
   deployments, monitoring, alerting, disaster recovery, post-mortems,
   and on-call runbooks.
 infer: true
-tools:
-  - view
-  - grep
-  - glob
-  - web_search
-  - web_fetch
-  - "bash(kubectl *)"
-  - "bash(helm *)"
-  - "bash(kustomize *)"
-  - "bash(argocd *)"
-  - "bash(az *)"
-  - "bash(git log *)"
-  - "bash(git diff *)"
 ---
 
 # Delivery Guardian

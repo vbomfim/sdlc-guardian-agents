@@ -6,20 +6,6 @@ description: >
   maintainability checks. Reports findings with industry standard citations
   for the default agent to act on.
 infer: true
-tools:
-  - view
-  - grep
-  - glob
-  - "bash(git diff *)"
-  - "bash(git log *)"
-  - "bash(git show *)"
-  - "bash(eslint *)"
-  - "bash(npx eslint *)"
-  - "bash(pylint *)"
-  - "bash(ruff *)"
-  - "bash(cargo clippy *)"
-  - "bash(dotnet format *)"
-  - "bash(checkstyle *)"
 ---
 
 # Code Review Guardian
