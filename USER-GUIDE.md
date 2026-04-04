@@ -44,7 +44,7 @@ and retrieve it via a public URL.
 The orchestrator will:
 1. Notice there's no ticket → invoke PO Guardian
 2. PO Guardian asks you clarifying questions (auth? storage? resize?)
-3. PO Guardian creates a GitHub issue with the full 18-section spec
+3. PO Guardian creates an issue (GitHub or Azure DevOps) with the full 18-section spec
 4. Orchestrator presents the spec to you for approval
 5. After you approve → Developer Guardian builds it
 
@@ -85,7 +85,7 @@ The PO Guardian will:
 - **Classify your app type** — frontend, API, full-stack, CLI, etc. This determines which quality concerns apply.
 - **Check project documentation** — if README or ARCHITECTURE.md is missing, it offers to create them with you.
 - **Decompose large requests** — breaks big features into modules, then components, then tickets. You approve the decomposition before it details anything.
-- **Create a GitHub issue** — the spec lives in the issue tracker, not in a markdown file.
+- **Create an issue** — the spec lives in the issue tracker (GitHub Issues, Azure DevOps Work Items, etc.), not in a markdown file.
 
 **Example interaction:**
 ```

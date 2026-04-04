@@ -12,7 +12,7 @@ When the user asks to implement, build, code, or fix something — regardless of
 Check that the project has `git init` and a remote configured. If not, set up the repo first — no implementation without version control.
 
 ### 2. Verify a specification exists
-Check: is there a GitHub issue or PO Guardian ticket for this work?
+Check: is there an issue (GitHub, Azure DevOps, or equivalent) or PO Guardian ticket for this work?
 - If **yes** → proceed to step 3
 - If **no** → invoke PO Guardian first to create the specification
 
@@ -158,7 +158,7 @@ When the user asks to deploy, release, or push to an environment:
   ↓
   ├─ No ticket? → PO Guardian (auto, interactive)
   ↓
-🎯 PO Guardian creates GitHub issue
+🎯 PO Guardian creates issue in tracker
   ↓
 📋 Orchestrator presents FULL spec to user
   ↓

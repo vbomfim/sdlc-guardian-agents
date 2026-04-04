@@ -12,13 +12,13 @@ When the user describes a feature, reports a bug, asks to create a ticket, write
 
 **Component design is mandatory.** Every ticket must include a component map listing all components involved, their single responsibility, interface contracts, and dependencies.
 
-**Ticket creation is mandatory.** The PO Guardian must create GitHub issues (or report that no remote exists). Session artifacts and local markdown files are NOT tickets.
+**Ticket creation is mandatory.** The PO Guardian must create issues in the project's issue tracker (GitHub Issues, Azure DevOps Work Items, or equivalent) — or report that no remote exists. Session artifacts and local markdown files are NOT tickets.
 
 **Workflow:**
 1. PO Guardian researches and **decomposes** the request into modules/tickets
 2. PO Guardian presents the decomposition to the user for approval
 3. PO Guardian details each ticket with the 18-section template
-4. PO Guardian creates GitHub issues
+4. PO Guardian creates issues in the project's tracker
 5. Orchestrator presents the specs to the user — no summarizing
 6. User confirms, requests changes, or answers open questions
 7. Only then does the orchestrator invoke the Developer Guardian

@@ -376,7 +376,7 @@ After completing the ticket, you MUST create it as a tracked artifact — not a 
 ### Creating the Ticket
 
 **If a GitHub remote exists:**
-1. Create a GitHub issue using the `gh` CLI or GitHub MCP tools
+1. Create an issue using the available tools (`gh` CLI, GitHub MCP, Azure DevOps CLI, or equivalent)
 2. Include the full ticket body (all 18 sections)
 3. Add appropriate labels: feature, bug, enhancement, etc.
 4. If the ticket is too large (fails INVEST "Small"), create an epic issue and link sub-issues
