@@ -39,6 +39,13 @@ const session = await joinSession({
       }
 
       config = loadConfig(configPath);
+
+      // Auto-enable if config says so
+      if (config.enabled) {
+        restartScheduler();
+        enabled = true;
+      }
+
       return {
         additionalContext:
           `Craig (scheduled tasks) loaded config from ${configPath}. ` +
@@ -266,8 +273,4 @@ function restartScheduler() {
   scheduler.start();
 }
 
-// Auto-enable if config says so
-if (config?.enabled) {
-  restartScheduler();
-  enabled = true;
-}
+// restartScheduler/auto-enable is handled inside onSessionStart
