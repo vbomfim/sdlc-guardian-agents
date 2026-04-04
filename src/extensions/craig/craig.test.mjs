@@ -103,7 +103,7 @@ describe("CraigScheduler", () => {
     assert.equal(scheduler.timers.size, 0);
   });
 
-  it("one-shot task in the past fires immediately", async () => {
+  it("one-shot task in the past fires after short delay", async () => {
     const past = new Date(Date.now() - 60_000).toISOString();
     let completed = null;
     scheduler = new CraigScheduler(
@@ -112,9 +112,9 @@ describe("CraigScheduler", () => {
       (name) => { completed = name; },
     );
     scheduler.start();
-    // Give it a tick to fire
-    await new Promise((r) => setTimeout(r, 50));
-    assert.ok(dispatched.includes("past_task"), "past one-shot should fire immediately");
+    // Wait for the 1s startup delay + a bit of margin
+    await new Promise((r) => setTimeout(r, 1500));
+    assert.ok(dispatched.includes("past_task"), "past one-shot should fire after delay");
   });
 
   it("one-shot task in the future sets a timer", () => {
