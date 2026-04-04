@@ -1,13 +1,15 @@
 /**
- * Craig Config Loader — reads craig.config.yaml from known locations.
+ * Craig Config — reads, writes, and manages craig.config.yaml.
  *
- * Search order:
+ * Search order for loading:
  * 1. ./craig.config.yaml (repo root)
  * 2. ~/.copilot/craig.config.yaml (user global)
  *
+ * Default init location: ~/.copilot/craig.config.yaml
+ *
  * @module craig-config
  */
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
@@ -16,6 +18,9 @@ const CONFIG_PATHS = [
   join(process.cwd(), "craig.config.yaml"),
   join(homedir(), ".copilot", "craig.config.yaml"),
 ];
+
+/** Default location for new config files. */
+export const DEFAULT_CONFIG_PATH = join(homedir(), ".copilot", "craig.config.yaml");
 
 /**
  * Find the first existing config file path.
@@ -30,21 +35,64 @@ export function findConfigPath() {
 
 /**
  * Load and parse a craig.config.yaml file.
- * Uses a simple YAML subset parser — no dependency needed for flat configs.
  *
  * @param {string} configPath
- * @returns {{ enabled: boolean, repo: string, schedule: Record<string, string>, prompts: Record<string, string> }}
+ * @returns {{ path: string, enabled: boolean, repo: string, schedule: Record<string, string>, prompts: Record<string, string> }}
  */
 export function loadConfig(configPath) {
   const raw = readFileSync(configPath, "utf-8");
   const config = parseSimpleYaml(raw);
 
   return {
+    path: configPath,
     enabled: config.enabled === "true" || config.enabled === true,
     repo: config.repo || ".",
     schedule: config.schedule || {},
     prompts: config.prompts || {},
   };
+}
+
+/**
+ * Create a default craig.config.yaml at the given path.
+ *
+ * @param {string} configPath
+ * @returns {{ path: string, enabled: boolean, repo: string, schedule: Record<string, string>, prompts: Record<string, string> }}
+ */
+export function initConfig(configPath = DEFAULT_CONFIG_PATH) {
+  const defaultConfig = {
+    enabled: false,
+    repo: ".",
+    schedule: {},
+    prompts: {},
+  };
+  saveConfig(configPath, defaultConfig);
+  return { path: configPath, ...defaultConfig };
+}
+
+/**
+ * Save config back to disk as YAML.
+ *
+ * @param {string} configPath
+ * @param {{ enabled: boolean, repo: string, schedule: Record<string, string>, prompts: Record<string, string> }} config
+ */
+export function saveConfig(configPath, config) {
+  const lines = [];
+  lines.push(`enabled: ${config.enabled}`);
+  lines.push(`repo: ${config.repo}`);
+
+  lines.push("schedule:");
+  for (const [name, cron] of Object.entries(config.schedule)) {
+    lines.push(`  ${name}: ${cron}`);
+  }
+
+  if (Object.keys(config.prompts).length > 0) {
+    lines.push("prompts:");
+    for (const [name, prompt] of Object.entries(config.prompts)) {
+      lines.push(`  ${name}: ${prompt}`);
+    }
+  }
+
+  writeFileSync(configPath, lines.join("\n") + "\n", "utf-8");
 }
 
 /**

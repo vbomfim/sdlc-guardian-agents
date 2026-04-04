@@ -18,7 +18,7 @@
  */
 import { approveAll } from "@github/copilot-sdk";
 import { joinSession } from "@github/copilot-sdk/extension";
-import { loadConfig, findConfigPath } from "./craig-config.mjs";
+import { loadConfig, findConfigPath, initConfig, saveConfig, DEFAULT_CONFIG_PATH } from "./craig-config.mjs";
 import { CraigScheduler } from "./craig-scheduler.mjs";
 
 let scheduler = null;
@@ -61,22 +61,22 @@ const session = await joinSession({
       parameters: {},
       handler: async () => {
         if (!config) {
-          return { content: "No craig.config.yaml found. Create one first." };
+          // Auto-init config on first enable
+          config = initConfig();
+          await session.log(`🤖 Craig: created config at ${config.path}`, { ephemeral: true });
         }
         if (enabled) {
           return { content: "Craig is already enabled." };
         }
         enabled = true;
-        scheduler = new CraigScheduler(config.schedule, async (taskName, prompt) => {
-          await session.log(`🤖 Craig: running scheduled task '${taskName}'`, { ephemeral: true });
-          await session.send({ prompt });
-        });
-        scheduler.start();
+        config.enabled = true;
+        saveConfig(config.path, config);
+        restartScheduler();
         const taskList = Object.entries(config.schedule)
           .map(([name, cron]) => `  ${name}: ${cron}`)
-          .join("\n");
-        await session.log(`🤖 Craig enabled. ${scheduler.taskCount} task(s) scheduled.`, { ephemeral: true });
-        return { content: `Craig enabled. Scheduled tasks:\n${taskList}` };
+          .join("\n") || "  (none — use craig_schedule_add to add tasks)";
+        await session.log(`🤖 Craig enabled. ${scheduler?.taskCount ?? 0} task(s) scheduled.`, { ephemeral: true });
+        return { content: `Craig enabled. Config: ${config.path}\nScheduled tasks:\n${taskList}` };
       },
     },
     {
@@ -92,6 +92,10 @@ const session = await joinSession({
           scheduler = null;
         }
         enabled = false;
+        if (config) {
+          config.enabled = false;
+          saveConfig(config.path, config);
+        }
         await session.log("🤖 Craig disabled. Scheduled tasks stopped.", { ephemeral: true });
         return { content: "Craig disabled. All scheduled tasks stopped." };
       },
@@ -124,16 +128,78 @@ const session = await joinSession({
       },
       handler: async ({ task }) => {
         if (!config) {
-          return { content: "No craig.config.yaml found." };
+          return { content: "Craig not initialized. Say 'craig enable' first." };
         }
         if (!config.schedule[task] && !config.prompts[task]) {
           const available = Object.keys({ ...config.schedule, ...config.prompts }).join(", ");
-          return { content: `Unknown task '${task}'. Available: ${available}` };
+          return { content: `Unknown task '${task}'. Available: ${available || "(none)"}` };
         }
         const prompt = buildPrompt(config, task);
         await session.log(`🤖 Craig: running '${task}' on demand`, { ephemeral: true });
         await session.send({ prompt });
         return { content: `Task '${task}' triggered.` };
+      },
+    },
+    {
+      name: "craig_schedule_add",
+      description: "Add a new scheduled task. Provide task name, cron expression, and optional custom prompt.",
+      parameters: {
+        task: { type: "string", description: "Task name (e.g., security_scan, my_weekly_check)" },
+        cron: { type: "string", description: "Cron expression (e.g., '0 8 * * 1' for Monday 8 AM) or 'on_push'" },
+        prompt: { type: "string", description: "Optional custom prompt. If omitted, Craig uses a default prompt for known task types." },
+      },
+      handler: async ({ task, cron, prompt }) => {
+        if (!config) {
+          config = initConfig();
+        }
+        config.schedule[task] = cron;
+        if (prompt) {
+          config.prompts[task] = prompt;
+        }
+        saveConfig(config.path, config);
+        if (enabled) restartScheduler();
+        return {
+          content: `Scheduled '${task}' with cron '${cron}'.${prompt ? " Custom prompt saved." : " Using default prompt."}\nConfig saved to ${config.path}`,
+        };
+      },
+    },
+    {
+      name: "craig_schedule_remove",
+      description: "Remove a scheduled task by name.",
+      parameters: {
+        task: { type: "string", description: "Task name to remove" },
+      },
+      handler: async ({ task }) => {
+        if (!config) {
+          return { content: "Craig not initialized. Nothing to remove." };
+        }
+        if (!config.schedule[task]) {
+          return { content: `Task '${task}' not found in schedule.` };
+        }
+        delete config.schedule[task];
+        delete config.prompts[task];
+        saveConfig(config.path, config);
+        if (enabled) restartScheduler();
+        return { content: `Removed '${task}' from schedule. Config saved.` };
+      },
+    },
+    {
+      name: "craig_schedule_update",
+      description: "Update the cron expression or prompt for an existing task.",
+      parameters: {
+        task: { type: "string", description: "Task name to update" },
+        cron: { type: "string", description: "New cron expression (optional — keep current if empty)" },
+        prompt: { type: "string", description: "New custom prompt (optional — keep current if empty)" },
+      },
+      handler: async ({ task, cron, prompt }) => {
+        if (!config || !config.schedule[task]) {
+          return { content: `Task '${task}' not found. Use craig_schedule_add to create it.` };
+        }
+        if (cron) config.schedule[task] = cron;
+        if (prompt) config.prompts[task] = prompt;
+        saveConfig(config.path, config);
+        if (enabled) restartScheduler();
+        return { content: `Updated '${task}'. Config saved to ${config.path}` };
       },
     },
   ],
@@ -144,12 +210,10 @@ const session = await joinSession({
  * Uses the prompt template from config, or a sensible default.
  */
 function buildPrompt(cfg, taskName) {
-  // User-defined prompt template takes priority
   if (cfg.prompts?.[taskName]) {
     return cfg.prompts[taskName];
   }
 
-  // Default prompts for well-known task types
   const repo = cfg.repo || ".";
   const defaults = {
     security_scan: `Run a security scan on ${repo}. Create GitHub issues for any CRITICAL or HIGH findings. Tag results as craig-memory in the session store.`,
@@ -165,12 +229,19 @@ function buildPrompt(cfg, taskName) {
   return defaults[taskName] || `Run the '${taskName}' task on ${repo}. Tag results as craig-memory.`;
 }
 
-// Auto-enable if config says so
-if (config?.enabled) {
+/** Stop the current scheduler (if running) and start a new one from config. */
+function restartScheduler() {
+  if (scheduler) scheduler.stop();
   scheduler = new CraigScheduler(config.schedule, async (taskName, prompt) => {
+    const fullPrompt = buildPrompt(config, taskName);
     await session.log(`🤖 Craig: running scheduled task '${taskName}'`, { ephemeral: true });
-    await session.send({ prompt });
+    await session.send({ prompt: fullPrompt });
   });
   scheduler.start();
+}
+
+// Auto-enable if config says so
+if (config?.enabled) {
+  restartScheduler();
   enabled = true;
 }
