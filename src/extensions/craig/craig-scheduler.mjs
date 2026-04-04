@@ -56,8 +56,9 @@ export class CraigScheduler {
         const targetTime = new Date(expr.slice(5).trim());
         const delayMs = targetTime.getTime() - Date.now();
         if (delayMs <= 0) {
-          // Already past — fire immediately
-          this.fireTask(taskName, true);
+          // Already past — fire after a short delay to let startup complete
+          const timer = setTimeout(() => this.fireTask(taskName, true), 1000);
+          this.timers.set(taskName, timer);
           continue;
         }
         const timer = setTimeout(() => this.fireTask(taskName, true), delayMs);
