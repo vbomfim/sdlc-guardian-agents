@@ -58,7 +58,7 @@ const session = await joinSession({
     {
       name: "craig_enable",
       description: "Enable Craig's scheduled tasks for this session",
-      parameters: {},
+      parameters: { type: "object", properties: {} },
       handler: async () => {
         if (!config) {
           // Auto-init config on first enable
@@ -82,7 +82,7 @@ const session = await joinSession({
     {
       name: "craig_disable",
       description: "Disable Craig's scheduled tasks for this session",
-      parameters: {},
+      parameters: { type: "object", properties: {} },
       handler: async () => {
         if (!enabled) {
           return { content: "Craig is not enabled." };
@@ -103,7 +103,7 @@ const session = await joinSession({
     {
       name: "craig_status",
       description: "Show Craig's current state: enabled/disabled, scheduled tasks, last runs",
-      parameters: {},
+      parameters: { type: "object", properties: {} },
       handler: async () => {
         if (!config) {
           return { content: "Craig: no config loaded." };
@@ -124,7 +124,11 @@ const session = await joinSession({
       name: "craig_run",
       description: "Run a Craig task immediately (by name)",
       parameters: {
-        task: { type: "string", description: "Task name from craig.config.yaml" },
+        type: "object",
+        properties: {
+          task: { type: "string", description: "Task name from craig.config.yaml" },
+        },
+        required: ["task"],
       },
       handler: async ({ task }) => {
         if (!config) {
@@ -144,9 +148,13 @@ const session = await joinSession({
       name: "craig_schedule_add",
       description: "Add a new scheduled task. Provide task name, cron expression, and optional custom prompt.",
       parameters: {
-        task: { type: "string", description: "Task name (e.g., security_scan, my_weekly_check)" },
-        cron: { type: "string", description: "Cron expression (e.g., '0 8 * * 1' for Monday 8 AM) or 'on_push'" },
-        prompt: { type: "string", description: "Optional custom prompt. If omitted, Craig uses a default prompt for known task types." },
+        type: "object",
+        properties: {
+          task: { type: "string", description: "Task name (e.g., security_scan, my_weekly_check)" },
+          cron: { type: "string", description: "Cron expression (e.g., '0 8 * * 1' for Monday 8 AM) or 'on_push'" },
+          prompt: { type: "string", description: "Optional custom prompt. If omitted, Craig uses a default prompt for known task types." },
+        },
+        required: ["task", "cron"],
       },
       handler: async ({ task, cron, prompt }) => {
         if (!config) {
@@ -167,7 +175,11 @@ const session = await joinSession({
       name: "craig_schedule_remove",
       description: "Remove a scheduled task by name.",
       parameters: {
-        task: { type: "string", description: "Task name to remove" },
+        type: "object",
+        properties: {
+          task: { type: "string", description: "Task name to remove" },
+        },
+        required: ["task"],
       },
       handler: async ({ task }) => {
         if (!config) {
@@ -187,9 +199,13 @@ const session = await joinSession({
       name: "craig_schedule_update",
       description: "Update the cron expression or prompt for an existing task.",
       parameters: {
-        task: { type: "string", description: "Task name to update" },
-        cron: { type: "string", description: "New cron expression (optional — keep current if empty)" },
-        prompt: { type: "string", description: "New custom prompt (optional — keep current if empty)" },
+        type: "object",
+        properties: {
+          task: { type: "string", description: "Task name to update" },
+          cron: { type: "string", description: "New cron expression (optional — keep current if empty)" },
+          prompt: { type: "string", description: "New custom prompt (optional — keep current if empty)" },
+        },
+        required: ["task"],
       },
       handler: async ({ task, cron, prompt }) => {
         if (!config || !config.schedule[task]) {
