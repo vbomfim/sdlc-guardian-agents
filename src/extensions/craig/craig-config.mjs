@@ -45,7 +45,6 @@ export function loadConfig(configPath) {
 
   return {
     path: configPath,
-    enabled: config.enabled === "true" || config.enabled === true,
     repo: config.repo || ".",
     schedule: config.schedule || {},
     prompts: config.prompts || {},
@@ -60,7 +59,6 @@ export function loadConfig(configPath) {
  */
 export function initConfig(configPath = DEFAULT_CONFIG_PATH) {
   const defaultConfig = {
-    enabled: false,
     repo: ".",
     schedule: {},
     prompts: {},
@@ -73,11 +71,10 @@ export function initConfig(configPath = DEFAULT_CONFIG_PATH) {
  * Save config back to disk as YAML.
  *
  * @param {string} configPath
- * @param {{ enabled: boolean, repo: string, schedule: Record<string, string>, prompts: Record<string, string> }} config
+ * @param {{ repo: string, schedule: Record<string, string>, prompts: Record<string, string> }} config
  */
 export function saveConfig(configPath, config) {
   const lines = [];
-  lines.push(`enabled: ${config.enabled}`);
   lines.push(`repo: ${config.repo}`);
 
   lines.push("schedule:");

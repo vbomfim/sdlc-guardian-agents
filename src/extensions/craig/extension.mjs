@@ -40,17 +40,11 @@ const session = await joinSession({
 
       config = loadConfig(configPath);
 
-      // Auto-enable if config says so
-      if (config.enabled) {
-        restartScheduler();
-        enabled = true;
-      }
-
       return {
         additionalContext:
           `Craig (scheduled tasks) loaded config from ${configPath}. ` +
           `${Object.keys(config.schedule).length} task(s) configured. ` +
-          `Craig is ${config.enabled ? "enabled" : "disabled"}. ` +
+          `Craig is disabled. ` +
           `Say 'craig enable' to start scheduled tasks, 'craig disable' to stop.`,
       };
     },
@@ -68,22 +62,19 @@ const session = await joinSession({
       parameters: { type: "object", properties: {} },
       handler: async () => {
         if (!config) {
-          // Auto-init config on first enable
           config = initConfig();
           await session.log(`🤖 Craig: created config at ${config.path}`, { ephemeral: true });
         }
         if (enabled) {
-          return { content: "Craig is already enabled." };
+          return { content: "Craig is already enabled in this session." };
         }
         enabled = true;
-        config.enabled = true;
-        saveConfig(config.path, config);
         restartScheduler();
         const taskList = Object.entries(config.schedule)
           .map(([name, cron]) => `  ${name}: ${cron}`)
           .join("\n") || "  (none — use craig_schedule_add to add tasks)";
         await session.log(`🤖 Craig enabled. ${scheduler?.taskCount ?? 0} task(s) scheduled.`, { ephemeral: true });
-        return { content: `Craig enabled. Config: ${config.path}\nScheduled tasks:\n${taskList}` };
+        return { content: `Craig enabled for this session. Config: ${config.path}\nScheduled tasks:\n${taskList}` };
       },
     },
     {
@@ -92,17 +83,13 @@ const session = await joinSession({
       parameters: { type: "object", properties: {} },
       handler: async () => {
         if (!enabled) {
-          return { content: "Craig is not enabled." };
+          return { content: "Craig is not enabled in this session." };
         }
         if (scheduler) {
           scheduler.stop();
           scheduler = null;
         }
         enabled = false;
-        if (config) {
-          config.enabled = false;
-          saveConfig(config.path, config);
-        }
         await session.log("🤖 Craig disabled. Scheduled tasks stopped.", { ephemeral: true });
         return { content: "Craig disabled. All scheduled tasks stopped." };
       },
