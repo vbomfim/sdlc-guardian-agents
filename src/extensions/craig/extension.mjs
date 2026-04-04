@@ -234,11 +234,8 @@ function buildPrompt(cfg, taskName) {
     `Scheduled: ${time}`,
     ``,
     `Insert this into your todos table as a pending task and work on it when ready.`,
-    `If you're busy with something else, finish that first — this is a background task.`,
     ``,
-    `Prompt: ${taskPrompt}`,
-    ``,
-    `When done, tag results as craig-memory in the session store.`,
+    `${taskPrompt}`,
   ].join("\n");
 }
 
