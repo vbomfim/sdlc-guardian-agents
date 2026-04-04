@@ -248,11 +248,21 @@ function buildPrompt(cfg, taskName) {
 /** Stop the current scheduler (if running) and start a new one from config. */
 function restartScheduler() {
   if (scheduler) scheduler.stop();
-  scheduler = new CraigScheduler(config.schedule, async (taskName, prompt) => {
-    const fullPrompt = buildPrompt(config, taskName);
-    await session.log(`🤖 Craig: running scheduled task '${taskName}'`, { ephemeral: true });
-    await session.send({ prompt: fullPrompt });
-  });
+  scheduler = new CraigScheduler(
+    config.schedule,
+    async (taskName, prompt) => {
+      const fullPrompt = buildPrompt(config, taskName);
+      await session.log(`🤖 Craig: running scheduled task '${taskName}'`, { ephemeral: true });
+      await session.send({ prompt: fullPrompt });
+    },
+    (taskName) => {
+      // One-shot task completed — remove from config and save
+      delete config.schedule[taskName];
+      delete config.prompts[taskName];
+      saveConfig(config.path, config);
+      session.log(`🤖 Craig: one-shot task '${taskName}' completed and removed from schedule.`, { ephemeral: true });
+    },
+  );
   scheduler.start();
 }
 

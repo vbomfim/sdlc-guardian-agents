@@ -103,6 +103,39 @@ describe("CraigScheduler", () => {
     assert.equal(scheduler.timers.size, 0);
   });
 
+  it("one-shot task in the past fires immediately", async () => {
+    const past = new Date(Date.now() - 60_000).toISOString();
+    let completed = null;
+    scheduler = new CraigScheduler(
+      { past_task: `once:${past}` },
+      async (name) => { dispatched.push(name); },
+      (name) => { completed = name; },
+    );
+    scheduler.start();
+    // Give it a tick to fire
+    await new Promise((r) => setTimeout(r, 50));
+    assert.ok(dispatched.includes("past_task"), "past one-shot should fire immediately");
+  });
+
+  it("one-shot task in the future sets a timer", () => {
+    const future = new Date(Date.now() + 600_000).toISOString();
+    scheduler = new CraigScheduler(
+      { future_task: `once:${future}` },
+      async () => {},
+    );
+    scheduler.start();
+    assert.ok(scheduler.timers.has("future_task"), "should have a timer for future one-shot");
+    scheduler.stop();
+  });
+
+  it("getNextRun returns ISO time for one-shot tasks", () => {
+    scheduler = new CraigScheduler(
+      { task1: "once:2026-04-04T13:00" },
+      async () => {},
+    );
+    assert.equal(scheduler.getNextRun("task1"), "2026-04-04T13:00");
+  });
+
   it("getLastRun returns undefined before any run", () => {
     scheduler = new CraigScheduler({ task1: "* * * * *" }, async () => {});
     assert.equal(scheduler.getLastRun("task1"), undefined);

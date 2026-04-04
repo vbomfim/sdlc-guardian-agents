@@ -18,17 +18,21 @@
 
 export class CraigScheduler {
   /**
-   * @param {Record<string, string>} schedule — task name → cron expression
+   * @param {Record<string, string>} schedule — task name → cron expression or "once:ISO" or "on_push"
    * @param {TaskDispatcher} dispatch — called when a task is due
+   * @param {(taskName: string) => void} [onOneShotComplete] — called after a one-shot task fires (for cleanup)
    */
-  constructor(schedule, dispatch) {
+  constructor(schedule, dispatch, onOneShotComplete) {
     /** @type {Record<string, string>} */
     this.schedule = schedule;
 
     /** @type {TaskDispatcher} */
     this.dispatch = dispatch;
 
-    /** @type {Map<string, ReturnType<typeof setInterval>>} */
+    /** @type {((taskName: string) => void) | undefined} */
+    this.onOneShotComplete = onOneShotComplete;
+
+    /** @type {Map<string, ReturnType<typeof setInterval> | ReturnType<typeof setTimeout>>} */
     this.timers = new Map();
 
     /** @type {Map<string, string>} last run ISO timestamp per task */
@@ -42,33 +46,60 @@ export class CraigScheduler {
     return this.timers.size;
   }
 
-  /** Start all cron timers. Check every 60 seconds if any task is due. */
+  /** Start all timers. Cron tasks check every 60s. One-shot tasks use setTimeout. */
   start() {
-    for (const [taskName, cron] of Object.entries(this.schedule)) {
-      if (cron === "on_push") continue; // Event-driven, not scheduled
+    for (const [taskName, expr] of Object.entries(this.schedule)) {
+      if (expr === "on_push") continue;
 
-      // Check every 60 seconds if this task's cron matches the current time
+      // One-shot: "once:2026-04-04T13:00" → setTimeout to that time
+      if (expr.startsWith("once:")) {
+        const targetTime = new Date(expr.slice(5).trim());
+        const delayMs = targetTime.getTime() - Date.now();
+        if (delayMs <= 0) {
+          // Already past — fire immediately
+          this.fireTask(taskName, true);
+          continue;
+        }
+        const timer = setTimeout(() => this.fireTask(taskName, true), delayMs);
+        this.timers.set(taskName, timer);
+        continue;
+      }
+
+      // Cron: check every 60 seconds
       const timer = setInterval(() => {
-        if (this.running.get(taskName)) return; // Skip if already running
-
-        if (cronMatchesNow(cron)) {
-          this.running.set(taskName, true);
-          const prompt = `[Craig scheduled task: ${taskName}]`; // Extension builds the real prompt
-          Promise.resolve(this.dispatch(taskName, prompt))
-            .then(() => {
-              this.lastRuns.set(taskName, new Date().toISOString());
-            })
-            .catch((err) => {
-              console.error(`Craig: task '${taskName}' failed:`, err?.message ?? err);
-            })
-            .finally(() => {
-              this.running.set(taskName, false);
-            });
+        if (this.running.get(taskName)) return;
+        if (cronMatchesNow(expr)) {
+          this.fireTask(taskName, false);
         }
       }, 60_000);
 
       this.timers.set(taskName, timer);
     }
+  }
+
+  /**
+   * Fire a task. If oneShot is true, clean up timer and notify for removal.
+   * @param {string} taskName
+   * @param {boolean} oneShot
+   */
+  fireTask(taskName, oneShot) {
+    if (this.running.get(taskName)) return;
+    this.running.set(taskName, true);
+    const prompt = `[Craig scheduled task: ${taskName}]`;
+    Promise.resolve(this.dispatch(taskName, prompt))
+      .then(() => {
+        this.lastRuns.set(taskName, new Date().toISOString());
+        if (oneShot) {
+          this.timers.delete(taskName);
+          this.onOneShotComplete?.(taskName);
+        }
+      })
+      .catch((err) => {
+        console.error(`Craig: task '${taskName}' failed:`, err?.message ?? err);
+      })
+      .finally(() => {
+        this.running.set(taskName, false);
+      });
   }
 
   /** Stop all timers. */
@@ -87,10 +118,10 @@ export class CraigScheduler {
 
   /** @returns {string | undefined} Human-readable next run, or undefined */
   getNextRun(taskName) {
-    const cron = this.schedule[taskName];
-    if (!cron || cron === "on_push") return undefined;
-    // Simple approximation — return the cron expression itself
-    return cron;
+    const expr = this.schedule[taskName];
+    if (!expr || expr === "on_push") return undefined;
+    if (expr.startsWith("once:")) return expr.slice(5).trim();
+    return expr;
   }
 }
 
