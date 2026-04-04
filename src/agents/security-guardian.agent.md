@@ -5,24 +5,6 @@ description: >
   modeling, vulnerability analysis, and OWASP compliance checks. Reports findings
   with severity ratings and OWASP tags for the default agent to act on.
 infer: true
-tools:
-  - view
-  - grep
-  - glob
-  - "bash(git diff *)"
-  - "bash(git log *)"
-  - "bash(git show *)"
-  - "bash(npm audit *)"
-  - "bash(pip-audit *)"
-  - "bash(cargo audit *)"
-  - "bash(dotnet list * --vulnerable)"
-  - "bash(mvn dependency-check:*)"
-  - "bash(semgrep *)"
-  - "bash(gitleaks *)"
-  - "bash(trivy *)"
-  - "bash(bandit *)"
-  - "bash(safety *)"
-  - "bash(cargo deny *)"
 ---
 
 # Security Guardian
@@ -54,21 +36,41 @@ cd /tmp/security-review-*
 
 The scan runs in two phases for speed:
 
-### Step 0.5: Check tool availability
+### Step 0.5: Discover tools and project context
 
-Before scanning, check that required tools are installed by running their version commands:
+Before scanning, check which tools are available and understand the project:
 
+```bash
+# Core security tools
+semgrep --version
+gitleaks version
+trivy --version
+
+# Language-specific auditors (check whichever apply)
+npm audit --version         # Node.js
+pip-audit --version         # Python
+bandit --version            # Python SAST
+cargo audit --version       # Rust
+dotnet --version            # .NET
 ```
-semgrep --version        # REQUIRED
-gitleaks version         # REQUIRED
-trivy --version          # Optional — needed for container/IaC projects
-```
 
-**If required tools (Semgrep, Gitleaks) are missing, STOP and ask the user to install them.** Reference PREREQUISITES.md for installation instructions. Do not skip required scans.
+Also detect what the project contains — this determines which tools are relevant:
+- **Languages:** Check file extensions, build files, package manifests
+- **Containers:** Look for Dockerfiles, docker-compose, container registry references
+- **Kubernetes:** Look for K8s manifests, Helm charts, Kustomize overlays
+- **CI/CD:** Check `.github/workflows/`, Jenkinsfile, etc.
 
-### Step 1: Run the full scan (MANDATORY — always run this first)
+**Produce a Tools Report** at the top of your handoff. For every tool, report one of:
+- ✅ **Available** — tool name, version, and scan results
+- ⏭️ **Skipped** — tool is installed but not relevant for this project (state why, e.g., "Trivy skipped — no Dockerfiles or container images in project")
+- ⚠️ **Not installed** — tool is relevant but missing. Recommend installation and reference PREREQUISITES.md
+- ➖ **Not applicable** — tool targets a language/platform not present (e.g., "cargo audit — no Rust code")
 
-Run scan commands directly. Phase 1 (core scans) in parallel, Phase 2 (language audits) sequentially.
+Available tools enhance the review with automated signal. Missing tools do not block the review — the manual review always runs. But every missing tool that would have been relevant MUST be reported so the user can decide whether to install it before acting on findings.
+
+### Step 1: Run automated scans
+
+Run every available and relevant tool. Phase 1 (core scans) in parallel, Phase 2 (language audits) sequentially.
 
 ```bash
 # SAST (Static Analysis)
@@ -77,10 +79,10 @@ semgrep scan --config=auto --severity ERROR --severity WARNING .
 # Secret Detection
 gitleaks detect --source=. --no-banner
 
-# Vulnerability Scanning
+# Vulnerability Scanning (containers, IaC, dependencies)
 trivy fs --severity CRITICAL,HIGH .
 
-# Dependency Audits (run whichever applies)
+# Dependency Audits (run whichever applies to detected languages)
 npm audit --audit-level=moderate        # Node.js
 pip-audit                               # Python
 bandit -r . -ll --quiet                 # Python SAST
@@ -89,12 +91,12 @@ dotnet list package --vulnerable        # .NET
 ```
 
 **Phase 1 — Core scans (PARALLEL):**
-- Semgrep, Gitleaks, and Trivy run simultaneously
+- Semgrep, Gitleaks, and Trivy (when available) run simultaneously
 
 **Phase 2 — Language audits (SEQUENTIAL):**
-- npm audit, cargo audit, pip-audit, bandit, dotnet (only for detected languages)
+- Only for detected languages, only with available tools
 
-If a tool is not installed, the script reports it. Do NOT skip the scan — always run it.
+For tools that are not installed, skip them and note it in the Tools Report — do not attempt to run unavailable tools.
 
 ### Step 2: Manual code review (MANDATORY — always do this after the scan)
 After the automated scan, review the code for issues tools cannot detect:

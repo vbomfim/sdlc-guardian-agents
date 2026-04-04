@@ -1,13 +1,13 @@
 /**
- * UAT State Machine — pure, testable logic for the SDLC Guardian extension.
+ * SDLC Pipeline State Machine — pure, testable logic for the Guardian extension.
  *
  * This module owns every state variable and transition rule that drives the
- * post-implementation UAT loop and review-gate boundary.  It is deliberately
- * free of Copilot SDK imports so that `node --test` can exercise it without
- * bootstrapping a live session.
+ * full SDLC pipeline: PO gate, post-implementation UAT loop, and review-gate
+ * boundary.  It is deliberately free of Copilot SDK imports so that
+ * `node --test` can exercise it without bootstrapping a live session.
  *
- * The live extension (extension.mjs) imports `UatStateMachine` and delegates
- * to it from the `onPostToolUse` hook.
+ * The live extension (extension.mjs) imports `SdlcStateMachine` and delegates
+ * from the hooks.
  *
  * @module uat-state-machine
  */
@@ -116,6 +116,27 @@ export function isReviewGuardianTask(toolArgs) {
   return getReviewGuardianType(toolArgs) !== null;
 }
 
+/**
+ * Returns true when the tool args describe a PO Guardian task.
+ * `agent_type` is authoritative when present; `name` is a fallback.
+ */
+export function isPOGuardianTask(toolArgs) {
+  const agentType = normalizePath(toolArgs?.agent_type);
+  if (agentType) return agentType === "Product Owner Guardian";
+
+  const name = normalizePath(toolArgs?.name);
+  return name === "po-guardian" || name === "product-owner-guardian";
+}
+
+/**
+ * Returns the canonical Guardian type for any Guardian task, or `null`.
+ */
+export function getGuardianType(toolArgs) {
+  if (isDeveloperGuardianTask(toolArgs)) return "Developer Guardian";
+  if (isPOGuardianTask(toolArgs)) return "Product Owner Guardian";
+  return getReviewGuardianType(toolArgs);
+}
+
 // ── Context builders ───────────────────────────────────────────────────────
 
 /**
@@ -168,18 +189,54 @@ export function buildPairFixContinuationContext(
   return lines.join("\n");
 }
 
+// ── PO gate context builders ───────────────────────────────────────────────
+
+export function buildPoGateContext() {
+  return [
+    "PO Guardian completed the specification.",
+    "Present the FULL ticket to the user — every section, every component, every acceptance criterion, every open question.",
+    "Do NOT summarize or abbreviate. The user must see the complete spec before implementation starts.",
+    "Wait for the user to confirm, request changes, or answer open questions.",
+    "Only invoke the Developer Guardian after the user explicitly approves.",
+  ].join("\n");
+}
+
+export function buildDevWithoutPoWarning() {
+  return [
+    "⚠️ Developer Guardian was invoked but no PO Guardian ticket exists in this session.",
+    "The pre-implementation gate requires a specification before coding.",
+    "Ask the user: is there an existing ticket/issue for this work? If not, invoke PO Guardian first.",
+  ].join("\n");
+}
+
+// ── Guardian completion context builders ───────────────────────────────────
+
+export function buildGuardianCompletionContext(guardianType) {
+  switch (guardianType) {
+    case "QA Guardian":
+      return "QA Guardian completed. Read the test report with read_agent. Present findings and coverage gaps to the user.";
+    case "Security Guardian":
+      return "Security Guardian completed. Read findings with read_agent. Present the Tools Report and all findings to the user — do not filter or summarize away warnings.";
+    case "Code Review Guardian":
+      return "Code Review Guardian completed. Read findings with read_agent. Present all findings to the user.";
+    default:
+      return `${guardianType} completed. Read the report with read_agent and present results to the user.`;
+  }
+}
+
 // ── State machine ──────────────────────────────────────────────────────────
 
 /** Maximum pair-fix iterations before the extension advises escalation. */
 export const MAX_UAT_PAIR_FIX_ITERATIONS = 3;
 
 /**
- * Encapsulates all mutable UAT-loop state and the transition logic that the
+ * Encapsulates all mutable pipeline state and the transition logic that the
  * `onPostToolUse` hook delegates to.
  *
  * Lifecycle:
+ *  0. PO Guardian completes → `poGateCompleted = true`, inject spec-presentation context.
  *  1. File edits accumulate in `editedFiles`.
- *  2. First successful Dev Guardian completion → UAT offer, `uatOfferInjected = true`.
+ *  2. First successful Dev Guardian completion → check PO gate, then UAT offer.
  *  3. Subsequent Dev Guardian completions → pair-fix continuation (clears
  *     stale gate tracking so the next review cycle starts fresh).
  *  4. All three required review Guardians succeed (after UAT offer) →
@@ -197,6 +254,9 @@ export class UatStateMachine {
   constructor() {
     /** @type {Set<string>} Files edited/created/patched in the current feature. */
     this.editedFiles = new Set();
+
+    /** True once PO Guardian has completed for the current feature. */
+    this.poGateCompleted = false;
 
     /** True once the initial UAT offer has been injected for the current feature. */
     this.uatOfferInjected = false;
@@ -277,6 +337,7 @@ export class UatStateMachine {
    * events arrive before the task-completion event.
    */
   consumePendingReset() {
+    this.poGateCompleted = false;
     this.uatOfferInjected = false;
     this.uatPairFixCount = 0;
     this.pendingFeatureReset = false;
@@ -305,50 +366,48 @@ export class UatStateMachine {
       this.trackFile(filePath);
     }
 
+    // Only task tool completions matter for pipeline transitions.
+    if (input.toolName !== "task") {
+      return undefined;
+    }
+
+    // ── PO Guardian completion ────────────────────────────────────────
+    if (isPOGuardianTask(input.toolArgs)) {
+      const resultType = input.toolResult?.resultType;
+      if (resultType && resultType !== "success") {
+        return undefined;
+      }
+      this.poGateCompleted = true;
+      return { additionalContext: buildPoGateContext() };
+    }
+
     // ── Review-gate boundary detection ────────────────────────────────
-    // The review gate requires ALL three Guardians (QA, Security, Code
-    // Review) to succeed.  Individual successes are recorded; failures
-    // taint the gate.  `pendingFeatureReset` is armed only when every
-    // required Guardian has succeeded and none have failed/cancelled.
-    //
-    // If the gate is tainted, the orchestrator must pair-fix and re-run
-    // the full review pipeline.  A pair-fix Dev Guardian completion
-    // clears the gate tracking so the next review cycle starts clean.
-    const reviewType = input.toolName === "task"
-      ? getReviewGuardianType(input.toolArgs)
-      : null;
+    const reviewType = getReviewGuardianType(input.toolArgs);
 
     if (reviewType !== null) {
       const resultType = input.toolResult?.resultType;
 
       if (resultType && resultType !== "success") {
-        // Failed or cancelled — taint the gate, do NOT arm reset.
         this.reviewGateTainted = true;
-        // Disarm any already-armed pass state so the boundary cannot
-        // be consumed by a subsequent Dev Guardian completion.
         this.pendingFeatureReset = false;
         this.baselineFiles = null;
         return undefined;
       }
 
-      // Success (explicit or legacy missing resultType).
+      // Success — record it and inject completion context.
       if (this.uatOfferInjected) {
         this.reviewGateSucceeded.add(reviewType);
 
-        // Arm reset only when the FULL gate has passed.
         if (this.isReviewGatePassed) {
           this.pendingFeatureReset = true;
           this.baselineFiles = new Set(this.editedFiles);
         }
       }
-      return undefined;
+      return { additionalContext: buildGuardianCompletionContext(reviewType) };
     }
 
-    // ── Only successful Developer Guardian task completions proceed ────
-    if (
-      input.toolName !== "task" ||
-      !isDeveloperGuardianTask(input.toolArgs)
-    ) {
+    // ── Developer Guardian completion ─────────────────────────────────
+    if (!isDeveloperGuardianTask(input.toolArgs)) {
       return undefined;
     }
 
@@ -359,11 +418,15 @@ export class UatStateMachine {
       return undefined;
     }
 
+    // ── PO gate check ────────────────────────────────────────────────
+    // If Developer Guardian completes but PO gate hasn't been satisfied,
+    // warn the orchestrator.  This catches the case where someone
+    // invokes Dev Guardian directly without going through PO first.
+    if (!this.poGateCompleted && !this.uatOfferInjected) {
+      return { additionalContext: buildDevWithoutPoWarning() };
+    }
+
     // ── Feature-boundary reset (baseline-subtract) ───────────────────
-    // If the review gate has been passed, this Dev Guardian completion
-    // starts a new feature.  `consumePendingReset()` subtracts the
-    // baseline from `editedFiles`, preserving any new-feature files
-    // that propagated from the sub-agent.
     let crossedBoundary = false;
     if (this.pendingFeatureReset) {
       this.consumePendingReset();
@@ -372,11 +435,6 @@ export class UatStateMachine {
 
     const fileCount = this.editedFiles.size;
 
-    // Skip UAT only when we are confident no files were changed AND
-    // we did NOT just cross a feature boundary.  After a boundary
-    // crossing the Dev Guardian definitely produced a new feature —
-    // fileCount may be zero only because sub-agent edit/create events
-    // did not propagate to this hook.
     if (fileCount === 0 && !crossedBoundary) {
       return undefined;
     }
@@ -390,8 +448,6 @@ export class UatStateMachine {
     }
 
     this.uatPairFixCount += 1;
-    // Pair-fix means code changed — stale review results are invalid.
-    // Clear gate tracking so the next review cycle starts fresh.
     this.resetReviewGate();
     return {
       additionalContext: buildPairFixContinuationContext(

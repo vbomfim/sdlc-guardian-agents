@@ -8,36 +8,40 @@ description: >
 
 # Platform Guardian Tools
 
-## Required Tools (must have — stop and ask user to install if missing)
+## Tool Inventory
+
+Check each tool's availability and relevance before scanning. Report status in the Tools Report.
+
+### Core Kubernetes Tools
 
 | Tool | Check Command | Purpose |
 |------|--------------|---------|
-| kubectl | `kubectl version --client` | Kubernetes cluster access |
-| kube-bench | `kube-bench version` | CIS Benchmark compliance |
-| Trivy | `trivy --version` | IaC and image vulnerability scanning |
+| kubectl | `kubectl version --client` | Kubernetes cluster access and manifest inspection |
+| kube-bench | `kube-bench version` | CIS Benchmark compliance scanning |
+| Trivy | `trivy --version` | IaC and container image vulnerability scanning |
 
-## Recommended Tools (valuable — note if missing but don't block)
+### Additional Audit Tools
 
 | Tool | Check Command | Purpose |
 |------|--------------|---------|
-| kube-score | `kube-score version` | Workload best practices |
-| Polaris | `polaris version` | Configuration validation |
-| kubeaudit | `kubeaudit version` | Security audit |
-| Helm | `helm version` | Chart management |
+| kube-score | `kube-score version` | Workload best practices validation |
+| Polaris | `polaris version` | Configuration validation against policies |
+| kubeaudit | `kubeaudit version` | Security audit of K8s resources |
+| Helm | `helm version` | Chart management and template inspection |
 
-## Scan Commands (run in parallel)
+## Scan Commands (run in parallel, when available)
 
 ```
-# CIS Benchmark
+# CIS Benchmark (requires live cluster context)
 kube-bench run --json
 
-# Workload best practices
+# Workload best practices (static manifests)
 find . -name "*.yaml" -o -name "*.yml" | xargs kube-score score
 
-# Configuration validation
+# Configuration validation (static manifests)
 polaris audit --audit-path . --format pretty
 
-# Security audit
+# Security audit (static manifests)
 find . -name "*.yaml" -o -name "*.yml" | xargs -I{} kubeaudit all -f {}
 
 # IaC vulnerabilities

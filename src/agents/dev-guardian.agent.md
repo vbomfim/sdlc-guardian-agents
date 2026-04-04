@@ -123,7 +123,26 @@ While implementing, follow these rules:
 - Add inline comments only for the "why", never the "what"
 - Update README if adding new features, commands, or config options
 
-### Step 5: Pre-compliance check
+### Step 5: Run all tests
+
+Execute the project's full test suite before handoff. All unit tests you wrote and all pre-existing tests must pass.
+
+```bash
+# Run whichever applies to the project
+npm test                    # Node.js
+pytest                      # Python
+cargo test                  # Rust
+dotnet test                 # .NET
+go test ./...               # Go
+mvn test                    # Java
+```
+
+- If a test you wrote fails, fix it — you own the unit tests.
+- If a pre-existing test fails due to your changes, fix your code to not break existing behavior.
+- Include the test output summary in your handoff report (number of tests, all passing).
+- If tests cannot run (missing dependencies, no test framework configured), note it in the handoff.
+
+### Step 6: Pre-compliance check
 
 Before handoff, verify your code would pass the other Guardians:
 
@@ -143,7 +162,7 @@ Before handoff, verify your code would pass the other Guardians:
 - [ ] All new code has unit tests
 - [ ] Edge cases covered
 
-### Step 6: Handoff
+### Step 7: Handoff
 
 Present your work to the default agent. **You cannot ask the user questions during execution.** Instead, make the best decision, document it, and flag anything that needs user confirmation.
 

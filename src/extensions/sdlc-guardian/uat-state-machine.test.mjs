@@ -22,10 +22,15 @@ import {
   isDeveloperGuardianTask,
   isReviewGuardianTask,
   getReviewGuardianType,
+  isPOGuardianTask,
+  getGuardianType,
   // context builders
   buildStartupContext,
   buildPostImplementationContext,
   buildPairFixContinuationContext,
+  buildPoGateContext,
+  buildDevWithoutPoWarning,
+  buildGuardianCompletionContext,
 } from "./uat-state-machine.mjs";
 
 // ── Test-event factories ──────────────────────────────────────────────────
@@ -363,6 +368,9 @@ describe("UatStateMachine", () => {
 
   beforeEach(() => {
     sm = new UatStateMachine();
+    // Most tests focus on UAT/review behavior — pre-satisfy the PO gate.
+    // PO gate enforcement has its own describe block below.
+    sm.poGateCompleted = true;
   });
 
   // ─────────────────────────────────────────────────────────────────────
@@ -914,6 +922,181 @@ describe("UatStateMachine", () => {
     it("task event with undefined toolArgs does not throw", () => {
       const result = sm.handlePostToolUse({ toolName: "task", toolArgs: undefined });
       assert.equal(result, undefined);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────
+  // PO gate enforcement
+  // ─────────────────────────────────────────────────────────────────────
+  describe("PO gate enforcement", () => {
+    beforeEach(() => {
+      sm = new UatStateMachine();
+      // Do NOT set poGateCompleted — test the gate
+    });
+
+    it("warns when Dev Guardian completes without PO gate", () => {
+      sm.handlePostToolUse(editEvent("src/app.ts"));
+      const result = sm.handlePostToolUse(devGuardianSuccess());
+      assert.ok(result, "expected a warning");
+      assert.ok(result.additionalContext.includes("no PO Guardian ticket"));
+      assert.ok(!sm.uatOfferInjected, "should not offer UAT without PO");
+    });
+
+    it("PO Guardian completion sets poGateCompleted", () => {
+      const result = sm.handlePostToolUse({
+        toolName: "task",
+        toolArgs: { agent_type: "Product Owner Guardian" },
+        toolResult: { resultType: "success" },
+      });
+      assert.ok(result, "expected PO gate context");
+      assert.ok(result.additionalContext.includes("FULL ticket"));
+      assert.ok(sm.poGateCompleted);
+    });
+
+    it("PO Guardian by name also works", () => {
+      const result = sm.handlePostToolUse({
+        toolName: "task",
+        toolArgs: { name: "po-guardian" },
+        toolResult: { resultType: "success" },
+      });
+      assert.ok(result);
+      assert.ok(sm.poGateCompleted);
+    });
+
+    it("failed PO Guardian does not set poGateCompleted", () => {
+      const result = sm.handlePostToolUse({
+        toolName: "task",
+        toolArgs: { agent_type: "Product Owner Guardian" },
+        toolResult: { resultType: "failed" },
+      });
+      assert.equal(result, undefined);
+      assert.ok(!sm.poGateCompleted);
+    });
+
+    it("Dev Guardian proceeds normally after PO gate", () => {
+      // PO completes
+      sm.handlePostToolUse({
+        toolName: "task",
+        toolArgs: { agent_type: "Product Owner Guardian" },
+        toolResult: { resultType: "success" },
+      });
+
+      // Dev completes with edits
+      sm.handlePostToolUse(editEvent("src/app.ts"));
+      const result = sm.handlePostToolUse(devGuardianSuccess());
+      assert.ok(result);
+      assert.ok(result.additionalContext.includes("UAT checkpoint"));
+      assert.ok(sm.uatOfferInjected);
+    });
+
+    it("PO gate resets after full review gate passes and new feature starts", () => {
+      // Full cycle: PO → Dev → reviews pass → new Dev
+      sm.handlePostToolUse({
+        toolName: "task",
+        toolArgs: { agent_type: "Product Owner Guardian" },
+        toolResult: { resultType: "success" },
+      });
+      sm.handlePostToolUse(editEvent("src/app.ts"));
+      sm.handlePostToolUse(devGuardianSuccess());
+
+      for (const type of REQUIRED_REVIEW_GUARDIANS) {
+        sm.handlePostToolUse(reviewGuardianSuccess(type));
+      }
+      assert.ok(sm.pendingFeatureReset);
+
+      // New Dev Guardian triggers boundary reset — PO gate should be cleared
+      sm.handlePostToolUse(editEvent("src/new-feature.ts"));
+      sm.handlePostToolUse(devGuardianSuccess());
+      assert.ok(!sm.poGateCompleted, "PO gate should reset for new feature");
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Guardian completion hooks
+  // ─────────────────────────────────────────────────────────────────────
+  describe("Guardian completion hooks", () => {
+    it("review Guardian success injects completion context", () => {
+      sm.handlePostToolUse(editEvent("src/app.ts"));
+      sm.handlePostToolUse(devGuardianSuccess());
+
+      const result = sm.handlePostToolUse(reviewGuardianSuccess("Security Guardian"));
+      assert.ok(result, "expected completion context");
+      assert.ok(result.additionalContext.includes("Security Guardian completed"));
+      assert.ok(result.additionalContext.includes("Tools Report"));
+    });
+
+    it("QA Guardian success injects QA-specific context", () => {
+      sm.handlePostToolUse(editEvent("src/app.ts"));
+      sm.handlePostToolUse(devGuardianSuccess());
+
+      const result = sm.handlePostToolUse(reviewGuardianSuccess("QA Guardian"));
+      assert.ok(result);
+      assert.ok(result.additionalContext.includes("QA Guardian completed"));
+      assert.ok(result.additionalContext.includes("coverage gaps"));
+    });
+
+    it("Code Review success injects CR-specific context", () => {
+      sm.handlePostToolUse(editEvent("src/app.ts"));
+      sm.handlePostToolUse(devGuardianSuccess());
+
+      const result = sm.handlePostToolUse(reviewGuardianSuccess("Code Review Guardian"));
+      assert.ok(result);
+      assert.ok(result.additionalContext.includes("Code Review Guardian completed"));
+    });
+
+    it("failed review Guardian does not inject context", () => {
+      sm.handlePostToolUse(editEvent("src/app.ts"));
+      sm.handlePostToolUse(devGuardianSuccess());
+
+      const result = sm.handlePostToolUse({
+        toolName: "task",
+        toolArgs: { agent_type: "Security Guardian" },
+        toolResult: { resultType: "failed" },
+      });
+      assert.equal(result, undefined);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Helper function tests
+  // ─────────────────────────────────────────────────────────────────────
+  describe("isPOGuardianTask", () => {
+    it("matches agent_type 'Product Owner Guardian'", () => {
+      assert.ok(isPOGuardianTask({ agent_type: "Product Owner Guardian" }));
+    });
+
+    it("matches name 'po-guardian'", () => {
+      assert.ok(isPOGuardianTask({ name: "po-guardian" }));
+    });
+
+    it("matches name 'product-owner-guardian'", () => {
+      assert.ok(isPOGuardianTask({ name: "product-owner-guardian" }));
+    });
+
+    it("rejects other agent types", () => {
+      assert.ok(!isPOGuardianTask({ agent_type: "Developer Guardian" }));
+    });
+
+    it("rejects other names", () => {
+      assert.ok(!isPOGuardianTask({ name: "dev-guardian" }));
+    });
+  });
+
+  describe("getGuardianType", () => {
+    it("identifies Developer Guardian", () => {
+      assert.equal(getGuardianType({ agent_type: "Developer Guardian" }), "Developer Guardian");
+    });
+
+    it("identifies PO Guardian", () => {
+      assert.equal(getGuardianType({ agent_type: "Product Owner Guardian" }), "Product Owner Guardian");
+    });
+
+    it("identifies review Guardians", () => {
+      assert.equal(getGuardianType({ agent_type: "Security Guardian" }), "Security Guardian");
+    });
+
+    it("returns null for unknown", () => {
+      assert.equal(getGuardianType({ agent_type: "explore" }), null);
     });
   });
 });

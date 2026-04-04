@@ -4,21 +4,39 @@ This instruction enforces the SDLC Guardian pipeline automatically. The default 
 
 ## Pre-Implementation Gate
 
-**Before any implementation starts, verify a specification exists.**
+**Before any implementation starts, verify ALL prerequisites exist.**
 
 When the user asks to implement, build, code, or fix something — regardless of work type (feature, bug, defect, refactor, enhancement, hotfix):
-1. Check: is there a GitHub issue or PO Guardian ticket for this work?
-2. If **yes** → proceed to Developer Guardian
-3. If **no** → invoke PO Guardian first to create the specification, then proceed
+
+### 1. Verify a git repository exists
+Check that the project has `git init` and a remote configured. If not, set up the repo first — no implementation without version control.
+
+### 2. Verify a specification exists
+Check: is there a GitHub issue or PO Guardian ticket for this work?
+- If **yes** → proceed to step 3
+- If **no** → invoke PO Guardian first to create the specification
 
 Do NOT allow implementation without a specification. Say:
 > "There's no ticket for this yet. Let me invoke the PO Guardian to spec it out first."
+
+### 3. Present the full specification to the user
+After the PO Guardian completes, present the **complete** specification to the user — every section, every component, every acceptance criterion, every open question. Do NOT summarize, abbreviate, or cherry-pick sections. The user must see:
+- All components with their responsibilities and interfaces
+- All acceptance criteria
+- All open questions (and get answers before proceeding)
+- Architecture decisions and trade-offs
+- What is in scope and what is explicitly out of scope
+
+Wait for the user to confirm, request changes, or answer open questions. Only proceed to the Developer Guardian after the user explicitly approves.
+
+### 4. Relay all Guardian notes to the user
+When any Guardian reports notes, warnings, missing tools, assumptions, or open questions, the orchestrator MUST surface them verbatim to the user. Never filter, summarize away, or silently absorb Guardian output. The user is the decision-maker — they need complete information.
 
 ### ⛔ No-Bypass Rule — The Orchestrator Must NOT Judge
 
 The orchestrator (default agent) must NEVER skip the PO Guardian based on its own assessment of the user's description. Specifically:
 
-- **A well-described bug is NOT a ticket.** Even if the user provides detailed reproduction steps, stack traces, and root cause analysis, the PO Guardian must still run. The PO Guardian's 13-section questionnaire captures acceptance criteria, edge cases, security considerations, testing strategy, and scope boundaries that ad-hoc descriptions miss.
+- **A well-described bug is NOT a ticket.** Even if the user provides detailed reproduction steps, stack traces, and root cause analysis, the PO Guardian must still run. The PO Guardian's 18-section questionnaire captures acceptance criteria, quality attributes, security, deployment, accessibility, and scope boundaries that ad-hoc descriptions miss.
 - **The orchestrator's job is process enforcement, not process judgment.** It does not decide whether a description is "good enough" to skip a gate. Every gate runs, every time, for every work type.
 - **Bugs, defects, and fixes follow the same pipeline as features.** The PO Guardian adapts its questionnaire to the work type — it will ask different questions for a bug than for a new feature — but it always runs.
 - **"The user already explained it well" is never a valid reason to skip PO.** The PO Guardian adds structured analysis, edge case discovery, and cross-cutting concern identification that even excellent descriptions lack.
@@ -136,9 +154,17 @@ When the user asks to deploy, release, or push to an environment:
 ```
 💡 Idea
   ↓
-  ├─ No ticket? → PO Guardian (auto)
+  ├─ No repo? → git init + create remote first
   ↓
-🎯 PO Guardian ticket exists
+  ├─ No ticket? → PO Guardian (auto, interactive)
+  ↓
+🎯 PO Guardian creates GitHub issue
+  ↓
+📋 Orchestrator presents FULL spec to user
+  ↓
+  ├─ User confirms → proceed
+  ├─ User requests changes → PO Guardian revises
+  ├─ Open questions → user answers first
   ↓
 👨‍💻 Developer Guardian implements (TDD)
   ↓

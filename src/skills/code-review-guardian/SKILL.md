@@ -8,18 +8,20 @@ description: >
 
 # Code Review Guardian Tools
 
-## Required Tools (per detected language — stop and ask user to install if missing)
+## Tool Inventory
 
-| Tool | Check Command | Purpose | Language |
-|------|--------------|---------|----------|
-| ESLint | `eslint --version` | Style, bugs, complexity | JavaScript/TypeScript |
-| Ruff | `ruff --version` | Fast Python linter | Python |
-| Pylint | `pylint --version` | Deep Python analysis | Python |
-| Clippy | `cargo clippy --version` | Idiomatic Rust patterns | Rust |
-| dotnet format | `dotnet format --version` | C# style and analyzers | C# |
-| Checkstyle | `mvn checkstyle:check` or `gradle checkstyleMain` | Java style and bugs | Java |
+Check each linter's availability and detect project languages before scanning. Report status in the Tools Report.
 
-## Scan Commands (run in parallel per language)
+| Tool | Check Command | Purpose | Relevant When |
+|------|--------------|---------|---------------|
+| ESLint | `eslint --version` | Style, bugs, complexity | JavaScript/TypeScript (package.json) |
+| Ruff | `ruff --version` | Fast Python linter | Python projects |
+| Pylint | `pylint --version` | Deep Python analysis | Python projects |
+| Clippy | `cargo clippy --version` | Idiomatic Rust patterns | Rust projects (Cargo.toml) |
+| dotnet format | `dotnet format --version` | C# style and analyzers | C# projects (.csproj) |
+| Checkstyle | `mvn checkstyle:check` or `gradle checkstyleMain` | Java style and bugs | Java projects (pom.xml, build.gradle) |
+
+## Scan Commands (run in parallel per language, when available)
 
 ```
 # JavaScript/TypeScript

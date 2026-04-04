@@ -6,8 +6,14 @@
  *
  * All pure logic lives in ./uat-state-machine.mjs so it can be tested
  * with `node --test` without bootstrapping a live Copilot SDK session.
- * This file is the thin SDK-wiring shell: it creates one
- * `UatStateMachine` instance and delegates from the hooks.
+ * This file is the thin SDK-wiring shell: it creates one state machine
+ * instance and delegates from the hooks.
+ *
+ * The state machine enforces:
+ *  - PO gate (warns if Dev Guardian runs without PO spec)
+ *  - UAT checkpoint (offers testing after Dev Guardian completes)
+ *  - Review gate (tracks QA + Security + Code Review completion)
+ *  - Guardian completion hooks (injects next-step context)
  */
 import { approveAll } from "@github/copilot-sdk";
 import { joinSession } from "@github/copilot-sdk/extension";

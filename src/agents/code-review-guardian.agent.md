@@ -6,20 +6,6 @@ description: >
   maintainability checks. Reports findings with industry standard citations
   for the default agent to act on.
 infer: true
-tools:
-  - view
-  - grep
-  - glob
-  - "bash(git diff *)"
-  - "bash(git log *)"
-  - "bash(git show *)"
-  - "bash(eslint *)"
-  - "bash(npx eslint *)"
-  - "bash(pylint *)"
-  - "bash(ruff *)"
-  - "bash(cargo clippy *)"
-  - "bash(dotnet format *)"
-  - "bash(checkstyle *)"
 ---
 
 # Code Review Guardian
@@ -65,22 +51,33 @@ cd [original-directory]
 git worktree remove /tmp/code-review-*
 ```
 
-### Step 0.5: Check linter availability
+### Step 0.5: Discover tools and project context
 
-Before running, check that linters are installed for the detected languages:
+Before running linters, check which tools are available and detect project languages:
 
+```bash
+# Check linter availability for each language
+eslint --version              # JavaScript/TypeScript
+ruff --version                # Python (fast linter)
+pylint --version              # Python (deep analysis)
+cargo clippy --version        # Rust
+dotnet format --version       # C#
+mvn checkstyle:check --version  # Java
 ```
-eslint --version              # Required for JS/TS projects
-ruff --version                # Required for Python projects
-cargo clippy --version        # Required for Rust projects
-dotnet format --version       # Required for C# projects
-```
 
-**If linters for the detected language are missing, STOP and ask the user to install them.** Reference PREREQUISITES.md. A project-relevant linter is required — not optional.
+Also detect which languages are present by checking file extensions, build files, and package manifests.
 
-### Step 1: Run linters (MANDATORY)
+**Produce a Tools Report** at the top of your handoff. For every linter, report one of:
+- ✅ **Available** — tool name, version, and lint results
+- ⏭️ **Skipped** — tool is installed but the project has no code in that language
+- ⚠️ **Not installed** — linter is relevant for detected languages but missing. Recommend installation and reference PREREQUISITES.md
+- ➖ **Not applicable** — tool targets a language not present in the project
 
-Run linters directly for the detected project languages:
+Available linters enhance the review with automated signal. Missing linters do not block the review — the manual code review always runs. But every missing linter that would have been relevant MUST be reported so the user can decide whether to install it.
+
+### Step 1: Run linters
+
+Run every available and relevant linter for the detected project languages:
 
 ```bash
 # JavaScript/TypeScript
@@ -101,14 +98,12 @@ mvn checkstyle:check -q
 ```
 
 **Phase 1 — Linters (PARALLEL):**
-- ESLint (JS/TS) — style, bugs, complexity
-- Pylint + Ruff (Python) — style, errors, imports
-- Clippy (Rust) — idiomatic patterns, common mistakes
-- dotnet format + Roslyn (C#) — style, analyzers
-- Checkstyle + SpotBugs (Java) — style, bugs
+- Run all available linters for detected languages simultaneously
 
 **Phase 2 — Language audits (SEQUENTIAL):**
 - Only tools relevant to detected languages
+
+For tools that are not installed, skip them and note it in the Tools Report — do not attempt to run unavailable tools.
 
 ### Step 2: Manual code review (MANDATORY)
 After automated scans, review for issues tools cannot detect:

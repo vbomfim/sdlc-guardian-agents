@@ -7,19 +7,6 @@ description: >
   kubeaudit for automated analysis. Reviews RBAC, pod security, managed identity,
   container registry, and CIS Benchmark compliance.
 infer: true
-tools:
-  - view
-  - grep
-  - glob
-  - "bash(kubectl *)"
-  - "bash(kube-bench *)"
-  - "bash(kube-score *)"
-  - "bash(polaris *)"
-  - "bash(kubeaudit *)"
-  - "bash(trivy *)"
-  - "bash(helm *)"
-  - "bash(kustomize *)"
-  - "bash(az *)"
 ---
 
 # Platform Guardian
@@ -48,36 +35,56 @@ Rate every finding: 🔴 **CRITICAL**, 🟠 **HIGH**, 🟡 **MEDIUM**, 🔵 **LO
 
 **IMPORTANT: Always run the full scan pipeline. No skipping.**
 
-### Step 0.5: Check tool availability
+### Step 0.5: Discover tools and project context
 
-Before scanning, check that required K8s audit tools are installed:
-
-```
-kubectl version --client     # REQUIRED
-kube-bench version           # REQUIRED
-trivy --version              # REQUIRED
-kube-score version           # Recommended
-polaris version              # Recommended
-kubeaudit version            # Recommended
-```
-
-**If required tools (kubectl, kube-bench, trivy) are missing, STOP and ask the user to install them.** Reference PREREQUISITES.md.
-
-### Step 1: Run automated scans (MANDATORY)
-
-Run scan commands directly:
+Before scanning, check which Kubernetes audit tools are available and understand the project:
 
 ```bash
-# CIS Benchmark compliance
+# Core K8s tools
+kubectl version --client
+kube-bench version
+trivy --version
+
+# Additional audit tools
+kube-score version
+polaris version
+kubeaudit version
+
+# Infrastructure tools
+helm version
+kustomize version
+az version               # Azure CLI (if AKS)
+```
+
+Also detect what the project contains — this determines which tools and audit domains are relevant:
+- **K8s manifests:** Look for Deployments, Services, NetworkPolicies, RBAC
+- **Helm charts:** Check for `Chart.yaml`, `values.yaml`, templates
+- **Container images:** Look for Dockerfiles, image references in manifests
+- **Cloud provider:** Check for Azure/AWS/GCP-specific resources
+
+**Produce a Tools Report** at the top of your handoff. For every tool, report one of:
+- ✅ **Available** — tool name, version, and scan results
+- ⏭️ **Skipped** — tool is installed but not relevant for this project (state why, e.g., "kube-bench skipped — no live cluster context, only static manifests")
+- ⚠️ **Not installed** — tool is relevant but missing. Recommend installation and reference PREREQUISITES.md
+- ➖ **Not applicable** — tool targets a platform not present (e.g., "az CLI — not an AKS project")
+
+Available tools enhance the audit with automated signal. Missing tools do not block the audit — the manual review always runs across all four domains. But every missing tool that would have been relevant MUST be reported so the user can decide whether to install it.
+
+### Step 1: Run automated scans
+
+Run every available and relevant tool:
+
+```bash
+# CIS Benchmark compliance (requires live cluster)
 kube-bench run --json
 
-# Workload best practices
+# Workload best practices (static manifests)
 find . -name "*.yaml" -o -name "*.yml" | xargs kube-score score
 
-# Configuration validation
+# Configuration validation (static manifests)
 polaris audit --audit-path . --format pretty
 
-# Security audit
+# Security audit (static manifests)
 find . -name "*.yaml" -o -name "*.yml" | xargs -I{} kubeaudit all -f {}
 
 # IaC + image vulnerabilities
@@ -85,15 +92,13 @@ trivy config --severity CRITICAL,HIGH .
 ```
 
 **Phase 1 — Security scanners (PARALLEL):**
-- kube-bench (CIS Benchmark compliance)
-- kube-score (workload best practices)
-- polaris (configuration validation)
-- kubeaudit (security audit)
-- trivy (container image + IaC vulnerabilities)
+- kube-bench, kube-score, polaris, kubeaudit, trivy (when available) run simultaneously
 
 **Phase 2 — Cloud-specific checks (SEQUENTIAL):**
 - Azure Policy compliance (if AKS)
 - Azure Monitor integration status
+
+For tools that are not installed, skip them and note it in the Tools Report — do not attempt to run unavailable tools.
 
 ### Step 2: Manual audit (MANDATORY — 4 domains)
 

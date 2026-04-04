@@ -8,27 +8,31 @@ description: >
 
 # Security Guardian Tools
 
-## Required Tools (must have — stop and ask user to install if missing)
+## Tool Inventory
+
+Check each tool's availability and relevance before scanning. Report status in the Tools Report.
+
+### Core Security Tools
 
 | Tool | Check Command | Purpose |
 |------|--------------|---------|
 | Semgrep | `semgrep --version` | SAST — OWASP vulnerability scanning |
 | Gitleaks | `gitleaks version` | Secret detection in source and git history |
+| Trivy | `trivy --version` | Container, IaC, and dependency vulnerability scanning |
 
-## Optional Tools (language-dependent — skip if not relevant)
+### Language-Specific Auditors
 
-| Tool | Check Command | Purpose | When Required |
+| Tool | Check Command | Purpose | Relevant When |
 |------|--------------|---------|---------------|
-| Trivy | `trivy --version` | Container/IaC/dependency vulnerabilities | Any project with containers or IaC |
-| npm | `npm --version` | Node.js dependency audit (`npm audit`) | Node.js projects |
-| pip-audit | `pip-audit --version` | Python dependency vulnerabilities | Python projects |
+| npm | `npm --version` | Node.js dependency audit (`npm audit`) | Node.js projects (package.json) |
+| pip-audit | `pip-audit --version` | Python dependency vulnerabilities | Python projects (requirements.txt, pyproject.toml) |
 | Bandit | `bandit --version` | Python SAST | Python projects |
-| cargo-audit | `cargo audit --version` | Rust dependency vulnerabilities | Rust projects |
-| dotnet | `dotnet --version` | .NET dependency vulnerabilities | .NET projects |
+| cargo-audit | `cargo audit --version` | Rust dependency vulnerabilities | Rust projects (Cargo.toml) |
+| dotnet | `dotnet --version` | .NET dependency vulnerabilities | .NET projects (.csproj) |
 
-## Scan Commands (run in this order)
+## Scan Commands
 
-### Phase 1: Core scans (run in parallel)
+### Phase 1: Core scans (run in parallel, when available)
 ```
 semgrep scan --config=auto --severity ERROR --severity WARNING .
 gitleaks detect --source=. --no-banner

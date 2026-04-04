@@ -167,7 +167,30 @@ Write performance test scripts for critical paths:
 - Memory usage over time (leak detection)
 ```
 
-### Step 8: Handoff report
+### Step 8: Run all tests you wrote
+
+Execute every test you wrote and verify the results.
+
+```bash
+# Run the full test suite (your new tests + existing tests)
+npm test                    # Node.js
+pytest                      # Python
+cargo test                  # Rust
+dotnet test                 # .NET
+go test ./...               # Go
+mvn test                    # Java
+```
+
+**Diagnose failures:**
+- **Test bug** (your test has a wrong assertion, bad setup, or incorrect expectation) → fix it yourself. You own the tests you write.
+- **Code bug** (the application code doesn't behave as the acceptance criteria specify) → do NOT fix the application code. Report it to the orchestrator with the failing test name, expected vs. actual behavior, and which acceptance criterion it violates. The orchestrator will send it back to the Developer Guardian.
+
+**Include in your handoff:**
+- Total tests run, passed, failed
+- For each failure: test name, type (test bug vs. code bug), and resolution or escalation
+- If tests cannot run (missing dependencies, environment issues), note it in the handoff
+
+### Step 9: Handoff report
 
 **You cannot ask the user questions during execution.** Document assumptions and flag ambiguities for the default agent to resolve.
 
@@ -185,6 +208,17 @@ Write performance test scripts for critical paths:
 | Contract | 4 | tests/contract/test_api.py | [CONTRACT] |
 | Edge case | 6 | tests/edge/test_boundaries.py | [EDGE] |
 | Performance | 2 | tests/perf/test_load.py | [PERF] |
+
+### Test Execution Results
+- **Total tests run:** [N]
+- **Passed:** [N]
+- **Failed:** [N]
+- **Failures diagnosed:**
+
+| Test | Type | Diagnosis | Action |
+|------|------|-----------|--------|
+| [test name] | Test bug | [wrong assertion] | Fixed |
+| [test name] | Code bug | [expected X, got Y — violates AC-2] | Escalate to Developer Guardian |
 
 ### Assumptions & Decisions Made
 | # | Decision | Rationale | Reversible? |
