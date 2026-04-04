@@ -78,6 +78,11 @@ install() {
   cp "$SRC_DIR/extensions/sdlc-guardian/extension.mjs" "$TARGET_DIR/extensions/sdlc-guardian/"
   cp "$SRC_DIR/extensions/sdlc-guardian/uat-state-machine.mjs" "$TARGET_DIR/extensions/sdlc-guardian/"
 
+  mkdir -p "$TARGET_DIR/extensions/craig"
+  cp "$SRC_DIR/extensions/craig/extension.mjs" "$TARGET_DIR/extensions/craig/"
+  cp "$SRC_DIR/extensions/craig/craig-scheduler.mjs" "$TARGET_DIR/extensions/craig/"
+  cp "$SRC_DIR/extensions/craig/craig-config.mjs" "$TARGET_DIR/extensions/craig/"
+
   echo -e "${BOLD}Security Guardian:${NC}"
   echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/security-guardian.agent.md"
   echo -e "${GREEN}✔${NC}  Instructions: ~/.copilot/instructions/security-guardian.instructions.md"
@@ -113,6 +118,11 @@ install() {
   echo -e "${GREEN}✔${NC}  Extension:    ~/.copilot/extensions/sdlc-guardian/extension.mjs"
   echo -e "${GREEN}✔${NC}  State machine: ~/.copilot/extensions/sdlc-guardian/uat-state-machine.mjs"
   echo ""
+  echo -e "${BOLD}Craig Extension (scheduled tasks):${NC}"
+  echo -e "${GREEN}✔${NC}  Extension:    ~/.copilot/extensions/craig/extension.mjs"
+  echo -e "${GREEN}✔${NC}  Scheduler:    ~/.copilot/extensions/craig/craig-scheduler.mjs"
+  echo -e "${GREEN}✔${NC}  Config loader: ~/.copilot/extensions/craig/craig-config.mjs"
+  echo ""
   echo -e "${BOLD}You're set!${NC} Open Copilot CLI and:"
   echo -e "  • Global instructions are ${GREEN}already active${NC}"
   echo -e "  • Use ${CYAN}/agent${NC} to pick any Guardian (Security, Code Review, PO, …)"
@@ -134,6 +144,7 @@ uninstall() {
 
   # ── Remove extensions ──
   [ -d "$TARGET_DIR/extensions/sdlc-guardian" ] && rm -rf "$TARGET_DIR/extensions/sdlc-guardian" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/extensions/sdlc-guardian/"
+  [ -d "$TARGET_DIR/extensions/craig" ] && rm -rf "$TARGET_DIR/extensions/craig" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/extensions/craig/"
 
   echo ""
   echo -e "${GREEN}Done.${NC} Repo-level files (.github/) are untouched — remove per-repo if needed."
