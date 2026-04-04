@@ -217,26 +217,45 @@ const session = await joinSession({
 
 /**
  * Build the prompt for a scheduled task.
- * Uses the prompt template from config, or a sensible default.
+ * Wraps the task description in a structured format so the agent
+ * queues it as a todo and works on it when ready.
  */
 function buildPrompt(cfg, taskName) {
-  if (cfg.prompts?.[taskName]) {
-    return cfg.prompts[taskName];
-  }
+  const taskPrompt = cfg.prompts?.[taskName] || getDefaultPrompt(cfg, taskName);
+  const now = new Date();
+  const time = now.toLocaleString("en-US", {
+    month: "long", day: "numeric", year: "numeric",
+    hour: "numeric", minute: "2-digit", hour12: true,
+  });
 
+  return [
+    `[Craig Scheduled Task]`,
+    `Task: ${taskName}`,
+    `Scheduled: ${time}`,
+    ``,
+    `Insert this into your todos table as a pending task and work on it when ready.`,
+    `If you're busy with something else, finish that first — this is a background task.`,
+    ``,
+    `Prompt: ${taskPrompt}`,
+    ``,
+    `When done, tag results as craig-memory in the session store.`,
+  ].join("\n");
+}
+
+function getDefaultPrompt(cfg, taskName) {
   const repo = cfg.repo || ".";
   const defaults = {
-    security_scan: `Run a security scan on ${repo}. Create GitHub issues for any CRITICAL or HIGH findings. Tag results as craig-memory in the session store.`,
-    coverage_scan: `Analyze test coverage gaps in ${repo}. Report untested code paths and missing edge cases. Tag results as craig-memory.`,
-    tech_debt_audit: `Audit ${repo} for tech debt: TODO comments, deprecated dependencies, code complexity hotspots. Tag results as craig-memory.`,
-    dependency_check: `Check ${repo} for outdated or vulnerable dependencies. Report findings with upgrade recommendations. Tag results as craig-memory.`,
-    merge_review: `Review the latest merge to main in ${repo}. Check for security issues, code quality, and test coverage. Tag results as craig-memory.`,
-    pr_monitor: `Check open PRs in ${repo}. For any PR older than 3 days without review, flag it. Tag results as craig-memory.`,
-    platform_audit: `Audit Kubernetes manifests in ${repo} for security and best practices. Tag results as craig-memory.`,
-    delivery_audit: `Review deployment configuration in ${repo}: CI/CD pipeline, environments, rollback strategy. Tag results as craig-memory.`,
+    security_scan: `Run a security scan on ${repo}. Create GitHub issues for any CRITICAL or HIGH findings.`,
+    coverage_scan: `Analyze test coverage gaps in ${repo}. Report untested code paths and missing edge cases.`,
+    tech_debt_audit: `Audit ${repo} for tech debt: TODO comments, deprecated dependencies, code complexity hotspots.`,
+    dependency_check: `Check ${repo} for outdated or vulnerable dependencies. Report findings with upgrade recommendations.`,
+    merge_review: `Review the latest merge to main in ${repo}. Check for security issues, code quality, and test coverage.`,
+    pr_monitor: `Check open PRs in ${repo}. For any PR older than 3 days without review, flag it.`,
+    platform_audit: `Audit Kubernetes manifests in ${repo} for security and best practices.`,
+    delivery_audit: `Review deployment configuration in ${repo}: CI/CD pipeline, environments, rollback strategy.`,
   };
 
-  return defaults[taskName] || `Run the '${taskName}' task on ${repo}. Tag results as craig-memory.`;
+  return defaults[taskName] || `Run the '${taskName}' task on ${repo}.`;
 }
 
 /** Stop the current scheduler (if running) and start a new one from config. */
