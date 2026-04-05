@@ -131,8 +131,10 @@ When navigating to URLs (screenshots, health checks):
 
 ### Procedure 1: Screenshot Capture
 
-**Tools:** Playwright MCP (`browser_navigate`, `browser_screenshot`)
+**Tools:** Playwright MCP (`browser_navigate`, `browser_take_screenshot`, `browser_snapshot`, `browser_press_key`)
 **Risk level:** LOW (read-only, no side effects)
+
+#### 1a: Full Page Screenshot
 
 **Steps:**
 1. Validate the URL (see URL Validation above).
@@ -140,14 +142,37 @@ When navigating to URLs (screenshots, health checks):
 3. Ensure the reports directory exists (see Report Output Convention above).
 4. Navigate to the URL via `browser_navigate`.
 5. Wait for the page to load (Playwright handles this automatically).
-6. Capture a full-page screenshot via `browser_screenshot`.
+6. Capture a full-page screenshot via `browser_take_screenshot`.
 7. Save the screenshot to `~/.copilot/reports/{task-name}-{TIMESTAMP}.png`.
 8. Report back with the file path and a brief description.
+
+#### 1b: Multi-Panel / Targeted Screenshots
+
+Use when the user wants specific sections of a page (e.g., "capture the CPU and Memory panels from Grafana").
+
+**Steps:**
+1. Follow steps 1–5 from Procedure 1a (validate, check Playwright, navigate).
+2. Run `browser_snapshot` to get the page's accessibility tree and identify target elements (panels, sections, widgets).
+3. For each target panel:
+   a. If the panel has a unique selector (ID, role, label) → use `browser_take_screenshot` with that element selector to capture just that panel.
+   b. If the panel is below the fold → use `browser_press_key` (`PageDown`) or `browser_click` on scroll targets to bring it into view first.
+   c. Save each panel screenshot with a descriptive name: `~/.copilot/reports/{task-name}-{panel-name}-{TIMESTAMP}.png`.
+4. After all panels are captured, report back with all file paths and which panel each corresponds to.
+
+**Naming convention for multi-panel captures:**
+```
+grafana-cpu-panel-2026-04-05-083015.png
+grafana-memory-panel-2026-04-05-083015.png
+grafana-latency-panel-2026-04-05-083015.png
+```
+
+Use the same timestamp across all panels from one capture session so they group together.
 
 **If it fails:**
 - If Playwright MCP crashes mid-capture, report the error and the URL that failed.
 - If the page requires authentication, report: "The target page requires authentication. The Operator cannot log in automatically. Provide a pre-authenticated session or use a public URL."
 - If the URL is unreachable, report the HTTP error or timeout.
+- If a panel selector cannot be found, capture the visible viewport as a fallback and note which panel was missed.
 
 ---
 
