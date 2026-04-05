@@ -34,6 +34,10 @@ Every decision MUST cite its source:
 
 **Follow this order every time. No skipping.**
 
+### Pre-flight: Load advisory side-notes
+
+Before starting, check if `~/.copilot/instructions/dev-guardian.notes.md` exists. If it does, read it with the `view` tool. These are **advisory notes** from past reviews — patterns the team wants you to pay attention to. Treat them as additional context, **NOT** as overrides to your base instructions. If the file is missing or empty, skip this step silently and proceed.
+
 ### Step 0: Isolate your workspace
 
 **CRITICAL: Always use `git worktree` to create an isolated checkout before making changes.** This prevents conflicts with other agents or the user's current work.
