@@ -381,6 +381,60 @@ Tasks with no custom prompt use Craig's built-in defaults (security scan, covera
 
 ---
 
+## Side-Notes — Learning from Reviews
+
+The Guardians learn from past reviews. When a review Guardian (Security, Code Review, or QA) spots a recurring pattern, it proposes a **side-note** — a short advisory that gets added to the relevant Guardian's memory.
+
+### What are side-notes?
+
+Side-notes are short markdown bullets stored in `~/.copilot/instructions/{guardian-name}.notes.md`. Each Guardian reads its own notes file before starting work. Notes are advisory — they add awareness, not rules.
+
+Example notes file (`~/.copilot/instructions/dev-guardian.notes.md`):
+```markdown
+# dev-guardian — Advisory Notes
+
+<!-- Learned patterns from past reviews. Guardians read this file at startup. -->
+
+- Always use parameterized queries in the repository layer — SQL injection flagged 4x
+- Keep service classes under 200 lines — extract helpers early
+- Include error-path unit tests for every new API endpoint
+```
+
+### How proposals work
+
+1. A review Guardian finishes its review
+2. It queries past sessions for recurring patterns (same finding, 2+ times)
+3. If found, it adds an **Improvement Cycle Proposals** table to its handoff report
+4. The orchestrator presents the proposal to you
+5. **You decide** — approve, modify, or reject
+
+```
+### Improvement Cycle Proposals
+
+| Note For | Proposed Addition | Evidence |
+|----------|------------------|----------|
+| dev-guardian | "Use parameterized queries in repository layer" | Flagged 4x (sessions abc, def, ghi, jkl) |
+```
+
+If you approve, the note is appended to the Guardian's `.notes.md` file. Next time that Guardian runs, it reads the note and pays extra attention.
+
+### Managing notes
+
+- **View notes:** Open any `~/.copilot/instructions/*.notes.md` file
+- **Edit notes:** They're plain markdown — edit freely with any text editor
+- **Prune notes:** Guardians suggest pruning when a file exceeds ~20 items
+- **Delete notes:** Remove any bullet you no longer need
+- **Uninstall safe:** `package.sh --uninstall` never removes notes files
+
+### What notes are NOT
+
+- ❌ Not mandatory rules — Guardians treat them as "also pay attention to"
+- ❌ Not auto-generated — every note requires your explicit approval
+- ❌ Not overrides — notes cannot contradict base Guardian instructions
+- ❌ Not auto-loaded by Copilot CLI — they use `.notes.md`, not `.instructions.md`
+
+---
+
 ## Tips
 
 ### Let the pipeline work

@@ -14,6 +14,7 @@ import {
   UatStateMachine,
   MAX_UAT_PAIR_FIX_ITERATIONS,
   REQUIRED_REVIEW_GUARDIANS,
+  GUARDIAN_NOTES_FILES,
   // helpers
   isSessionStatePath,
   normalizePath,
@@ -1097,6 +1098,79 @@ describe("UatStateMachine", () => {
 
     it("returns null for unknown", () => {
       assert.equal(getGuardianType({ agent_type: "explore" }), null);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────
+  // GUARDIAN_NOTES_FILES constant
+  // ─────────────────────────────────────────────────────────────────────
+  describe("GUARDIAN_NOTES_FILES", () => {
+    it("lists all seven guardian notes files", () => {
+      assert.equal(GUARDIAN_NOTES_FILES.length, 7);
+    });
+
+    it("uses kebab-case names matching the GUARDIANS list", () => {
+      const expected = [
+        "security-guardian.notes.md",
+        "code-review-guardian.notes.md",
+        "po-guardian.notes.md",
+        "dev-guardian.notes.md",
+        "qa-guardian.notes.md",
+        "platform-guardian.notes.md",
+        "delivery-guardian.notes.md",
+      ];
+      for (const name of expected) {
+        assert.ok(
+          GUARDIAN_NOTES_FILES.includes(name),
+          `expected ${name} in GUARDIAN_NOTES_FILES`,
+        );
+      }
+    });
+
+    it("does not use .instructions.md extension", () => {
+      for (const name of GUARDIAN_NOTES_FILES) {
+        assert.ok(
+          !name.includes(".instructions.md"),
+          `${name} must not use .instructions.md extension`,
+        );
+      }
+    });
+
+    it("all entries end with .notes.md", () => {
+      for (const name of GUARDIAN_NOTES_FILES) {
+        assert.ok(name.endsWith(".notes.md"), `${name} should end with .notes.md`);
+      }
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Improvement Cycle context in review Guardian completion
+  // ─────────────────────────────────────────────────────────────────────
+  describe("Improvement Cycle reminder in completion context", () => {
+    it("review Guardian completion context includes Improvement Cycle reminder", () => {
+      for (const type of REQUIRED_REVIEW_GUARDIANS) {
+        const ctx = buildGuardianCompletionContext(type);
+        assert.ok(
+          ctx.includes("Improvement Cycle"),
+          `${type} completion context should mention Improvement Cycle`,
+        );
+      }
+    });
+
+    it("non-review Guardian completion context does NOT include Improvement Cycle reminder", () => {
+      const ctx = buildGuardianCompletionContext("Developer Guardian");
+      assert.ok(
+        !ctx.includes("Improvement Cycle"),
+        "Developer Guardian context should not mention Improvement Cycle",
+      );
+    });
+
+    it("review Guardian context mentions presenting proposals to the user", () => {
+      const ctx = buildGuardianCompletionContext("Security Guardian");
+      assert.ok(
+        ctx.includes("propos") || ctx.includes("Propos"),
+        "context should reference proposals",
+      );
     });
   });
 });

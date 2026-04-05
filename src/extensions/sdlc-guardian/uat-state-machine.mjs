@@ -88,6 +88,23 @@ export const REQUIRED_REVIEW_GUARDIANS = new Set([
   "Code Review Guardian",
 ]);
 
+/**
+ * Notes filenames for all seven Guardians — used by package.sh seed logic
+ * and by review Guardians reading cross-guardian notes.
+ * Names follow kebab-case convention from the GUARDIANS variable in package.sh.
+ * IMPORTANT: these use `.notes.md`, NOT `.instructions.md` — notes files must
+ * NOT be auto-loaded by Copilot CLI runtime; Guardians read them explicitly.
+ */
+export const GUARDIAN_NOTES_FILES = [
+  "security-guardian.notes.md",
+  "code-review-guardian.notes.md",
+  "po-guardian.notes.md",
+  "dev-guardian.notes.md",
+  "qa-guardian.notes.md",
+  "platform-guardian.notes.md",
+  "delivery-guardian.notes.md",
+];
+
 /** Map kebab-case task names to canonical Guardian types. */
 const REVIEW_NAME_TO_TYPE = new Map([
   ["qa-guardian", "QA Guardian"],
@@ -211,14 +228,32 @@ export function buildDevWithoutPoWarning() {
 
 // ── Guardian completion context builders ───────────────────────────────────
 
+/**
+ * Improvement Cycle reminder appended to review Guardian completion context.
+ * Tells the orchestrator to check for note proposals in the handoff report.
+ */
+const IMPROVEMENT_CYCLE_REMINDER =
+  "Also check the handoff report for an **Improvement Cycle Proposals** section. " +
+  "If proposals exist, present them to the user for approval before committing. " +
+  "Approved proposals should be appended to the corresponding .notes.md file in ~/.copilot/instructions/.";
+
 export function buildGuardianCompletionContext(guardianType) {
   switch (guardianType) {
     case "QA Guardian":
-      return "QA Guardian completed. Read the test report with read_agent. Present findings and coverage gaps to the user.";
+      return [
+        "QA Guardian completed. Read the test report with read_agent. Present findings and coverage gaps to the user.",
+        IMPROVEMENT_CYCLE_REMINDER,
+      ].join("\n");
     case "Security Guardian":
-      return "Security Guardian completed. Read findings with read_agent. Present the Tools Report and all findings to the user — do not filter or summarize away warnings.";
+      return [
+        "Security Guardian completed. Read findings with read_agent. Present the Tools Report and all findings to the user — do not filter or summarize away warnings.",
+        IMPROVEMENT_CYCLE_REMINDER,
+      ].join("\n");
     case "Code Review Guardian":
-      return "Code Review Guardian completed. Read findings with read_agent. Present all findings to the user.";
+      return [
+        "Code Review Guardian completed. Read findings with read_agent. Present all findings to the user.",
+        IMPROVEMENT_CYCLE_REMINDER,
+      ].join("\n");
     default:
       return `${guardianType} completed. Read the report with read_agent and present results to the user.`;
   }

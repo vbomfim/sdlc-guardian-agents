@@ -382,7 +382,8 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
 │   ├── platform-guardian.instructions.md
 │   ├── delivery-guardian.instructions.md
 │   ├── operator.instructions.md         ← Operator procedures + delegation
-│   └── sdlc-workflow.instructions.md    ← Workflow orchestration rules
+│   ├── sdlc-workflow.instructions.md    ← Workflow orchestration rules
+│   └── {guardian-name}.notes.md         ← Side-notes (7 files, advisory, user-editable)
 ├── extensions/                          ← Copilot CLI extensions
 │   └── sdlc-guardian/                   ← Local-only workflow helper
 │       ├── extension.mjs                ← SDK wiring shell (thin)
@@ -399,6 +400,61 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
     └── platform-guardian/               ← Tool definitions
         └── SKILL.md
 ```
+
+---
+
+## Side-Notes — Improvement Cycle
+
+The side-notes system creates a **feedback loop** from review Guardians back to upstream Guardians. When a review Guardian (Security, Code Review, QA) detects a recurring pattern across multiple sessions, it proposes an advisory note for the relevant Guardian. After user approval, the note is appended to the Guardian's `.notes.md` file.
+
+### How it works
+
+```
+Review Guardian finds recurring issue
+        │
+        ▼
+Queries session_store for evidence (2+ past occurrences)
+        │
+        ▼
+Proposes note in handoff report (Improvement Cycle Proposals table)
+        │
+        ▼
+Orchestrator presents proposal to user
+        │
+        ▼
+User approves → note appended to ~/.copilot/instructions/{guardian}.notes.md
+```
+
+### Key principles
+
+| Principle | Detail |
+|-----------|--------|
+| **Additive only** | Notes add context ("also check X"), never contradict base instructions |
+| **Advisory** | Guardians treat notes as additional awareness, not mandatory rules |
+| **Evidence-based** | Proposals require 2+ past session occurrences (session_store query) |
+| **User-approved** | Guardians never self-modify notes files — user must approve |
+| **Human-editable** | Free-form markdown bullets, editable with any text editor |
+| **Soft limit** | Guardians suggest pruning when a notes file exceeds ~20 items |
+
+### Notes files
+
+Each Guardian has its own `.notes.md` file in `~/.copilot/instructions/`:
+
+| File | Read by | Can propose additions |
+|------|---------|----------------------|
+| `security-guardian.notes.md` | Security Guardian | Security, Code Review, QA |
+| `code-review-guardian.notes.md` | Code Review Guardian | Security, Code Review, QA |
+| `qa-guardian.notes.md` | QA Guardian | Security, Code Review, QA |
+| `dev-guardian.notes.md` | Developer Guardian | Security, Code Review, QA |
+| `po-guardian.notes.md` | PO Guardian | Security, Code Review, QA |
+| `platform-guardian.notes.md` | Platform Guardian | Security, Code Review, QA |
+| `delivery-guardian.notes.md` | Delivery Guardian | Security, Code Review, QA |
+
+> **Naming:** Notes files use `.notes.md`, not `.instructions.md`. Files ending in `.instructions.md` are auto-loaded by the Copilot CLI runtime. Notes must be explicitly read by Guardians so they can be framed as advisory.
+
+### Installation
+
+`package.sh --install` creates empty seed `.notes.md` files if they don't already exist. Existing notes files are never overwritten. `package.sh --uninstall` does **not** remove notes files — they are user data.
 
 ---
 
