@@ -291,6 +291,7 @@ Playwright MCP is an MCP server, not a CLI tool. Configure it in your Copilot CL
 {
   "mcpServers": {
     "playwright": {
+      "type": "local",
       "command": "npx",
       "args": ["@playwright/mcp@latest"]
     }
@@ -298,7 +299,7 @@ Playwright MCP is an MCP server, not a CLI tool. Configure it in your Copilot CL
 }
 ```
 
-**Option B: Global (`~/.copilot/mcp.json`)**
+**Option B: Global (`~/.copilot/mcp-config.json`)**
 Same JSON structure, applies to all projects.
 
 ### Prerequisites
