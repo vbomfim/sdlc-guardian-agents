@@ -174,6 +174,8 @@ AC2: "Given an unauthenticated user, When they try to upload, Then they get 401"
 
 ### Step 4b: Browser-based E2E tests (when Playwright MCP is available)
 
+**Before starting, read the Playwright MCP skill** at `src/skills/playwright-mcp/SKILL.md` (or invoke the `playwright-mcp-tools` skill if available). It documents correct tool names, screenshot techniques, limitations, and workarounds. Follow its patterns.
+
 If the project has a web frontend AND the Playwright MCP server is available,
 use browser automation for acceptance criteria that involve UI interactions.
 

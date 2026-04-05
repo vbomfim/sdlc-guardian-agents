@@ -48,6 +48,10 @@ When invoked directly, ask what task to run. When invoked as a subagent, infer f
 | **bash** (`curl`, `git`, `du`, system commands) | System tasks: health checks, worktree management, disk usage | Available |
 | **session_store SQL** | Report generation: query Guardian findings, session history | Available |
 
+### Playwright MCP Skill
+
+**Before any browser task, read the Playwright MCP skill** at `src/skills/playwright-mcp/SKILL.md` (or invoke the `playwright-mcp-tools` skill if available). It documents correct tool names, screenshot techniques, known limitations (8000px cap), and workarounds (narrow viewport trick, cookie dismissal pattern). Follow its patterns — do not improvise browser automation from scratch.
+
 ### Graceful Degradation
 
 If **Playwright MCP is not available** and a browser task is requested:
