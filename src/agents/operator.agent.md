@@ -42,7 +42,7 @@ When invoked directly, ask what task to run. When invoked as a subagent, infer f
 
 | Tool | Purpose | Required |
 |------|---------|----------|
-| **Playwright MCP** (`browser_navigate`, `browser_screenshot`, `browser_click`) | Browser tasks: screenshots, page monitoring, data extraction | Optional — see PREREQUISITES.md §7 |
+| **Playwright MCP** (`playwright-browser_navigate`, `playwright-browser_take_screenshot`, `playwright-browser_click`) | Browser tasks: screenshots, page monitoring, data extraction | Optional — see PREREQUISITES.md §7 |
 | **GitHub MCP** | Repository queries via MCP tools | Optional |
 | **GitHub CLI** (`gh`) | CLI operations: listing PRs, issues, branches, releases | Optional |
 | **bash** (`curl`, `git`, `du`, system commands) | System tasks: health checks, worktree management, disk usage | Available |
@@ -132,7 +132,7 @@ When navigating to URLs (screenshots, health checks):
 
 ### Procedure 1: Screenshot Capture
 
-**Tools:** Playwright MCP (`browser_navigate`, `browser_take_screenshot`, `browser_snapshot`, `browser_press_key`)
+**Tools:** Playwright MCP (`playwright-browser_navigate`, `playwright-browser_take_screenshot`, `playwright-browser_snapshot`, `playwright-browser_press_key`)
 **Risk level:** LOW (read-only, no side effects)
 
 #### 1a: Full Page Screenshot
@@ -141,14 +141,14 @@ When navigating to URLs (screenshots, health checks):
 1. Validate the URL (see URL Validation above).
 2. Check Playwright MCP availability. If unavailable, report the gap (see Graceful Degradation above) and stop.
 3. Ensure the reports directory exists (see Report Output Convention above).
-4. Navigate to the URL via `browser_navigate`.
+4. Navigate to the URL via `playwright-browser_navigate`.
 5. Wait for the page to load (Playwright handles this automatically).
-6. **Dismiss overlays** — before capturing, use `browser_snapshot` to check for cookie consent banners, pop-ups, or modal dialogs. If found:
+6. **Dismiss overlays** — before capturing, use `playwright-browser_snapshot` to check for cookie consent banners, pop-ups, or modal dialogs. If found:
    a. Look for "Accept", "Accept All", "Agree", "Got it", "OK", or "Close" buttons.
-   b. Click the most permissive accept button via `browser_click`.
+   b. Click the most permissive accept button via `playwright-browser_click`.
    c. Wait briefly for the overlay to disappear.
-   d. If no recognizable button is found, try `browser_press_key` (`Escape`) to dismiss.
-7. Capture a full-page screenshot via `browser_take_screenshot`.
+   d. If no recognizable button is found, try `playwright-browser_press_key` (`Escape`) to dismiss.
+7. Capture a full-page screenshot via `playwright-browser_take_screenshot`.
 8. Save the screenshot to `~/.copilot/reports/{task-name}-{TIMESTAMP}.png`.
 9. Report back with the file path and a brief description.
 
@@ -158,10 +158,10 @@ Use when the user wants specific sections of a page (e.g., "capture the CPU and 
 
 **Steps:**
 1. Follow steps 1–5 from Procedure 1a (validate, check Playwright, navigate).
-2. Run `browser_snapshot` to get the page's accessibility tree and identify target elements (panels, sections, widgets).
+2. Run `playwright-browser_snapshot` to get the page's accessibility tree and identify target elements (panels, sections, widgets).
 3. For each target panel:
-   a. If the panel has a unique selector (ID, role, label) → use `browser_take_screenshot` with that element selector to capture just that panel.
-   b. If the panel is below the fold → use `browser_press_key` (`PageDown`) or `browser_click` on scroll targets to bring it into view first.
+   a. If the panel has a unique selector (ID, role, label) → use `playwright-browser_take_screenshot` with that element selector to capture just that panel.
+   b. If the panel is below the fold → use `playwright-browser_press_key` (`PageDown`) or `playwright-browser_click` on scroll targets to bring it into view first.
    c. Save each panel screenshot with a descriptive name: `~/.copilot/reports/{task-name}-{panel-name}-{TIMESTAMP}.png`.
 4. After all panels are captured, report back with all file paths and which panel each corresponds to.
 

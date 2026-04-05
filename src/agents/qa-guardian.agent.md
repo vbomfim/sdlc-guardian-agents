@@ -178,9 +178,9 @@ If the project has a web frontend AND the Playwright MCP server is available,
 use browser automation for acceptance criteria that involve UI interactions.
 
 **Check availability:**
-- The Playwright MCP tools (`browser_navigate`, `browser_click`, `browser_type`,
-  `browser_fill_form`, `browser_take_screenshot`, `browser_snapshot`,
-  `browser_wait_for`, etc.) are available in your tool list
+- The Playwright MCP tools (`playwright-browser_navigate`, `playwright-browser_click`, `playwright-browser_type`,
+  `playwright-browser_fill_form`, `playwright-browser_take_screenshot`, `playwright-browser_snapshot`,
+  `playwright-browser_wait_for`, etc.) are available in your tool list
 - If not available, skip this step and note in handoff: "Playwright MCP not
   configured — browser E2E tests skipped"
 
@@ -192,12 +192,12 @@ use browser automation for acceptance criteria that involve UI interactions.
 **Procedure:**
 1. Start the application (or use the running dev server)
 2. For each UI-related acceptance criterion:
-   a. `browser_navigate` to the relevant page
-   b. Perform the user action (`browser_click`, `browser_type`, `browser_fill_form`,
-      `browser_select_option`)
-   c. Wait for dynamic content if needed (`browser_wait_for`)
-   d. Assert the expected outcome (`browser_snapshot` to check DOM state,
-      `browser_take_screenshot` for visual verification)
+   a. `playwright-browser_navigate` to the relevant page
+   b. Perform the user action (`playwright-browser_click`, `playwright-browser_type`, `playwright-browser_fill_form`,
+      `playwright-browser_select_option`)
+   c. Wait for dynamic content if needed (`playwright-browser_wait_for`)
+   d. Assert the expected outcome (`playwright-browser_snapshot` to check DOM state,
+      `playwright-browser_take_screenshot` for visual verification)
    e. Tag the test: `[AC-N] [BROWSER-E2E]`
 3. Capture screenshots of key states for the handoff report
 4. For failures: screenshot the actual state, note expected vs. actual
