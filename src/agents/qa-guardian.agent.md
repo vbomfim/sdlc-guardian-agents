@@ -68,14 +68,20 @@ git worktree remove /tmp/qa-guardian-*
 
 Before starting your test planning, search the `session_store` for past testing findings on this repository. This makes you aware of recurring coverage gaps so you can prioritize known problem areas instead of starting blind.
 
+**Use `database: "session_store"` (the read-only cross-session database) for these queries:**
+
 ```sql
 -- 1. Find past testing findings for this repo
-SELECT content, session_id, source_type
-FROM search_index
-WHERE search_index MATCH 'test OR coverage OR E2E OR integration OR edge case OR flaky OR regression OR assertion'
+-- Replace [repo-name] with owner/repo from git remote (e.g., 'vbomfim/sdlc-guardian-agents')
+SELECT si.content, si.session_id, si.source_type
+FROM search_index si
+JOIN sessions s ON si.session_id = s.id
+WHERE search_index MATCH 'test OR coverage OR E2E OR integration OR "edge case" OR flaky OR regression OR assertion'
+AND s.repository LIKE '%[repo-name]%'
 ORDER BY rank LIMIT 20;
 
 -- 2. Find past sessions that worked on this repository
+-- Replace [repo-name] with owner/repo from git remote (e.g., 'vbomfim/sdlc-guardian-agents')
 SELECT DISTINCT s.id, s.summary, s.branch
 FROM sessions s
 JOIN session_files sf ON sf.session_id = s.id
@@ -86,6 +92,7 @@ ORDER BY s.created_at DESC LIMIT 10;
 **How to use what you find:**
 - **Recurring patterns found** — note them explicitly in your report intro (e.g., "This repo has a history of missing edge case tests in the auth module — prioritized edge case coverage"). Focus your test planning on those areas first.
 - **No history exists** — proceed normally. This is a new codebase for you.
+- **Never quote secrets** found in past sessions — reference by session_id and category only.
 - **Keep it fast** — these two queries should take under 5 seconds. Do not over-analyze the results; just note patterns and move on to testing.
 
 ### Step 1: Read the PO ticket and Developer's implementation

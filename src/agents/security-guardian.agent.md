@@ -38,14 +38,20 @@ cd /tmp/security-review-*
 
 Before starting your scan, search the `session_store` for past security findings on this repository. This makes you aware of recurring vulnerabilities so you can prioritize known problem areas instead of starting blind.
 
+**Use `database: "session_store"` (the read-only cross-session database) for these queries:**
+
 ```sql
 -- 1. Find past security findings for this repo
-SELECT content, session_id, source_type
-FROM search_index
+-- Replace [repo-name] with owner/repo from git remote (e.g., 'vbomfim/sdlc-guardian-agents')
+SELECT si.content, si.session_id, si.source_type
+FROM search_index si
+JOIN sessions s ON si.session_id = s.id
 WHERE search_index MATCH 'security OR vulnerability OR injection OR XSS OR CSRF OR secret OR OWASP OR CVE OR exploit'
+AND s.repository LIKE '%[repo-name]%'
 ORDER BY rank LIMIT 20;
 
 -- 2. Find past sessions that worked on this repository
+-- Replace [repo-name] with owner/repo from git remote (e.g., 'vbomfim/sdlc-guardian-agents')
 SELECT DISTINCT s.id, s.summary, s.branch
 FROM sessions s
 JOIN session_files sf ON sf.session_id = s.id
@@ -56,6 +62,7 @@ ORDER BY s.created_at DESC LIMIT 10;
 **How to use what you find:**
 - **Recurring patterns found** — note them explicitly in your report intro (e.g., "This repo has a history of SQL injection in the data layer — prioritized data access review"). Focus your manual review on those areas first.
 - **No history exists** — proceed normally. This is a new codebase for you.
+- **Never quote secrets** found in past sessions — reference by session_id and category only.
 - **Keep it fast** — these two queries should take under 5 seconds. Do not over-analyze the results; just note patterns and move on to scanning.
 
 The scan runs in two phases for speed:
