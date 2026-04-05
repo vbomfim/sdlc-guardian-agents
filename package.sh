@@ -78,10 +78,15 @@ install() {
   cp "$SRC_DIR/agents/operator.agent.md" "$TARGET_DIR/agents/"
   cp "$SRC_DIR/instructions/operator.instructions.md" "$TARGET_DIR/instructions/"
 
+  # ── Install Craig instructions ──
+  cp "$SRC_DIR/instructions/craig.instructions.md" "$TARGET_DIR/instructions/"
+
   # ── Install skills (tool definitions only — no scripts) ──
+  mkdir -p "$TARGET_DIR/skills/playwright-mcp"
   cp -r "$SRC_DIR/skills/security-guardian/"* "$TARGET_DIR/skills/security-guardian/"
   cp -r "$SRC_DIR/skills/code-review-guardian/"* "$TARGET_DIR/skills/code-review-guardian/"
   cp -r "$SRC_DIR/skills/platform-guardian/"* "$TARGET_DIR/skills/platform-guardian/"
+  cp -r "$SRC_DIR/skills/playwright-mcp/"* "$TARGET_DIR/skills/playwright-mcp/"
 
   # ── Install extensions (runtime modules only — no test files) ──
   mkdir -p "$TARGET_DIR/extensions/sdlc-guardian"
@@ -145,15 +150,17 @@ install() {
   echo -e "${BOLD}Operator (task runner):${NC}"
   echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/operator.agent.md"
   echo -e "${GREEN}✔${NC}  Instructions: ~/.copilot/instructions/operator.instructions.md"
+  echo -e "${GREEN}✔${NC}  Skill:        ~/.copilot/skills/playwright-mcp/"
+  echo ""
+  echo -e "${BOLD}Craig (scheduled tasks):${NC}"
+  echo -e "${GREEN}✔${NC}  Instructions: ~/.copilot/instructions/craig.instructions.md"
+  echo -e "${GREEN}✔${NC}  Extension:    ~/.copilot/extensions/craig/extension.mjs"
+  echo -e "${GREEN}✔${NC}  Scheduler:    ~/.copilot/extensions/craig/craig-scheduler.mjs"
+  echo -e "${GREEN}✔${NC}  Config loader: ~/.copilot/extensions/craig/craig-config.mjs"
   echo ""
   echo -e "${BOLD}SDLC Guardian Extension:${NC}"
   echo -e "${GREEN}✔${NC}  Extension:    ~/.copilot/extensions/sdlc-guardian/extension.mjs"
   echo -e "${GREEN}✔${NC}  State machine: ~/.copilot/extensions/sdlc-guardian/uat-state-machine.mjs"
-  echo ""
-  echo -e "${BOLD}Craig Extension (scheduled tasks):${NC}"
-  echo -e "${GREEN}✔${NC}  Extension:    ~/.copilot/extensions/craig/extension.mjs"
-  echo -e "${GREEN}✔${NC}  Scheduler:    ~/.copilot/extensions/craig/craig-scheduler.mjs"
-  echo -e "${GREEN}✔${NC}  Config loader: ~/.copilot/extensions/craig/craig-config.mjs"
   echo ""
   echo -e "${BOLD}Side-Notes (advisory):${NC}"
   echo -e "${GREEN}✔${NC}  Notes: ${NOTES_CREATED} created, ${NOTES_EXISTED} preserved"
