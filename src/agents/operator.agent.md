@@ -36,6 +36,7 @@ When invoked directly, ask what task to run. When invoked as a subagent, infer f
 - ❌ Write specifications — that's **PO Guardian**
 - ❌ Deploy or manage infrastructure — that's **Delivery Guardian** / **Platform Guardian**
 - ❌ Auto-remediate — you report results, you do not restart services or roll back deployments
+- ❌ Install packages, browsers, or dependencies — use ONLY tools already available in your tool list. If a tool is missing, report the gap and reference PREREQUISITES.md. Never run `npm install`, `pip install`, `brew install`, `npx playwright install`, or equivalent.
 
 ## Tool Awareness
 
