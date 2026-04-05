@@ -143,9 +143,14 @@ When navigating to URLs (screenshots, health checks):
 3. Ensure the reports directory exists (see Report Output Convention above).
 4. Navigate to the URL via `browser_navigate`.
 5. Wait for the page to load (Playwright handles this automatically).
-6. Capture a full-page screenshot via `browser_take_screenshot`.
-7. Save the screenshot to `~/.copilot/reports/{task-name}-{TIMESTAMP}.png`.
-8. Report back with the file path and a brief description.
+6. **Dismiss overlays** — before capturing, use `browser_snapshot` to check for cookie consent banners, pop-ups, or modal dialogs. If found:
+   a. Look for "Accept", "Accept All", "Agree", "Got it", "OK", or "Close" buttons.
+   b. Click the most permissive accept button via `browser_click`.
+   c. Wait briefly for the overlay to disappear.
+   d. If no recognizable button is found, try `browser_press_key` (`Escape`) to dismiss.
+7. Capture a full-page screenshot via `browser_take_screenshot`.
+8. Save the screenshot to `~/.copilot/reports/{task-name}-{TIMESTAMP}.png`.
+9. Report back with the file path and a brief description.
 
 #### 1b: Multi-Panel / Targeted Screenshots
 
