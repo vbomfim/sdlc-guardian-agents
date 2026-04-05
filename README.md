@@ -342,8 +342,7 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
 │   ├── platform-guardian.instructions.md
 │   ├── delivery-guardian.instructions.md
 │   ├── sdlc-workflow.instructions.md    ← Workflow orchestration rules
-│   ├── *.notes.md                       ← Side-notes (advisory, user-editable)
-│   └── (7 files: one per Guardian)
+│   └── {guardian-name}.notes.md         ← Side-notes (7 files, advisory, user-editable)
 ├── extensions/                          ← Copilot CLI extensions
 │   └── sdlc-guardian/                   ← Local-only workflow helper
 │       ├── extension.mjs                ← SDK wiring shell (thin)

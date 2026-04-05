@@ -90,13 +90,20 @@ install() {
   cp "$SRC_DIR/extensions/craig/craig-config.mjs" "$TARGET_DIR/extensions/craig/"
 
   # ── Seed side-notes files (never overwrite existing — user data) ──
+  local NOTES_CREATED=0
+  local NOTES_EXISTED=0
   # shellcheck disable=SC2086
   for guardian in $GUARDIANS; do
+    [[ "$guardian" =~ ^[a-z-]+$ ]] || continue
     notes_file="$TARGET_DIR/instructions/${guardian}.notes.md"
     if [ ! -f "$notes_file" ]; then
       printf "# %s — Advisory Notes\\n\\n" "$guardian" > "$notes_file"
       printf "<!-- Learned patterns from past reviews. Guardians read this file at startup. -->\\n" >> "$notes_file"
       printf "<!-- Add notes as markdown bullets. Keep to ~20 items; prune when exceeded. -->\\n" >> "$notes_file"
+      chmod 600 "$notes_file"
+      NOTES_CREATED=$((NOTES_CREATED + 1))
+    else
+      NOTES_EXISTED=$((NOTES_EXISTED + 1))
     fi
   done
 
@@ -141,7 +148,7 @@ install() {
   echo -e "${GREEN}✔${NC}  Config loader: ~/.copilot/extensions/craig/craig-config.mjs"
   echo ""
   echo -e "${BOLD}Side-Notes (advisory):${NC}"
-  echo -e "${GREEN}✔${NC}  Notes files seeded in ~/.copilot/instructions/*.notes.md (existing files preserved)"
+  echo -e "${GREEN}✔${NC}  Notes: ${NOTES_CREATED} created, ${NOTES_EXISTED} preserved"
   echo ""
   echo -e "${BOLD}You're set!${NC} Open Copilot CLI and:"
   echo -e "  • Global instructions are ${GREEN}already active${NC}"

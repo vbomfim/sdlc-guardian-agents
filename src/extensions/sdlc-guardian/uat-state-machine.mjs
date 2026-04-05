@@ -228,27 +228,31 @@ export function buildDevWithoutPoWarning() {
 
 // ── Guardian completion context builders ───────────────────────────────────
 
-export function buildGuardianCompletionContext(guardianType) {
-  const improvementCycleReminder =
-    "Also check the handoff report for an **Improvement Cycle Proposals** section. " +
-    "If proposals exist, present them to the user for approval before committing. " +
-    "Approved proposals should be appended to the corresponding .notes.md file in ~/.copilot/instructions/.";
+/**
+ * Improvement Cycle reminder appended to review Guardian completion context.
+ * Tells the orchestrator to check for note proposals in the handoff report.
+ */
+const IMPROVEMENT_CYCLE_REMINDER =
+  "Also check the handoff report for an **Improvement Cycle Proposals** section. " +
+  "If proposals exist, present them to the user for approval before committing. " +
+  "Approved proposals should be appended to the corresponding .notes.md file in ~/.copilot/instructions/.";
 
+export function buildGuardianCompletionContext(guardianType) {
   switch (guardianType) {
     case "QA Guardian":
       return [
         "QA Guardian completed. Read the test report with read_agent. Present findings and coverage gaps to the user.",
-        improvementCycleReminder,
+        IMPROVEMENT_CYCLE_REMINDER,
       ].join("\n");
     case "Security Guardian":
       return [
         "Security Guardian completed. Read findings with read_agent. Present the Tools Report and all findings to the user — do not filter or summarize away warnings.",
-        improvementCycleReminder,
+        IMPROVEMENT_CYCLE_REMINDER,
       ].join("\n");
     case "Code Review Guardian":
       return [
         "Code Review Guardian completed. Read findings with read_agent. Present all findings to the user.",
-        improvementCycleReminder,
+        IMPROVEMENT_CYCLE_REMINDER,
       ].join("\n");
     default:
       return `${guardianType} completed. Read the report with read_agent and present results to the user.`;
