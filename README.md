@@ -168,6 +168,7 @@ The verification agent. Writes integration, end-to-end, API contract, and perfor
 | Capability | Standards |
 |---|---|
 | Integration, E2E, API contract, performance tests | Testing Trophy (Dodds), Test Pyramid (Fowler) |
+| Browser-based E2E tests via Playwright MCP (when available) | — |
 | Acceptance criteria traceability | BDD, Given/When/Then |
 | Coverage gap analysis and edge case identification | — |
 | Behavior-based tests that survive component rewrites | Spec-Driven Development |
