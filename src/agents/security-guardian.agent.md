@@ -34,6 +34,30 @@ git worktree add /tmp/security-review-$(date +%s) [pr-branch-name]
 cd /tmp/security-review-*
 ```
 
+### Step 0.1: Pre-flight — Search past findings (BEFORE scanning)
+
+Before starting your scan, search the `session_store` for past security findings on this repository. This makes you aware of recurring vulnerabilities so you can prioritize known problem areas instead of starting blind.
+
+```sql
+-- 1. Find past security findings for this repo
+SELECT content, session_id, source_type
+FROM search_index
+WHERE search_index MATCH 'security OR vulnerability OR injection OR XSS OR CSRF OR secret OR OWASP OR CVE OR exploit'
+ORDER BY rank LIMIT 20;
+
+-- 2. Find past sessions that worked on this repository
+SELECT DISTINCT s.id, s.summary, s.branch
+FROM sessions s
+JOIN session_files sf ON sf.session_id = s.id
+WHERE s.repository LIKE '%[repo-name]%'
+ORDER BY s.created_at DESC LIMIT 10;
+```
+
+**How to use what you find:**
+- **Recurring patterns found** — note them explicitly in your report intro (e.g., "This repo has a history of SQL injection in the data layer — prioritized data access review"). Focus your manual review on those areas first.
+- **No history exists** — proceed normally. This is a new codebase for you.
+- **Keep it fast** — these two queries should take under 5 seconds. Do not over-analyze the results; just note patterns and move on to scanning.
+
 The scan runs in two phases for speed:
 
 ### Step 0.5: Discover tools and project context

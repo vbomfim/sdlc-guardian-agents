@@ -51,6 +51,30 @@ cd [original-directory]
 git worktree remove /tmp/code-review-*
 ```
 
+### Step 0.1: Pre-flight — Search past findings (BEFORE scanning)
+
+Before starting your review, search the `session_store` for past code quality findings on this repository. This makes you aware of recurring quality issues so you can prioritize known problem areas instead of starting blind.
+
+```sql
+-- 1. Find past code quality findings for this repo
+SELECT content, session_id, source_type
+FROM search_index
+WHERE search_index MATCH 'code review OR lint OR SOLID OR complexity OR refactor OR coupling OR naming OR duplication'
+ORDER BY rank LIMIT 20;
+
+-- 2. Find past sessions that worked on this repository
+SELECT DISTINCT s.id, s.summary, s.branch
+FROM sessions s
+JOIN session_files sf ON sf.session_id = s.id
+WHERE s.repository LIKE '%[repo-name]%'
+ORDER BY s.created_at DESC LIMIT 10;
+```
+
+**How to use what you find:**
+- **Recurring patterns found** — note them explicitly in your report intro (e.g., "This repo has a history of high cyclomatic complexity in service classes — prioritized complexity review"). Focus your manual review on those areas first.
+- **No history exists** — proceed normally. This is a new codebase for you.
+- **Keep it fast** — these two queries should take under 5 seconds. Do not over-analyze the results; just note patterns and move on to scanning.
+
 ### Step 0.5: Discover tools and project context
 
 Before running linters, check which tools are available and detect project languages:
