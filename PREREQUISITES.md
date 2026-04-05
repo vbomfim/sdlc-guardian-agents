@@ -274,45 +274,54 @@ cargo install cargo-audit cargo-deny
 
 ---
 
-## 7. Browser Automation
+## 7. Browser Automation (Operator + QA Guardian)
 
-Used by the QA Guardian for browser-based E2E testing of web applications.
+Used by the Operator for screenshots, page monitoring, and data extraction. Used by QA Guardian for browser-based E2E testing.
 
-| Tool | Purpose | Guardian |
-|------|---------|----------|
-| [Playwright MCP](https://github.com/microsoft/playwright-mcp) | Browser automation via MCP — navigate, click, fill, screenshot | QA Guardian |
+| Tool | Purpose | Used By |
+|------|---------|---------|
+| [Playwright MCP](https://github.com/microsoft/playwright-mcp) | Browser automation via MCP — screenshots, navigation, page interaction | Operator, QA Guardian |
+
+**Note:** Playwright MCP is **optional**. The Operator works without it for non-browser tasks (reports, housekeeping, health checks via `curl`). The QA Guardian skips browser-based E2E tests when it's not configured.
 
 ### Setup
 
-Playwright MCP is an MCP server, not a CLI tool. Configure it in your Copilot CLI MCP settings:
+Add Playwright MCP to your MCP configuration:
 
-**Option A: Per-project (`.github/copilot/mcp.json`)**
+**Copilot CLI** (`~/.copilot/mcp-config.json`):
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "playwright": {
-      "type": "local",
       "command": "npx",
-      "args": ["@playwright/mcp@latest"]
+      "args": ["@playwright/mcp@0.0.28"]
     }
   }
 }
 ```
 
-**Option B: Global (`~/.copilot/mcp-config.json`)**
-Same JSON structure, applies to all projects.
+**VS Code** (`.vscode/mcp.json`):
+```json
+{
+  "servers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@0.0.28"]
+    }
+  }
+}
+```
+
+> **Pin to a specific version in production.** Use `@latest` only for evaluation. Check [Playwright MCP releases](https://github.com/microsoft/playwright-mcp/releases) for the latest stable version.
 
 ### Prerequisites
 - Node.js 18+ (for npx)
 - npm (comes with Node.js)
 - First run auto-installs browser binaries (~400 MB download)
 
-### Verify
-```bash
-npx @playwright/mcp@latest --help
-```
+### Verification
 
-> **Note:** Playwright MCP is optional. The QA Guardian works without it — browser-based E2E tests are skipped when it's not configured.
+After adding the MCP config, restart Copilot CLI. Playwright MCP tools (`browser_navigate`, `browser_take_screenshot`, `browser_click`) should appear in the tool list.
 
 ---
 
@@ -339,5 +348,6 @@ Not every project needs every tool. Here's the minimum per role:
 | **Web/API developer** | + ESLint or Pylint/Ruff (per language) |
 | **Security-conscious** | + Semgrep, Gitleaks |
 | **Kubernetes operator** | + kubectl, kube-bench, Helm |
+| **Ops automation** | + Playwright MCP (for screenshots — optional) |
 | **Full SDLC** | Everything above |
 | **Web E2E testing** | + Playwright MCP (QA Guardian browser tests) |

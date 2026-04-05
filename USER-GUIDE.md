@@ -181,6 +181,138 @@ You: Merge it.
 
 ---
 
+## Using the Operator
+
+The Operator is a task runner for operational chores — screenshots, reports, health checks, errands, and housekeeping. It is NOT a Guardian. It runs tasks and saves results to `~/.copilot/reports/`.
+
+### Screenshots
+
+```
+Take a screenshot of https://grafana.mycompany.com/d/main
+```
+
+The Operator navigates to the URL via Playwright MCP, captures a full-page screenshot, and saves it:
+```
+Operator: Screenshot saved to ~/.copilot/reports/grafana-dashboard-2026-04-05-083015.png
+```
+
+**Requires Playwright MCP** — see [PREREQUISITES.md](PREREQUISITES.md) §7 for setup. Without it, the Operator reports the gap and suggests installation.
+
+### Reports
+
+```
+Summarize all Guardian findings from this week.
+```
+
+The Operator queries the session store, aggregates findings by severity and Guardian, and writes a markdown report:
+```
+Operator: Report saved to ~/.copilot/reports/weekly-recap-2026-04-05-170030.md
+
+# Weekly Recap — 2026-04-05
+## Summary
+3 sessions with Guardian activity this week.
+## Results
+| Severity | Count |
+|----------|-------|
+| Critical | 0     |
+| High     | 2     |
+| Medium   | 5     |
+...
+```
+
+### Health Checks
+
+```
+Check the health endpoint at https://staging.myapp.com/health
+```
+
+The Operator makes an HTTP request, records the status code and response time, and writes a brief note:
+```
+Operator: Health check complete.
+  Status: 200 OK
+  Response time: 0.342s
+  Report: ~/.copilot/reports/health-check-2026-04-05-120000.md
+```
+
+### Housekeeping
+
+```
+List all git worktrees older than 7 days.
+```
+
+The Operator lists worktrees, identifies stale ones, and reports — it asks before removing anything:
+```
+Operator: Found 3 worktrees older than 7 days:
+  /tmp/dev-guardian-1712000000 — branch: feature/old-thing (12 days)
+  /tmp/dev-guardian-1712100000 — branch: fix/stale-bug (9 days)
+  /tmp/dev-guardian-1712200000 — branch: experiment/poc (8 days)
+
+Should I remove these? (This is a MEDIUM-risk action — local only, reversible.)
+```
+
+### Craig + Operator
+
+Craig can schedule any Operator task. The routing works automatically — Craig sends a prompt, the orchestrator infers the Operator, and the Operator runs in the background.
+
+**Example: Morning dashboard screenshots**
+
+```yaml
+# ~/.copilot/craig.config.yaml
+schedule:
+  morning_dashboard: 0 8 * * 1-5
+prompts:
+  morning_dashboard: >
+    Take a screenshot of the Grafana dashboard at
+    https://grafana.mycompany.com/d/main and save it to the
+    reports directory with today's date.
+```
+
+Every weekday at 8 AM, Craig triggers the Operator to capture the dashboard. You get a notification when it's done.
+
+**Example: Weekly Guardian recap**
+
+```yaml
+schedule:
+  weekly_recap: 0 17 * * 5
+prompts:
+  weekly_recap: >
+    Query the session store for all Guardian findings from this
+    week. Generate a weekly recap with total findings by severity,
+    top 3 recurring patterns, and which Guardians ran.
+```
+
+Every Friday at 5 PM, the Operator summarizes the week's Guardian activity.
+
+**Example: Periodic health checks**
+
+```yaml
+schedule:
+  staging_health: 0 */6 * * *
+prompts:
+  staging_health: >
+    Check the health endpoint at https://staging.myapp.com/health.
+    If non-200, take a screenshot and write an incident note.
+```
+
+Every 6 hours, the Operator pings your staging health endpoint.
+
+### Report Output
+
+All Operator output lives in `~/.copilot/reports/`:
+
+```
+~/.copilot/reports/
+├── grafana-dashboard-2026-04-05-083015.png
+├── weekly-recap-2026-04-05-170030.md
+├── health-check-2026-04-05-120000.md
+├── health-check-2026-04-05-180000.md
+└── housekeeping-2026-04-06-200015.md
+```
+
+Files are never overwritten — the HHmmss timestamp ensures uniqueness.
+
+---
+
 ## Craig — Scheduled Tasks
 
 Craig is a lightweight scheduler that runs inside your CLI session. It sends prompts at configured times — the CLI agent does the work.
@@ -302,3 +434,5 @@ Each tool shows ✅ (installed with version) or ⚠️ (missing with install com
 | Guardian files not found | Run `./package.sh --install` to install them |
 | Semgrep/Gitleaks not found | Install via `brew install semgrep gitleaks` (see PREREQUISITES.md) |
 | eslint/ruff not found | Install per-language tools for your project (see PREREQUISITES.md) |
+| Operator can't take screenshots | Install Playwright MCP (see PREREQUISITES.md §7) |
+| Reports directory missing | The Operator creates `~/.copilot/reports/` automatically |

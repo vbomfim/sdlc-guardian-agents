@@ -74,6 +74,10 @@ install() {
   cp "$SRC_DIR/instructions/delivery-guardian.instructions.md" "$TARGET_DIR/instructions/"
   cp "$SRC_DIR/instructions/sdlc-workflow.instructions.md" "$TARGET_DIR/instructions/"
 
+  # ── Install Operator (not a Guardian — separate naming convention) ──
+  cp "$SRC_DIR/agents/operator.agent.md" "$TARGET_DIR/agents/"
+  cp "$SRC_DIR/instructions/operator.instructions.md" "$TARGET_DIR/instructions/"
+
   # ── Install skills (tool definitions only — no scripts) ──
   cp -r "$SRC_DIR/skills/security-guardian/"* "$TARGET_DIR/skills/security-guardian/"
   cp -r "$SRC_DIR/skills/code-review-guardian/"* "$TARGET_DIR/skills/code-review-guardian/"
@@ -120,6 +124,10 @@ install() {
   echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/delivery-guardian.agent.md"
   echo -e "${GREEN}✔${NC}  Instructions: ~/.copilot/instructions/delivery-guardian.instructions.md"
   echo ""
+  echo -e "${BOLD}Operator (task runner):${NC}"
+  echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/operator.agent.md"
+  echo -e "${GREEN}✔${NC}  Instructions: ~/.copilot/instructions/operator.instructions.md"
+  echo ""
   echo -e "${BOLD}SDLC Guardian Extension:${NC}"
   echo -e "${GREEN}✔${NC}  Extension:    ~/.copilot/extensions/sdlc-guardian/extension.mjs"
   echo -e "${GREEN}✔${NC}  State machine: ~/.copilot/extensions/sdlc-guardian/uat-state-machine.mjs"
@@ -148,6 +156,10 @@ uninstall() {
 
   # ── Remove shared instructions not covered by the guardian loop ──
   [ -f "$TARGET_DIR/instructions/sdlc-workflow.instructions.md" ] && rm "$TARGET_DIR/instructions/sdlc-workflow.instructions.md" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/instructions/sdlc-workflow.instructions.md"
+
+  # ── Remove Operator (not a Guardian — separate naming convention) ──
+  [ -f "$TARGET_DIR/agents/operator.agent.md" ] && rm "$TARGET_DIR/agents/operator.agent.md" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/agents/operator.agent.md"
+  [ -f "$TARGET_DIR/instructions/operator.instructions.md" ] && rm "$TARGET_DIR/instructions/operator.instructions.md" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/instructions/operator.instructions.md"
 
   # ── Remove extensions ──
   [ -d "$TARGET_DIR/extensions/sdlc-guardian" ] && rm -rf "$TARGET_DIR/extensions/sdlc-guardian" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/extensions/sdlc-guardian/"
@@ -267,6 +279,10 @@ doctor_check_tools() {
   _check_tool "Safety"      "safety"      "--version" "Security Guardian" "pip3 install safety (see PREREQUISITES.md)"
   _check_tool "cargo-audit" "cargo-audit" "--version" "Security Guardian" "cargo install cargo-audit (see PREREQUISITES.md)"
   _check_tool "cargo-deny"  "cargo-deny"  "--version" "Security Guardian" "cargo install cargo-deny (see PREREQUISITES.md)"
+
+  # ── 7. Operator Tools ──
+  _print_section "Operator Tools"
+  _check_tool "npx (Playwright MCP)" "npx" "--version" "Operator" "Install Node.js; then: npx @playwright/mcp@0.0.28 (see PREREQUISITES.md §7)"
 }
 
 doctor_check_files() {
@@ -284,6 +300,10 @@ doctor_check_files() {
     _check_file "instructions/${guardian}.instructions.md" "${guardian}.instructions.md"
   done
   _check_file "instructions/sdlc-workflow.instructions.md" "sdlc-workflow.instructions.md"
+
+  # Operator (not a Guardian — separate naming convention)
+  _check_file "agents/operator.agent.md" "operator.agent.md"
+  _check_file "instructions/operator.instructions.md" "operator.instructions.md"
 
   # Skills
   for skill in security-guardian code-review-guardian platform-guardian; do

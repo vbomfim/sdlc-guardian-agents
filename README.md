@@ -117,6 +117,19 @@ The Guardians are not invoked manually — the default Copilot agent enforces th
   │
   ▼
 ✅ PR → Merge → Deploy
+
+── Operational Track (parallel, non-blocking) ──
+
+⏰ Craig (scheduler)
+  │
+  └─ session.send({ prompt }) → 🔧 Operator (background)
+                                   ├─ Screenshots (Playwright MCP)
+                                   ├─ Reports (session_store)
+                                   ├─ Health checks (curl)
+                                   ├─ Errands (web data, GitHub)
+                                   └─ Housekeeping (worktrees, branches)
+                                        │
+                                        └─ Results → ~/.copilot/reports/
 ```
 
 **Five quality gates, enforced automatically:**
@@ -232,6 +245,30 @@ Deployment and operations specialist. Reviews deployment strategies (blue-green,
 
 ---
 
+## Operational Agents
+
+Beyond the seven Guardians, the suite includes operational agents that execute tasks rather than review or audit.
+
+### Operator — Task Runner
+
+The Operator executes routine operational chores and errands. It is NOT a Guardian — it does not review code, write tests, or produce severity-rated findings. It runs tasks and writes results to `~/.copilot/reports/`.
+
+| Capability | Tools |
+|---|---|
+| Screenshot capture — web pages, dashboards, monitoring UIs | Playwright MCP (optional) |
+| Report generation — weekly recaps, Guardian finding summaries | session_store SQL |
+| Health monitoring — HTTP endpoint checks with status and response time | bash (`curl`) |
+| Errands — fetch data from web pages, extract metrics, run user-defined tasks | Playwright MCP, bash, GitHub MCP |
+| Housekeeping — worktree cleanup, branch pruning, disk usage reports | bash (`git`, `du`) |
+
+**Trigger:** *"take a screenshot"*, *"generate a report"*, *"weekly recap"*, *"check health endpoint"*, *"clean up worktrees"*, *"disk usage"*
+
+**Background execution:** The Operator always runs in background mode (`mode: "background"`) so the user's coding session is not blocked.
+
+**Craig integration:** Craig can schedule Operator tasks — morning dashboard screenshots, weekly finding recaps, periodic health checks. See [USER-GUIDE.md](USER-GUIDE.md) for examples.
+
+---
+
 ## Getting Started
 
 ### Prerequisites
@@ -272,6 +309,8 @@ The agents activate immediately. Describe what you need in natural language:
 | *"audit cluster security"* | Platform Guardian | CIS Benchmark + K8s security audit |
 | *"review deployment pipeline"* | Delivery Guardian | CI/CD, observability, BCDR analysis |
 | *"audit this project"* | PO Guardian | 25-item project health checklist |
+| *"take a screenshot of the dashboard"* | Operator | Screenshot saved to `~/.copilot/reports/` |
+| *"generate a weekly recap"* | Operator | Markdown report with Guardian findings summary |
 
 ### Verify Tool Availability
 
@@ -332,7 +371,8 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
 │   ├── security-guardian.agent.md
 │   ├── code-review-guardian.agent.md
 │   ├── platform-guardian.agent.md
-│   └── delivery-guardian.agent.md
+│   ├── delivery-guardian.agent.md
+│   └── operator.agent.md               ← Task runner (not a Guardian)
 ├── instructions/                        ← Auto-delegation rules
 │   ├── po-guardian.instructions.md
 │   ├── dev-guardian.instructions.md
@@ -341,12 +381,16 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
 │   ├── code-review-guardian.instructions.md
 │   ├── platform-guardian.instructions.md
 │   ├── delivery-guardian.instructions.md
+│   ├── operator.instructions.md         ← Operator procedures + delegation
 │   └── sdlc-workflow.instructions.md    ← Workflow orchestration rules
 ├── extensions/                          ← Copilot CLI extensions
 │   └── sdlc-guardian/                   ← Local-only workflow helper
 │       ├── extension.mjs                ← SDK wiring shell (thin)
 │       ├── uat-state-machine.mjs        ← Pure state-machine logic (testable)
 │       └── uat-state-machine.test.mjs   ← Zero-dep tests (node --test)
+├── reports/                             ← Operator output (created at runtime by Operator)
+│   ├── weekly-recap-2026-04-05-170030.md
+│   └── grafana-dashboard-2026-04-05-083015.png
 └── skills/                              ← Operational tooling
     ├── security-guardian/               ← Tool definitions
     │   └── SKILL.md
