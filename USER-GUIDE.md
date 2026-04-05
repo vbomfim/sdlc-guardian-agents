@@ -270,3 +270,35 @@ What did Craig find last week?
 What security issues were found in the last session?
 Show me the PO ticket for the chat feature.
 ```
+
+---
+
+## Troubleshooting
+
+### Verify your setup
+
+Run the doctor command to check all prerequisites in one pass:
+
+```bash
+./package.sh --doctor
+```
+
+This checks:
+- **Core requirements** — Git, GitHub CLI, Copilot CLI
+- **Security Guardian tools** — Semgrep, Gitleaks, Trivy
+- **Code Review Guardian tools** — ESLint, Ruff, Pylint, Clippy, dotnet, Checkstyle
+- **Platform Guardian tools** — kubectl, kube-bench, kube-score, Polaris, kubeaudit, Helm
+- **Delivery Guardian tools** — k6, Azure CLI
+- **Dependency auditors** — pip-audit, Bandit, Safety, cargo-audit, cargo-deny
+- **Guardian files** — all agent, instruction, skill, and extension files installed to `~/.copilot/`
+
+Each tool shows ✅ (installed with version) or ⚠️ (missing with install command). Core requirements show ❌ if missing — these must be installed for Guardians to work.
+
+### Common issues
+
+| Problem | Fix |
+|---------|-----|
+| Guardian fails with "command not found" | Run `./package.sh --doctor` to find what's missing |
+| Guardian files not found | Run `./package.sh --install` to install them |
+| Semgrep/Gitleaks not found | Install via `brew install semgrep gitleaks` (see PREREQUISITES.md) |
+| eslint/ruff not found | Install per-language tools for your project (see PREREQUISITES.md) |

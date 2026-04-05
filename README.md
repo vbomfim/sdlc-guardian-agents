@@ -380,6 +380,7 @@ cd sdlc-guardian-agents
 ./package.sh --install      # Build and install locally
 ./package.sh                # Package for distribution
 ./package.sh --uninstall    # Remove from ~/.copilot/
+./package.sh --doctor       # Verify all prerequisites
 ```
 
 ---
