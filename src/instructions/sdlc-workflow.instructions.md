@@ -232,6 +232,30 @@ When different Guardians give contradictory feedback:
 - **Resolution:** Both are valid. The Developer should add validation AND extract a function. Present both findings — they're complementary, not contradictory.
 - If truly contradictory (one says add, other says remove) → consult with a different model, then escalate to user.
 
+## Command Risk Classification
+
+Before executing any command via bash, gh, kubectl, git, or any CLI tool, classify its risk level:
+
+| Risk | Criteria | Examples | Action |
+|------|----------|----------|--------|
+| **LOW** | Read-only, no side effects | `ls`, `cat`, `grep`, `git log`, `git diff`, `gh issue list`, `gh pr view`, `kubectl get` | Execute normally |
+| **MEDIUM** | Writes to local/worktree, reversible | `git commit`, file edits, `npm install`, `git checkout -b`, `gh issue create` | Execute, note in handoff report |
+| **HIGH** | Affects remote systems or is irreversible | `gh pr merge`, `git push --force`, `kubectl delete`, `rm -rf`, `gh issue close`, `gh repo delete`, `docker rm`, `DROP TABLE`, `helm uninstall` | **STOP — ask user for explicit approval before executing** |
+
+**HIGH-risk rule:** Show the exact command and explain its impact. Do NOT execute until the user confirms. This applies to ALL Guardians and the orchestrator, regardless of autopilot or yolo mode.
+
+**When in doubt, classify UP** — treat an uncertain command as the higher risk level.
+
+## Anti-Laziness Rule — Relay, Don't Interpret
+
+When presenting Guardian findings, handoff reports, or review results to the user:
+
+- **Include the COMPLETE report.** Do NOT paraphrase, summarize, or interpret findings.
+- **Read the actual findings and relay them exactly** — do NOT say "based on the Guardian's findings" without including those findings.
+- **Specify exactly what needs to be done** — do NOT say "address the issues found" without listing every issue.
+
+This applies to all Guardian-to-user and Guardian-to-Guardian communication through the orchestrator.
+
 ## Rules
 
 - **Never skip a gate** — if a Guardian hasn't run, invoke it before proceeding
