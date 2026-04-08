@@ -60,7 +60,7 @@ Used by the Security Guardian for OWASP scanning and vulnerability analysis.
 
 | Tool | Purpose | Guardian |
 |------|---------|----------|
-| [Semgrep](https://semgrep.dev/) | SAST — static analysis for OWASP vulnerabilities | Security Guardian |
+| [Semgrep](https://semgrep.dev/) | SAST — static analysis for OWASP vulnerabilities | Security Guardian, Privacy Guardian |
 | [Gitleaks](https://github.com/gitleaks/gitleaks) | Secret detection in source code and git history | Security Guardian |
 | [Trivy](https://trivy.dev/) | Vulnerability scanner for containers, IaC, and dependencies | Security Guardian, Platform Guardian |
 
@@ -347,6 +347,7 @@ Not every project needs every tool. Here's the minimum per role:
 | **Any developer** | Git, GitHub CLI, Copilot CLI |
 | **Web/API developer** | + ESLint or Pylint/Ruff (per language) |
 | **Security-conscious** | + Semgrep, Gitleaks |
+| **Privacy-conscious** | + Semgrep (shared with Security Guardian) |
 | **Kubernetes operator** | + kubectl, kube-bench, Helm |
 | **Ops automation** | + Playwright MCP (for screenshots — optional) |
 | **Full SDLC** | Everything above |

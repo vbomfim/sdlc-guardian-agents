@@ -54,7 +54,7 @@ The implementation within each unit is disposable. It can be written today, rewr
 
 ## Overview
 
-SDLC Guardian Agents are a suite of seven specialized AI agents for [GitHub Copilot CLI](https://docs.github.com/copilot), each responsible for a distinct phase of the software development lifecycle. They enforce industry standards automatically, ensuring consistent quality across projects and teams.
+SDLC Guardian Agents are a suite of eight specialized AI agents for [GitHub Copilot CLI](https://docs.github.com/copilot), each responsible for a distinct phase of the software development lifecycle. They enforce industry standards automatically, ensuring consistent quality across projects and teams.
 
 The agents operate on a delegation model: the default Copilot agent recognizes the user's intent and delegates to the appropriate Guardian as a background task. The user continues working and is notified when the Guardian completes its analysis. The default agent then acts on the Guardian's findings — creating issues, applying fixes, or committing code.
 
@@ -70,7 +70,7 @@ AI coding assistants generate code effectively. What they do not inherently enfo
 
 ### Enforcement Through SDLC Guardian Agents
 
-Seven agents, each encoding the standards of recognized industry authorities, operationalize these principles across the development lifecycle:
+Eight agents, each encoding the standards of recognized industry authorities, operationalize these principles across the development lifecycle:
 
 | Phase | Guardian | Enforcement |
 |-------|----------|-------------|
@@ -78,6 +78,7 @@ Seven agents, each encoding the standards of recognized industry authorities, op
 | Implementation | **Developer Guardian** | Code must follow ports & adapters, interface-first development, and strict dependency direction (inward only) |
 | Testing | **QA Guardian** | Tests must be behavior-based (survive rewrites) and include contract tests that validate interface stability |
 | Security | **Security Guardian** | Validates that interface boundaries are not bypassed and that dependency direction does not expose core logic to untrusted adapters |
+| Privacy | **Privacy Guardian** | Detects PII/PHI leaks in logging, error handling, and data flows. Enforces GDPR, HIPAA, CCPA compliance. Escalates to HIPAA scrutiny when healthcare data is detected |
 | Quality | **Code Review Guardian** | Checks coupling/cohesion metrics, boundary violations, leaked dependencies, and component rewritability |
 | Infrastructure | **Platform Guardian** | Validates cluster security, network policies, resource configuration, and CIS Benchmark compliance |
 | Operations | **Delivery Guardian** | Reviews deployment strategy, observability, SLI/SLO definitions, BCDR plans, and incident response readiness |
@@ -105,6 +106,7 @@ The Guardians are not invoked manually — the default Copilot agent enforces th
   │
   ├─── 🧪 QA Guardian ──────────────┐
   ├─── 🛡️ Security Guardian ────────┤  background, simultaneous
+  ├─── 🔒 Privacy Guardian ─────────┤
   ├─── 📋 Code Review Guardian ─────┘
   │
   ▼
@@ -138,7 +140,7 @@ The Guardians are not invoked manually — the default Copilot agent enforces th
 |------|------|-------------|
 | **Pre-Implementation** | User asks to implement without a ticket | PO Guardian invoked to create specification first |
 | **UAT Checkpoint** | Developer Guardian completes | User offered a chance to test the worktree + pair-fix with Developer Guardian (auto-entered in autopilot mode). After 3 pair-fix iterations the orchestrator recommends moving to the review gate. |
-| **Post-Implementation** | UAT done or skipped | QA + Security + Code Review invoked in parallel automatically |
+| **Post-Implementation** | UAT done or skipped | QA + Security + Privacy + Code Review invoked in parallel automatically |
 | **Pre-Merge** | All Guardian reviews pass + CI checks pass | Default agent presents combined results; user confirms merge approval |
 | **Pre-Deployment** | User asks to deploy | Platform + Delivery Guardians verify infrastructure and operations readiness |
 
@@ -146,7 +148,7 @@ The user never needs to remember which Guardian to invoke. The workflow enforces
 
 ---
 
-## The Seven Guardians
+## The Eight Guardians
 
 <img src="assets/banner-po.svg" alt="Product Owner Guardian" width="500">
 
@@ -201,6 +203,20 @@ The security auditor. Runs a deterministic scan pipeline (Semgrep, Gitleaks, Tri
 
 **Trigger:** *"check for security"*, *"security review"*, *"scan for vulnerabilities"*
 
+<img src="assets/banner-privacy.svg" alt="Privacy Guardian" width="500">
+
+The privacy auditor. Detects PII and PHI leaks in logging, error handling, API responses, and data flows. Classifies data by sensitivity tier (PHI → PII → quasi-identifiers) and applies regulatory scrutiny (GDPR, HIPAA, CCPA). Automatically escalates to full HIPAA review when healthcare data patterns are detected.
+
+| Capability | Standards |
+|---|---|
+| PII/PHI leak detection in logs, errors, responses, URLs, JWTs, caches | GDPR Art. 25 (Data Protection by Design) |
+| Healthcare data detection and HIPAA escalation | HIPAA Technical Safeguards §164.312 |
+| Data flow analysis: collection → processing → storage → transmission → retention | GDPR Art. 30, NIST Privacy Framework |
+| Third-party data sharing review (analytics, error tracking, monitoring) | GDPR Art. 28, CCPA |
+| Data subject rights assessment (access, erasure, portability) | GDPR Art. 15-22, CCPA §1798.100-125 |
+
+**Trigger:** *"privacy review"*, *"check for PII"*, *"GDPR compliance"*, *"HIPAA compliance"*, *"check logging for PII"*, *"patient data"*
+
 <img src="assets/banner-codereview.svg" alt="Code Review Guardian" width="500">
 
 The quality auditor. Runs language-specific linters in parallel, then reviews for architecture, design patterns, naming, performance, and documentation quality. Every finding cites its source standard. **Runs two instances in parallel with different AI models** (Claude Opus 4.6 + GPT 5.4) for independent perspectives — findings from both are merged with confidence scoring.
@@ -247,7 +263,7 @@ Deployment and operations specialist. Reviews deployment strategies (blue-green,
 
 ## Operational Agents
 
-Beyond the seven Guardians, the suite includes operational agents that execute tasks rather than review or audit.
+Beyond the eight Guardians, the suite includes operational agents that execute tasks rather than review or audit.
 
 ### Operator — Task Runner
 
@@ -305,6 +321,7 @@ The agents activate immediately. Describe what you need in natural language:
 | *"implement ticket #42"* | Developer Guardian | TDD implementation with unit tests |
 | *"write integration tests"* | QA Guardian | Tests traced to acceptance criteria |
 | *"check for security"* | Security Guardian | Scan results with OWASP classification |
+| *"check logging for PII"* | Privacy Guardian | PII/PHI leak report with regulatory citations |
 | *"review my code"* | Code Review Guardian | Linter results with design analysis |
 | *"audit cluster security"* | Platform Guardian | CIS Benchmark + K8s security audit |
 | *"review deployment pipeline"* | Delivery Guardian | CI/CD, observability, BCDR analysis |
@@ -357,6 +374,11 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
 | `[TDD]` | Test-Driven Development | Kent Beck |
 | `[BDD]` | Behavior-Driven Development | Dan North |
 | `[CUSTOM]` | Project-specific rules | — |
+| `[GDPR]` | General Data Protection Regulation | European Union |
+| `[HIPAA]` | Health Insurance Portability and Accountability Act | U.S. HHS |
+| `[CCPA]` | California Consumer Privacy Act | State of California |
+| `[NIST-PF]` | NIST Privacy Framework | NIST |
+| `[ISO-27701]` | Privacy Information Management | ISO/IEC |
 
 ---
 
@@ -369,6 +391,7 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
 │   ├── dev-guardian.agent.md
 │   ├── qa-guardian.agent.md
 │   ├── security-guardian.agent.md
+│   ├── privacy-guardian.agent.md
 │   ├── code-review-guardian.agent.md
 │   ├── platform-guardian.agent.md
 │   ├── delivery-guardian.agent.md
@@ -378,12 +401,13 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
 │   ├── dev-guardian.instructions.md
 │   ├── qa-guardian.instructions.md
 │   ├── security-guardian.instructions.md
+│   ├── privacy-guardian.instructions.md
 │   ├── code-review-guardian.instructions.md
 │   ├── platform-guardian.instructions.md
 │   ├── delivery-guardian.instructions.md
 │   ├── operator.instructions.md         ← Operator procedures + delegation
 │   ├── sdlc-workflow.instructions.md    ← Workflow orchestration rules
-│   └── {guardian-name}.notes.md         ← Side-notes (7 files, advisory, user-editable)
+│   └── {guardian-name}.notes.md         ← Side-notes (8 files, advisory, user-editable)
 ├── extensions/                          ← Copilot CLI extensions
 │   └── sdlc-guardian/                   ← Local-only workflow helper
 │       ├── extension.mjs                ← SDK wiring shell (thin)
@@ -394,6 +418,8 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
 │   └── grafana-dashboard-2026-04-05-083015.png
 └── skills/                              ← Operational tooling
     ├── security-guardian/               ← Tool definitions
+    │   └── SKILL.md
+    ├── privacy-guardian/                ← Tool definitions
     │   └── SKILL.md
     ├── code-review-guardian/            ← Tool definitions
     │   └── SKILL.md
@@ -465,7 +491,7 @@ The following SDLC areas are recognized but not yet addressed by a Guardian agen
 | Area | Description | Potential Approach |
 |------|-------------|-------------------|
 | **Documentation** | API documentation (OpenAPI), user guides, changelogs, release notes, onboarding documentation | Extend PO Guardian or new Docs Guardian |
-| **Data Governance** | Database migrations, schema versioning, data quality, data privacy (GDPR/CCPA), data lineage | New Data Guardian |
+| **Data Governance** | Database migrations, schema versioning, data quality, data lineage | New Data Guardian |
 | **FinOps** | Cloud cost monitoring, right-sizing, unused resource detection, budget alerts | Extend Platform Guardian |
 | **Accessibility** | WCAG compliance, screen reader testing, keyboard navigation, color contrast | Extend QA or Code Review Guardian |
 
