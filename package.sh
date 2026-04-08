@@ -23,7 +23,7 @@ BOLD='\033[1m'
 NC='\033[0m'
 
 # Guardian names — single source of truth for uninstall and doctor
-GUARDIANS="security-guardian code-review-guardian po-guardian dev-guardian qa-guardian platform-guardian delivery-guardian"
+GUARDIANS="security-guardian code-review-guardian po-guardian dev-guardian qa-guardian platform-guardian delivery-guardian privacy-guardian"
 
 package() {
   echo -e "${BOLD}${CYAN}📦 Packaging SDLC Guardian Agents...${NC}"
@@ -52,6 +52,7 @@ install() {
   mkdir -p "$TARGET_DIR/skills/security-guardian"
   mkdir -p "$TARGET_DIR/skills/code-review-guardian"
   mkdir -p "$TARGET_DIR/skills/platform-guardian"
+  mkdir -p "$TARGET_DIR/skills/privacy-guardian"
   mkdir -p "$TARGET_DIR/agents"
   mkdir -p "$TARGET_DIR/instructions"
 
@@ -63,6 +64,7 @@ install() {
   cp "$SRC_DIR/agents/qa-guardian.agent.md" "$TARGET_DIR/agents/"
   cp "$SRC_DIR/agents/platform-guardian.agent.md" "$TARGET_DIR/agents/"
   cp "$SRC_DIR/agents/delivery-guardian.agent.md" "$TARGET_DIR/agents/"
+  cp "$SRC_DIR/agents/privacy-guardian.agent.md" "$TARGET_DIR/agents/"
 
   # ── Install instructions ──
   cp "$SRC_DIR/instructions/security-guardian.instructions.md" "$TARGET_DIR/instructions/"
@@ -72,6 +74,7 @@ install() {
   cp "$SRC_DIR/instructions/qa-guardian.instructions.md" "$TARGET_DIR/instructions/"
   cp "$SRC_DIR/instructions/platform-guardian.instructions.md" "$TARGET_DIR/instructions/"
   cp "$SRC_DIR/instructions/delivery-guardian.instructions.md" "$TARGET_DIR/instructions/"
+  cp "$SRC_DIR/instructions/privacy-guardian.instructions.md" "$TARGET_DIR/instructions/"
   cp "$SRC_DIR/instructions/sdlc-workflow.instructions.md" "$TARGET_DIR/instructions/"
 
   # ── Install Operator (not a Guardian — separate naming convention) ──
@@ -86,6 +89,7 @@ install() {
   cp -r "$SRC_DIR/skills/security-guardian/"* "$TARGET_DIR/skills/security-guardian/"
   cp -r "$SRC_DIR/skills/code-review-guardian/"* "$TARGET_DIR/skills/code-review-guardian/"
   cp -r "$SRC_DIR/skills/platform-guardian/"* "$TARGET_DIR/skills/platform-guardian/"
+  cp -r "$SRC_DIR/skills/privacy-guardian/"* "$TARGET_DIR/skills/privacy-guardian/"
   cp -r "$SRC_DIR/skills/playwright-mcp/"* "$TARGET_DIR/skills/playwright-mcp/"
 
   # ── Install extensions (runtime modules only — no test files) ──
@@ -146,6 +150,11 @@ install() {
   echo -e "${BOLD}Delivery Guardian:${NC}"
   echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/delivery-guardian.agent.md"
   echo -e "${GREEN}✔${NC}  Instructions: ~/.copilot/instructions/delivery-guardian.instructions.md"
+  echo ""
+  echo -e "${BOLD}Privacy Guardian:${NC}"
+  echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/privacy-guardian.agent.md"
+  echo -e "${GREEN}✔${NC}  Instructions: ~/.copilot/instructions/privacy-guardian.instructions.md"
+  echo -e "${GREEN}✔${NC}  Skill:        ~/.copilot/skills/privacy-guardian/"
   echo ""
   echo -e "${BOLD}Operator (task runner):${NC}"
   echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/operator.agent.md"
@@ -274,8 +283,8 @@ doctor_check_tools() {
 
   # ── 2. Security Guardian Tools ──
   _print_section "Security Guardian Tools"
-  _check_tool "Semgrep"  "semgrep"  "--version" "Security Guardian"                    "pip3 install semgrep (see PREREQUISITES.md)"
-  _check_tool "Gitleaks" "gitleaks" "version"   "Security Guardian"                    "see PREREQUISITES.md"
+  _check_tool "Semgrep"  "semgrep"  "--version" "Security Guardian, Privacy Guardian"  "pip3 install semgrep (see PREREQUISITES.md)"
+  _check_tool "Gitleaks" "gitleaks" "version"   "Security Guardian, Privacy Guardian"  "see PREREQUISITES.md"
   _check_tool "Trivy"    "trivy"    "--version" "Security Guardian, Platform Guardian"  "see PREREQUISITES.md"
 
   # ── 3. Code Review Guardian Tools ──
@@ -335,7 +344,7 @@ doctor_check_files() {
   _check_file "instructions/operator.instructions.md" "operator.instructions.md"
 
   # Skills
-  for skill in security-guardian code-review-guardian platform-guardian; do
+  for skill in security-guardian code-review-guardian platform-guardian privacy-guardian; do
     _check_file "skills/${skill}/SKILL.md" "skills/${skill}/"
   done
 
