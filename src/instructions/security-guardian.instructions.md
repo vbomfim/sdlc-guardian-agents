@@ -10,7 +10,7 @@ These rules apply to ALL projects as a safety net. They represent the absolute m
 
 3. **Never expose internals in errors** — No stack traces, internal paths, or debug info in production responses. Fail to a secure state.
 
-4. **Never log sensitive data** — No passwords, tokens, PII, or session IDs in logs. Use structured logging.
+4. **Never log sensitive data** — No passwords, tokens, PII, PHI, or session IDs in logs. Use structured logging. PHI (Protected Health Information) includes diagnoses, treatments, medications, patient identifiers, insurance info, and lab results — these must NEVER appear in logs, error messages, analytics, or debug output.
 
 5. **Always authenticate API endpoints** — Every endpoint must verify caller identity. Extract identity from validated tokens, not request parameters.
 
