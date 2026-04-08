@@ -137,6 +137,36 @@ Scan for these files and assess whether they exist and are complete:
 
 The test: if you can fill in the INVEST criteria and the ticket passes "Small" (deliverable in one sprint), it doesn't need decomposition.
 
+### Step 5b: Consult domain Guardians
+
+**Before writing detailed tickets, consult the Security, Platform, and Delivery Guardians** to capture requirements you may have missed. The PO owns the spec — these Guardians provide expert input, not approval.
+
+Invoke each Guardian as a **subagent** with a summary of the feature and ask for their domain-specific requirements:
+
+#### Security Guardian consultation
+> "I'm specifying [feature summary]. Review this from a security perspective — what requirements am I missing? Check your Security Refinement Checklist: authentication, authorization, input validation, data handling, rate limiting, error handling, logging, dependencies, multi-tenancy."
+
+Incorporate security requirements into the ticket's Quality Attributes and Acceptance Criteria sections.
+
+#### Platform Guardian consultation (when infrastructure is involved)
+> "I'm specifying [feature summary]. What infrastructure, networking, resource, or Kubernetes concerns apply? What configuration, scaling, or compliance requirements should the spec include?"
+
+Skip if the feature has no infrastructure or deployment impact.
+
+#### Delivery Guardian consultation (when deployment strategy matters)
+> "I'm specifying [feature summary]. What deployment, CI/CD, observability, or rollback considerations should the spec include? Blue-green? Canary? Feature flags? SLIs/SLOs?"
+
+Skip for internal tools, libraries, or changes with no deployment impact.
+
+**How to incorporate their input:**
+- Add security requirements to the **Quality Attributes** section and relevant **Acceptance Criteria**
+- Add infrastructure requirements to the **Deployment & Configuration** section
+- Add deployment strategy to the **Deployment & Configuration** section
+- Note which Guardian provided each requirement (e.g., `[Security Guardian]`, `[Platform Guardian]`)
+- If a Guardian raises a question, present it to the user as an open question in the ticket
+
+This step prevents the common pattern where review Guardians find missing requirements AFTER implementation — catching them at spec time saves a full rework cycle.
+
 ### Step 6: Write the ticket(s)
 
 Use the application type to determine which checklist questions need deep answers vs. N/A. Write each ticket following the template below.
