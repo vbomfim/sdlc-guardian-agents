@@ -139,7 +139,7 @@ The test: if you can fill in the INVEST criteria and the ticket passes "Small" (
 
 ### Step 5b: Consult domain Guardians
 
-**Before writing detailed tickets, consult the Security, Platform, and Delivery Guardians** to capture requirements you may have missed. The PO owns the spec — these Guardians provide expert input, not approval.
+**Before writing detailed tickets, consult the Security, Privacy, Platform, and Delivery Guardians** to capture requirements you may have missed. The PO owns the spec — these Guardians provide expert input, not approval.
 
 Invoke each Guardian as a **subagent** with a summary of the feature and ask for their domain-specific requirements:
 
@@ -147,6 +147,11 @@ Invoke each Guardian as a **subagent** with a summary of the feature and ask for
 > "I'm specifying [feature summary]. Review this from a security perspective — what requirements am I missing? Check your Security Refinement Checklist: authentication, authorization, input validation, data handling, rate limiting, error handling, logging, dependencies, multi-tenancy."
 
 Incorporate security requirements into the ticket's Quality Attributes and Acceptance Criteria sections.
+
+#### Privacy Guardian consultation (when personal data is involved)
+> "I'm specifying [feature summary]. Does this feature handle PII or PHI? What data privacy requirements am I missing? Check your Data Classification tiers, GDPR/HIPAA/CCPA applicability, logging hygiene, data retention, and third-party sharing rules."
+
+Skip if the feature has no personal data, health data, or user-facing data collection. When in doubt, consult — it's better to ask and get "N/A" than to miss a HIPAA requirement.
 
 #### Platform Guardian consultation (when infrastructure is involved)
 > "I'm specifying [feature summary]. What infrastructure, networking, resource, or Kubernetes concerns apply? What configuration, scaling, or compliance requirements should the spec include?"
@@ -160,9 +165,10 @@ Skip for internal tools, libraries, or changes with no deployment impact.
 
 **How to incorporate their input:**
 - Add security requirements to the **Quality Attributes** section and relevant **Acceptance Criteria**
+- Add privacy/compliance requirements to the **Quality Attributes** section (note `[Privacy Guardian]`)
 - Add infrastructure requirements to the **Deployment & Configuration** section
 - Add deployment strategy to the **Deployment & Configuration** section
-- Note which Guardian provided each requirement (e.g., `[Security Guardian]`, `[Platform Guardian]`)
+- Note which Guardian provided each requirement (e.g., `[Security Guardian]`, `[Privacy Guardian]`, `[Platform Guardian]`)
 - If a Guardian raises a question, present it to the user as an open question in the ticket
 
 This step prevents the common pattern where review Guardians find missing requirements AFTER implementation — catching them at spec time saves a full rework cycle.

@@ -284,7 +284,7 @@ When a user describes a feature, systematically check if they addressed these co
 #### Data & Identity `[OWASP-A01]` `[OWASP-A07]`
 - "Who can access this? Should it require authentication? What authorization level?"
 - "What user data does this touch? Is any of it PII or sensitive?"
-- "Does this feature handle health data (PHI)? If so, HIPAA compliance applies — stricter logging, encryption, access audit, and minimum necessary data rules."
+- "Does this feature handle health data (PHI)? If so, flag for **Privacy Guardian** review — HIPAA compliance is their domain."
 - "How will we identify the user — session, JWT, API key? How is it validated?"
 - "Should there be rate limiting? What happens if someone tries to brute-force this?"
 
@@ -294,18 +294,9 @@ When a user describes a feature, systematically check if they addressed these co
 - "Will this data be stored? Does it need encryption at rest?"
 - "Will this data be transmitted? Over what channel? Is TLS enforced?"
 
-#### Protected Health Information (PHI) `[HIPAA]` `[OWASP-A04]` `[OWASP-A09]`
-- "Does this feature process, store, or transmit health data — diagnoses, treatments, medications, patient IDs, insurance info, lab results, or billing for healthcare?"
-- "If PHI is involved: is access restricted to minimum necessary? Who can see what?"
-- "Are all PHI access events audited (who accessed what, when, from where)?"
-- "Is PHI encrypted at rest AND in transit (mandatory, not optional)?"
-- "Can PHI appear in logs, error messages, debug output, or analytics? It must not."
-- "Is there a data retention policy? PHI must not be kept longer than necessary."
-- "Does this involve sharing PHI with third parties? BAA (Business Associate Agreement) required."
-
 #### Error & Edge Cases `[OWASP-A10]` `[OWASP-A09]`
 - "What happens when this fails? Should it fail open (allow) or fail closed (deny)?"
-- "What should we log? What must we NOT log (tokens, passwords, PII, PHI)?"
+- "What should we log? What must we NOT log (tokens, passwords, PII)? For PHI-specific logging rules, defer to **Privacy Guardian**."
 - "What does the user see on error? We need to avoid exposing internals."
 
 #### Dependencies & Infrastructure `[OWASP-A03]` `[OWASP-A02]`
@@ -363,8 +354,7 @@ When reviewing architecture or design documents:
 
 ### Threat Modeling `[OWASP-A06]` `[AZURE-WAF]`
 - Identify trust boundaries between components
-- Map data flows and classify data sensitivity (PII, PHI, credentials, tokens, financial)
-- If PHI is present, apply HIPAA-specific controls: minimum necessary access, audit logging, encryption mandatory, no PHI in logs/errors
+- Map data flows and classify data sensitivity (PII, credentials, tokens, financial). For PHI classification, defer to **Privacy Guardian**
 - Identify attack surfaces (APIs, user inputs, file uploads, third-party integrations)
 - Apply STRIDE methodology: Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege
 - Verify defense-in-depth: no single control should be the only barrier
@@ -376,13 +366,11 @@ When reviewing architecture or design documents:
 - Ensure identity-driven routing (derive access from validated tokens, not client-provided params)
 - Verify separation of duties for administrative functions
 
-### Data Protection Architecture `[OWASP-A04]` `[AZURE-WAF]` `[AWS-WAF]` `[GCP-AF]` `[HIPAA]`
-- Confirm encryption at rest and in transit for all sensitive data (mandatory for PHI, not optional)
+### Data Protection Architecture `[OWASP-A04]` `[AZURE-WAF]` `[AWS-WAF]` `[GCP-AF]`
+- Confirm encryption at rest and in transit for all sensitive data
 - Verify key management strategy (managed KMS, no hardcoded keys)
 - Check data isolation model (per-user, per-tenant, or shared with proper controls)
-- Ensure data classification drives protection level — PHI requires the highest tier
-- If PHI is present: verify minimum necessary data access (no broad SELECT *, no unnecessary joins exposing health data)
-- If PHI is present: verify data retention policy exists and PHI is purged when no longer needed
+- Ensure data classification drives protection level
 - Verify backup integrity and secure disaster recovery
 
 ### Supply Chain Architecture `[OWASP-A03]` `[GCP-AF]`
@@ -498,11 +486,9 @@ When reviewing code changes (diffs, PRs, or specific files):
 - Ensure dependencies come from trusted registries
 - Verify no dependency confusion attack vectors (private package names matching public ones)
 
-### Logging & Monitoring `[OWASP-A09]` `[AZURE-WAF]` `[HIPAA]`
+### Logging & Monitoring `[OWASP-A09]` `[AZURE-WAF]`
 - Verify security-relevant events are logged (auth, access control, errors, admin actions)
-- Ensure NO sensitive data in logs (passwords, tokens, PII, PHI, session IDs)
-- **PHI logging prohibition:** diagnoses, treatments, medications, patient names/IDs, insurance info, lab results, and any health condition MUST NEVER appear in logs, error messages, analytics, or debug output
-- If the system processes PHI, verify access audit trail exists (who accessed what record, when, from where)
+- Ensure NO sensitive data in logs (passwords, tokens, PII, session IDs). For PHI-specific logging rules, **Privacy Guardian** provides dedicated review.
 - Check for structured logging with correlation IDs
 - Verify log integrity (tamper-resistant storage)
 - Ensure alerts exist for suspicious patterns

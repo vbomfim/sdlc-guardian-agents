@@ -155,10 +155,8 @@ Before handoff, verify your code would pass the other Guardians:
 - [ ] Input validated server-side
 - [ ] Parameterized queries (no string concat)
 - [ ] Auth checked on endpoints
-- [ ] No sensitive data in logs (passwords, tokens, PII, PHI)
-- [ ] No PHI in error messages, debug output, or analytics (diagnoses, medications, patient IDs, insurance info)
-- [ ] PHI encrypted at rest and in transit (if applicable)
-- [ ] PHI access audited — who accessed what, when (if applicable)
+- [ ] No sensitive data in logs (passwords, tokens, PII, session IDs)
+- [ ] If PHI is involved, flag for **Privacy Guardian** review (HIPAA compliance is their domain)
 - [ ] Error responses don't leak internals
 
 **Code Review Guardian checklist:**
