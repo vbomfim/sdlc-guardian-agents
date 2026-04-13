@@ -431,7 +431,7 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
 
 ## Side-Notes — Improvement Cycle
 
-The side-notes system creates a **feedback loop** from review Guardians back to upstream Guardians. When a review Guardian (Security, Code Review, QA) detects a recurring pattern across multiple sessions, it proposes an advisory note for the relevant Guardian. After user approval, the note is appended to the Guardian's `.notes.md` file.
+The side-notes system creates a **feedback loop** from review Guardians back to upstream Guardians. When a review Guardian (Security, Privacy, Code Review, QA) detects a recurring pattern across multiple sessions, it proposes an advisory note for the relevant Guardian. After user approval, the note is appended to the Guardian's `.notes.md` file.
 
 ### How it works
 
@@ -468,13 +468,14 @@ Each Guardian has its own `.notes.md` file in `~/.copilot/instructions/`:
 
 | File | Read by | Can propose additions |
 |------|---------|----------------------|
-| `security-guardian.notes.md` | Security Guardian | Security, Code Review, QA |
-| `code-review-guardian.notes.md` | Code Review Guardian | Security, Code Review, QA |
-| `qa-guardian.notes.md` | QA Guardian | Security, Code Review, QA |
-| `dev-guardian.notes.md` | Developer Guardian | Security, Code Review, QA |
-| `po-guardian.notes.md` | PO Guardian | Security, Code Review, QA |
-| `platform-guardian.notes.md` | Platform Guardian | Security, Code Review, QA |
-| `delivery-guardian.notes.md` | Delivery Guardian | Security, Code Review, QA |
+| `security-guardian.notes.md` | Security Guardian | Security, Privacy, Code Review, QA |
+| `privacy-guardian.notes.md` | Privacy Guardian | Security, Privacy, Code Review, QA |
+| `code-review-guardian.notes.md` | Code Review Guardian | Security, Privacy, Code Review, QA |
+| `qa-guardian.notes.md` | QA Guardian | Security, Privacy, Code Review, QA |
+| `dev-guardian.notes.md` | Developer Guardian | Security, Privacy, Code Review, QA |
+| `po-guardian.notes.md` | PO Guardian | Security, Privacy, Code Review, QA |
+| `platform-guardian.notes.md` | Platform Guardian | Security, Privacy, Code Review, QA |
+| `delivery-guardian.notes.md` | Delivery Guardian | Security, Privacy, Code Review, QA |
 
 > **Naming:** Notes files use `.notes.md`, not `.instructions.md`. Files ending in `.instructions.md` are auto-loaded by the Copilot CLI runtime. Notes must be explicitly read by Guardians so they can be framed as advisory.
 

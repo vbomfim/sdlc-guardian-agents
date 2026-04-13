@@ -23,7 +23,7 @@ You describe what you want. The Guardians handle the rest.
 | 3. **Approval** | You review the full spec, answer open questions, confirm | You | *"Looks good, proceed"* or *"Change X to Y"* |
 | 4. **Implementation** | Developer Guardian creates a branch, writes tests first, implements | Dev Guardian | *(automatic — orchestrator invokes Dev)* |
 | 5. **Testing** | You test the implementation in the worktree | You | *"Looks good"* or *"The button doesn't work when..."* |
-| 6. **Review** | QA + Security + Code Review Guardians review in parallel | 3 Guardians | *(automatic — orchestrator invokes all three)* |
+| 6. **Review** | QA + Security + Privacy + Code Review Guardians review in parallel | 4 Guardians | *(automatic — orchestrator invokes all four)* |
 | 7. **Fix** | Developer fixes any critical/high findings | Dev Guardian | *(automatic if findings exist)* |
 | 8. **Merge** | PR created, CI passes, you approve the merge | You | *"Merge it"* |
 
@@ -65,6 +65,18 @@ Review the code in this repo for security issues.
 ```
 
 The orchestrator invokes the Security Guardian, which runs Semgrep, Gitleaks, and manual review.
+
+### Checking for privacy/compliance issues
+
+```
+Check this code for PII leaks in logging.
+```
+
+```
+Run a HIPAA compliance review on the patient module.
+```
+
+The orchestrator invokes the Privacy Guardian, which classifies data by sensitivity tier (PHI → PII → quasi-identifiers) and checks GDPR, HIPAA, and CCPA compliance.
 
 ### Asking for tests
 
@@ -155,23 +167,25 @@ You: The upload works but there's no file type validation on the server side.
 You: Looks good now.
 ```
 
-### Review Gate — QA + Security + Code Review
+### Review Gate — QA + Security + Privacy + Code Review
 
-After UAT, three Guardians review in parallel:
+After UAT, four Guardians review in parallel:
 
 - **QA Guardian** — writes integration/E2E tests, runs them, reports coverage gaps
 - **Security Guardian** — runs Semgrep + Gitleaks + manual review, reports OWASP findings
+- **Privacy Guardian** — detects PII/PHI leaks, checks GDPR/HIPAA/CCPA compliance, audits logging hygiene
 - **Code Review Guardian** — runs linters + dual-model review (two AI models independently)
 
-All three must complete. Critical/high findings → Developer fixes before merge.
+All four must complete. Critical/high findings → Developer fixes before merge.
 
 ### Merge
 
 Once all reviews pass:
 ```
-Orchestrator: All 3 Guardians reviewed. Results:
+Orchestrator: All 4 Guardians reviewed. Results:
               - QA: 8 tests written, all passing, no gaps
               - Security: 0 critical, 0 high, 2 medium (noted for later)
+              - Privacy: 0 findings (no PII/PHI in scope)
               - Code Review: 1 medium (rename suggestion), 2 info
 
               Ready to merge. Proceed?

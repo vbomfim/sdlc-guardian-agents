@@ -13,7 +13,7 @@ The SDLC Guardian Agents have two distinct layers:
 │  QUALITY LAYER (Guardians)                                  │
 │  "Is this good enough?"                                     │
 │                                                             │
-│  PO → Dev → UAT → QA + Security + Code Review → Merge      │
+│  PO → Dev → UAT → QA + Security + Privacy + Code Review → Merge  │
 │  Triggered by: you asking to build something                │
 └─────────────────────────────────────────────────────────────┘
 
@@ -219,7 +219,7 @@ You get notified when you next open a session (or immediately if session is acti
  9:15  You: "Looks good, implement it"                   │
  9:16  Orchestrator → Dev Guardian → TDD implementation   │
  9:45  UAT checkpoint → you test                         │
-10:00  QA + Security + Code Review (parallel)             │ (QA uses Playwright for E2E!)
+10:00  QA + Security + Privacy + Code Review (parallel)     │ (QA uses Playwright for E2E!)
 10:15  All pass → merge                                  ← Quality Layer done
 12:00  Craig → Operator: midday health check             ← Operations Layer
 17:00  Craig → Operator: weekly findings recap            ← Operations Layer
