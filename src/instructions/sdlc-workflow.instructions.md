@@ -93,9 +93,10 @@ git worktree remove /tmp/dev-guardian-XXXXXXXX
 
 This gate ALWAYS runs — UAT does not replace it.
 
-1. **Automatically invoke in parallel** (all three as background tasks):
+1. **Automatically invoke in parallel** (all four as background tasks):
    - **QA Guardian** — integration, E2E, contract tests
    - **Security Guardian** — OWASP scans + manual review
+   - **Privacy Guardian** — PII/PHI leak detection + regulatory compliance
    - **Code Review Guardian** — linters + design review
 
 ```
@@ -109,19 +110,19 @@ Default agent: presents handoff + UAT offer
   │ "done" or "skip" to proceed     │
   └───────────────┬─────────────────┘
                   ↓
-  ┌──────────────┐  ┌──────────────────┐  ┌───────────────────┐
-  │ QA Guardian  │  │ Security Guardian │  │ Code Review Guard. │
-  │ (background) │  │ (background)      │  │ (background)       │
-  └──────┬───────┘  └────────┬─────────┘  └─────────┬─────────┘
-         └──────────────────┼──────────────────────┘
-                            ▼
+  ┌──────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌───────────────────┐
+  │ QA Guardian  │  │ Security Guardian │  │ Privacy Guardian  │  │ Code Review Guard. │
+  │ (background) │  │ (background)      │  │ (background)      │  │ (background)       │
+  └──────┬───────┘  └────────┬─────────┘  └────────┬─────────┘  └─────────┬─────────┘
+         └──────────────────┼──────────────────────┼──────────────────────┘
+                            ▼                      ▼
                Default agent: combined results
                             ▼
-               "3 Guardians reviewed. Here's the summary.
+               "4 Guardians reviewed. Here's the summary.
                 Fix these before committing?"
 ```
 
-2. Present combined results from all three Guardians
+2. Present combined results from all four Guardians
 3. If critical or high findings exist → recommend fixing before committing
 4. If all pass → proceed to commit and PR
 
@@ -131,7 +132,7 @@ Default agent: presents handoff + UAT offer
 
 The Developer Guardian creates the PR and pushes to the ticket branch. The pre-merge gate is NOT about creating the PR — it's about confirming the merge after everything passes:
 
-1. All Guardian reviews (QA, Security, Code Review) completed
+1. All Guardian reviews (QA, Security, Privacy, Code Review) completed
 2. All remote CI checks pass (build, tests, security scans)
 3. No unresolved critical/high findings
 4. Present the combined report to the user
@@ -172,6 +173,7 @@ When the user asks to deploy, release, or push to an environment:
   ↓ (auto-triggered after UAT done/skipped)
   ├─ 🧪 QA Guardian ──────────┐
   ├─ 🛡️ Security Guardian ────┤ (parallel, background)
+  ├─ 🔒 Privacy Guardian ─────┤
   ├─ 📋 Code Review Guardian ─┘
   ↓
   Combined results → fix critical/high → commit
