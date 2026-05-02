@@ -17,9 +17,11 @@ When the user describes a feature, reports a bug, asks to create a ticket, write
 **Workflow:**
 1. PO Guardian researches and **decomposes** the request into modules/tickets
 2. PO Guardian **decides per-request whether a Formal Spec is warranted** (Step 4b) — multi-component / cross-Guardian / architectural shifts produce a Spec Kit-compatible spec at `specs/{feature}/spec.md`; trivial work skips it. Decision and rationale are captured in every ticket via the `Parent Spec:` field.
-3. PO Guardian presents the decomposition (and spec, if produced) to the user for approval
-4. PO Guardian details each ticket with the 18-section template (each ticket carries a `Parent Spec:` line)
-5. PO Guardian creates issues in the project's tracker
-6. Orchestrator presents the specs to the user — no summarizing
-7. User confirms, requests changes, or answers open questions
-8. Only then does the orchestrator invoke the Developer Guardian
+3. **For brownfield projects** (Step 2c) — when the area being changed has no parent spec, the PO Guardian bootstraps one from the existing code so the new change has a baseline to evolve from. Bug fixes against an area with a spec **patch the spec** as part of the ticket.
+4. **For non-trivial work** (Step 5b-arch) — the PO Guardian consults the Code Review Guardian for architectural-impact assessment, which feeds the spec's System Impact section.
+5. PO Guardian presents the decomposition (and spec, if produced) to the user for approval
+6. PO Guardian details each ticket with the 18-section template (each ticket carries a `Parent Spec:` line)
+7. PO Guardian creates issues in the project's tracker
+8. Orchestrator presents the specs to the user — no summarizing
+9. User confirms, requests changes, or answers open questions
+10. Only then does the orchestrator invoke the Developer Guardian
