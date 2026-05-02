@@ -121,7 +121,15 @@ The Guardians are not invoked manually — the default Copilot agent enforces th
   ├─── 🚀 Delivery Guardian ────────┘  if deployment config changed
   │
   ▼
-✅ PR → Merge → Deploy
+✅ PR → Merge
+  │
+  │ ── Post-Merge Archive Gate (auto-triggered) ──
+  │
+  └─── 📚 Operator (background)
+        └─ Curates archive/{feature_slug}.md from spec + tickets + PR + Guardian reports
+  │
+  ▼
+🚢 Deploy
 
 ── Operational Track (parallel, non-blocking) ──
 
@@ -137,14 +145,15 @@ The Guardians are not invoked manually — the default Copilot agent enforces th
                                         └─ Results → ~/.copilot/reports/
 ```
 
-**Five quality gates, enforced automatically:**
+**Six quality gates, enforced automatically:**
 
 | Gate | When | What happens |
 |------|------|-------------|
-| **Pre-Implementation** | User asks to implement without a ticket | PO Guardian invoked to create specification first |
+| **Pre-Implementation** | User asks to implement without a ticket | PO Guardian invoked to create specification first; per-request judgment on whether a Spec Kit-compatible Formal Spec is also produced at `specs/{feature}/spec.md` |
 | **UAT Checkpoint** | Developer Guardian completes | User offered a chance to test the worktree + pair-fix with Developer Guardian (auto-entered in autopilot mode). After 3 pair-fix iterations the orchestrator recommends moving to the review gate. |
-| **Post-Implementation** | UAT done or skipped | QA + Security + Privacy + Code Review invoked in parallel automatically |
+| **Post-Implementation** | UAT done or skipped | QA + Security + Privacy + Code Review invoked in parallel automatically (Code Review Domain 8 enforces Parent Spec linkage and spec drift) |
 | **Pre-Merge** | All Guardian reviews pass + CI checks pass | Default agent presents combined results; user confirms merge approval |
+| **Post-Merge Archive** | Feature ticket merged | Operator dispatched to curate `archive/{feature_slug}.md` from spec + tickets + PR diff + Guardian session reports |
 | **Pre-Deployment** | User asks to deploy | Platform + Delivery Guardians verify infrastructure and operations readiness |
 
 The user never needs to remember which Guardian to invoke. The workflow enforces it.
