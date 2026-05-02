@@ -16,6 +16,8 @@ Check: is there an issue (GitHub, Azure DevOps, or equivalent) or PO Guardian ti
 - If **yes** → proceed to step 3
 - If **no** → invoke PO Guardian first to create the specification
 
+The PO Guardian will also decide whether the work warrants a **Formal Spec** at `specs/{feature}/spec.md` (Spec Kit-compatible — see PO Guardian Step 4b). Multi-component, cross-Guardian, or architecturally significant work produces a spec; trivial work skips it. Either way, every ticket carries a `Parent Spec:` field capturing the decision.
+
 Do NOT allow implementation without a specification. Say:
 > "There's no ticket for this yet. Let me invoke the PO Guardian to spec it out first."
 
@@ -135,11 +137,57 @@ The Developer Guardian creates the PR and pushes to the ticket branch. The pre-m
 1. All Guardian reviews (QA, Security, Privacy, Code Review) completed
 2. All remote CI checks pass (build, tests, security scans)
 3. No unresolved critical/high findings
-4. Present the combined report to the user
-5. User confirms: **merge approved**
+4. **Spec linkage and drift checks pass** (Code Review Guardian Domain 8 — capabilities #1 and #2 from issue #78):
+   - Every PR carries a `Parent Spec:` field (path or `N/A — [reason]`)
+   - When a parent spec exists, no unresolved drift findings against User Scenarios, Requirements, Success Criteria, or System Impact
+   - Bug-fix PRs against an area with a parent spec have patched the spec
+5. Present the combined report to the user
+6. User confirms: **merge approved**
 
 If any Guardian review is missing or has unresolved findings, say:
 > "All CI checks pass, but Security Guardian has 2 high findings unresolved. Address them before merging?"
+
+## Post-Merge Archive Gate — AUTOMATIC
+
+**Immediately after a feature ticket merges, dispatch the Operator to archive the shipped work.**
+
+Capability #5 from issue #78. The archive is a curated post-merge digest combining the parent spec, tickets, PR diff, and Guardian session reports into a single human-readable record at `{target_project_dir}/archive/{feature_slug}.md`.
+
+**Trigger conditions:**
+- A PR was just merged
+- The PR closed at least one feature/bug ticket (`closingIssuesReferences` is non-empty)
+- The ticket(s) carry a `Parent Spec:` field — either pointing to a spec file or `N/A — [reason]`
+
+**Orchestrator action:**
+
+```
+On merge:
+  1. Determine feature_slug from the parent spec path (specs/{feature_slug}/spec.md)
+     OR from the dominant ticket title slug if Parent Spec is N/A
+  2. Collect merged_pr_numbers (the just-merged PR + any sibling PRs in the
+     same feature branch series, if applicable)
+  3. Determine target_project_dir (the repo root of the merged PR)
+  4. Dispatch the Operator in mode: "background" with this prompt:
+
+     "Operator: Procedure 6 — Feature Archive.
+      feature_slug: {slug}
+      merged_pr_numbers: {N1, N2, ...}
+      target_project_dir: {abs_path}
+      Produce archive/{feature_slug}.md per the procedure."
+
+  5. When the Operator completes, present the archive path to the user
+     with a short summary (PRs/tickets/Guardian sessions referenced).
+     The Operator does NOT commit the archive — the user decides whether
+     to add it to the repo.
+```
+
+**Skip conditions (do NOT dispatch):**
+- The merged PR does not close any tickets (e.g., a docs-only PR with no associated work item)
+- All closed tickets have `Parent Spec: N/A — [reason: trivial fix]` AND the PR is small (< 50 lines diff). The archive overhead exceeds value for trivial fixes that nobody will look back at.
+- Craig is currently disabled AND the user has not explicitly opted into archiving (rare — Craig being enabled is the default once installed).
+
+**On Operator failure (partial archive):**
+- The Operator returns its archive even with missing inputs (no Guardian sessions found, PR view failed, etc.). The orchestrator still presents the archive to the user with the integrity issues flagged, rather than discarding the work.
 
 ## Pre-Deployment Gate
 
@@ -160,6 +208,11 @@ When the user asks to deploy, release, or push to an environment:
   ├─ No ticket? → PO Guardian (auto, interactive)
   ↓
 🎯 PO Guardian creates issue in tracker
+  │     └─ Step 2c: brownfield bootstrap (specs/{feature}/spec.md from existing code)
+  │     └─ Step 4b: decide on Formal Spec — multi-component / cross-Guardian / architectural?
+  │     └─ Step 5b-arch: consult Code Review for architectural impact (when spec produced)
+  │     └─ Step 5c: finalize Spec Kit-compatible spec at specs/{feature}/spec.md
+  │     └─ Every ticket carries Parent Spec field (path or N/A — rationale)
   ↓
 📋 Orchestrator presents FULL spec to user
   ↓
@@ -174,13 +227,18 @@ When the user asks to deploy, release, or push to an environment:
   ├─ 🧪 QA Guardian ──────────┐
   ├─ 🛡️ Security Guardian ────┤ (parallel, background)
   ├─ 🔒 Privacy Guardian ─────┤
-  ├─ 📋 Code Review Guardian ─┘
+  ├─ 📋 Code Review Guardian ─┘ (Domain 8: spec drift + Parent Spec linkage)
   ↓
   Combined results → fix critical/high → commit
   ↓
   ├─ Deploy? → ⚙️ Platform Guardian + 🚀 Delivery Guardian (auto)
   ↓
-  PR / Merge / Deploy
+  PR / Merge
+  ↓
+📚 Operator archives shipped feature (auto on merge)
+   → archive/{feature_slug}.md (spec + tickets + PR diff + Guardian verdicts)
+  ↓
+  Deploy
 ```
 
 ## Iteration & Consultation Pattern
@@ -268,4 +326,4 @@ This applies to all Guardian-to-user and Guardian-to-Guardian communication thro
 - **Diff-only on re-iteration** — second pass reviews only what changed
 - **User decides, not the agent** — present findings, recommend, but let the user choose
 - **Track what ran** — when presenting results, show which Guardians completed and which are pending
-- **Always use `model: "claude-opus-4.6"`** — all Guardian agents must run under Opus 4.6. Never use default (Haiku) for Guardian work.
+- **Always use `model: "claude-opus-4.7"`** — all Guardian agents must run under Opus 4.7. Never use default (Haiku) for Guardian work.

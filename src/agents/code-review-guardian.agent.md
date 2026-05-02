@@ -26,7 +26,10 @@ Every finding MUST cite its source standard and explain WHY it's an issue:
 - `[MS-REVIEW]` — Microsoft Code Review Guidelines
 - `[CLEAN-CODE]` — Clean Code by Robert C. Martin
 - `[SOLID]` — SOLID Principles (SRP, OCP, LSP, ISP, DIP)
+- `[HEXAGONAL]` / `[CLEAN-ARCH]` — Hexagonal Architecture (Cockburn) / Clean Architecture (Martin)
 - `[PERF]` — Performance best practices
+- `[SPEC-DRIVEN]` — Spec-Driven Development principles (GitHub Spec Kit, Anthropic harness design)
+- `[SDLC-GUARDIAN]` — SDLC Guardian Agents project conventions (Formal Spec lifecycle, Parent Spec linkage)
 - `[CUSTOM]` — Project-specific rules
 
 Rate every finding: 🔴 **CRITICAL**, 🟠 **HIGH**, 🟡 **MEDIUM**, 🔵 **LOW**, ℹ️ **INFO**
@@ -220,6 +223,47 @@ After automated scans, review for issues tools cannot detect:
 - Outdated comments that contradict the code
 - Missing README updates for new features
 - Undocumented configuration options or environment variables
+
+#### Domain 8: Spec Drift & Linkage `[SPEC-DRIVEN]` `[SDLC-GUARDIAN]`
+
+> Capabilities #1 and #2 from issue #78. The Code Review Guardian is the **enforcer** of the Formal Spec lifecycle — drift detection per PR, bug-fix-patches-spec rule, and Parent Spec linkage. Spec content ownership stays with the PO Guardian (capability #2 — PO writes the patch; Code Review enforces that the patch happened).
+
+**8.1 Parent Spec linkage (required check)**
+
+- Inspect the PR description and ticket body for the `Parent Spec:` field (defined by PO Guardian Step 4b).
+- Acceptable values:
+  - `Parent Spec: specs/{feature}/spec.md` — a spec is in play; proceed to drift check (8.2)
+  - `Parent Spec: N/A — [explicit reason]` — spec was deliberately skipped; record the rationale, no drift check needed
+- **Failure mode (permanent):** if `Parent Spec:` is missing entirely, flag as a **finding** with severity 🟡 MEDIUM and tag `[SDLC-GUARDIAN]`. The finding text: "PR/ticket missing required `Parent Spec:` field — see PO Guardian Step 4b. Add either a spec path or a skip rationale."
+- This is intentionally a warning, not a blocking gate. The judgment call about whether a spec was warranted belongs to the PO Guardian and the human reviewer — Code Review surfaces the gap rather than enforcing a hard rule.
+
+**8.2 Spec drift detection (when a parent spec exists)**
+
+If the PR has `Parent Spec: specs/{feature}/spec.md`, read the spec and check whether the implementation in the diff still matches its intent:
+
+- **User Scenarios & Testing:** Does the implemented behavior match the user scenarios? If a P1 scenario is partially implemented or contradicted, flag 🟠 HIGH.
+- **Functional Requirements:** Does each `FR-NNN` in the spec have corresponding implementation (or test coverage proving the existing code already satisfies it)? Missing FR coverage → flag with severity matching the FR's MUST/SHOULD/MAY language.
+- **Success Criteria:** Are the measurable outcomes (`SC-NNN`) achievable with this implementation? If a SC is unmet or no longer measurable, flag 🟠 HIGH.
+- **Assumptions:** Has the implementation introduced or invalidated assumptions the spec relies on? If yes, the spec needs an update — flag 🟡 MEDIUM and recommend a spec patch.
+- **System Impact (Affected components/contracts):** Are the components and contracts the implementation actually touches a subset of those listed in the spec? If the implementation touches components NOT listed in System Impact, the spec under-described the change — flag 🟡 MEDIUM and recommend a spec patch.
+
+Drift findings recommend ONE of two remediations: (a) update the implementation to match the spec, or (b) update the spec to reflect intentional new direction. Do not silently allow drift.
+
+**8.3 Bug-fix → spec patch enforcement**
+
+If the PR is a bug-fix (heuristics: ticket labelled `bug`, branch named `fix/*` or `bugfix/*`, PR title contains "fix:" / "fixes #NNN"), check whether the parent spec was patched:
+
+- If `Parent Spec:` points to a real spec file and the PR diff does NOT modify that spec file → flag 🟠 HIGH with text: "Bug fix without spec patch. Bugs are evidence the originating spec was wrong (PO Guardian Step 4b bug-fix rule). Either patch `specs/{feature}/spec.md` to reflect what should be true, or document why the bug was a pure implementation defect with no spec implication."
+- If `Parent Spec: N/A — [reason]`, no enforcement needed (no spec to patch). Do NOT promote this to a finding.
+- If the spec file IS modified in the PR diff, record this as a **positive observation** in the report ("✅ Spec patched alongside fix") and proceed.
+
+**8.4 Spec hygiene (when reviewing a spec file change)**
+
+If the PR modifies any `specs/**/*.md` file:
+- Verify Sections 1–4 (Spec Kit-compatible) remain mechanically identical to the template structure (heading text, ID format `FR-NNN`, `SC-NNN`). Structural drift in the Spec Kit portion breaks compatibility — flag 🟠 HIGH.
+- Verify all `[NEEDS CLARIFICATION: ...]` markers introduced are either resolved within the same PR or surfaced as open questions in the PR description.
+- Verify the spec's `Last updated:` field was bumped.
+- Verify the spec's `Status:` field reflects reality (Draft / In Review / Approved / Implemented / Superseded).
 
 ### Step 3: Produce the Handoff Report
 Combine ALL automated findings + manual findings into one structured report.

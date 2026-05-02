@@ -91,6 +91,9 @@ The Guardians are not invoked manually — the default Copilot agent enforces th
 💡 Idea
   │
   ├─ No ticket? → 🎯 PO Guardian creates specification (auto)
+  │                    └─ For multi-component / cross-Guardian work,
+  │                       PO produces a Spec Kit-compatible Formal Spec
+  │                       at specs/{feature}/spec.md (per-request judgment)
   │
   ▼
 🎯 Specification exists
@@ -118,7 +121,15 @@ The Guardians are not invoked manually — the default Copilot agent enforces th
   ├─── 🚀 Delivery Guardian ────────┘  if deployment config changed
   │
   ▼
-✅ PR → Merge → Deploy
+✅ PR → Merge
+  │
+  │ ── Post-Merge Archive Gate (auto-triggered) ──
+  │
+  └─── 📚 Operator (background)
+        └─ Curates archive/{feature_slug}.md from spec + tickets + PR + Guardian reports
+  │
+  ▼
+🚢 Deploy
 
 ── Operational Track (parallel, non-blocking) ──
 
@@ -134,14 +145,15 @@ The Guardians are not invoked manually — the default Copilot agent enforces th
                                         └─ Results → ~/.copilot/reports/
 ```
 
-**Five quality gates, enforced automatically:**
+**Six quality gates, enforced automatically:**
 
 | Gate | When | What happens |
 |------|------|-------------|
-| **Pre-Implementation** | User asks to implement without a ticket | PO Guardian invoked to create specification first |
+| **Pre-Implementation** | User asks to implement without a ticket | PO Guardian invoked to create specification first; per-request judgment on whether a Spec Kit-compatible Formal Spec is also produced at `specs/{feature}/spec.md` |
 | **UAT Checkpoint** | Developer Guardian completes | User offered a chance to test the worktree + pair-fix with Developer Guardian (auto-entered in autopilot mode). After 3 pair-fix iterations the orchestrator recommends moving to the review gate. |
-| **Post-Implementation** | UAT done or skipped | QA + Security + Privacy + Code Review invoked in parallel automatically |
+| **Post-Implementation** | UAT done or skipped | QA + Security + Privacy + Code Review invoked in parallel automatically (Code Review Domain 8 enforces Parent Spec linkage and spec drift) |
 | **Pre-Merge** | All Guardian reviews pass + CI checks pass | Default agent presents combined results; user confirms merge approval |
+| **Post-Merge Archive** | Feature ticket merged | Operator dispatched to curate `archive/{feature_slug}.md` from spec + tickets + PR diff + Guardian session reports |
 | **Pre-Deployment** | User asks to deploy | Platform + Delivery Guardians verify infrastructure and operations readiness |
 
 The user never needs to remember which Guardian to invoke. The workflow enforces it.
@@ -293,6 +305,8 @@ See **[PREREQUISITES.md](PREREQUISITES.md)** for the complete setup guide — co
 
 ### Installation
 
+**macOS / Linux:**
+
 ```bash
 unzip sdlc-guardian-agents.zip -d ~/.copilot/
 ```
@@ -304,6 +318,16 @@ git clone https://github.com/vbomfim/sdlc-guardian-agents.git
 cd sdlc-guardian-agents
 ./package.sh --install
 ```
+
+**Windows (PowerShell):**
+
+```powershell
+git clone https://github.com/vbomfim/sdlc-guardian-agents.git
+cd sdlc-guardian-agents
+.\package.ps1 -Install
+```
+
+The PowerShell script (`package.ps1`) is the Windows equivalent of `package.sh` — same install layout under `%USERPROFILE%\.copilot\`, same Guardian roster, same `-Install`, `-Uninstall`, `-Doctor` operations.
 
 ### Usage
 
@@ -413,6 +437,8 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
 │       ├── extension.mjs                ← SDK wiring shell (thin)
 │       ├── uat-state-machine.mjs        ← Pure state-machine logic (testable)
 │       └── uat-state-machine.test.mjs   ← Zero-dep tests (node --test)
+├── templates/                           ← Reusable artifact templates
+│   └── feature-spec.template.md         ← Spec Kit-compatible Formal Spec template
 ├── reports/                             ← Operator output (created at runtime by Operator)
 │   ├── weekly-recap-2026-04-05-170030.md
 │   └── grafana-dashboard-2026-04-05-083015.png

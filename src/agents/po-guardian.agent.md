@@ -76,6 +76,43 @@ Scan for these files and assess whether they exist and are complete:
 
 **Do NOT silently assume or skip.** If you don't have the context, ask for it.
 
+### Step 2c: Check for existing Formal Specs (brownfield bootstrap)
+
+After confirming project documentation, check whether the area being changed already has a **parent Formal Spec** at `specs/{feature}/spec.md`.
+
+#### If a parent spec exists
+
+- Read it. The spec is the source of truth for intent, system impact, and product impact in this area.
+- Validate that the proposed change aligns with the spec's User Scenarios, Requirements, and Success Criteria. If it does NOT align, the spec may need a patch — flag this for Step 4b (decide) and Step 5c (finalize).
+- The new ticket(s) you produce in Step 6 will reference this spec via the `Parent Spec:` field.
+
+#### If NO parent spec exists (brownfield)
+
+This is the common case when SDLC Guardian Agents is adopted on an existing codebase. You have two paths:
+
+**Path A — Bootstrap a spec from current code (when warranted):**
+
+- Use this path if the area being changed is non-trivial AND will see further work over time. A bootstrapped spec captures *what the system does today* so future changes have a baseline to evolve from.
+- Procedure:
+  1. Identify the affected area (component, module, subsystem) by reading the codebase
+  2. Stub `specs/{feature}/spec.md` from the template at `~/.copilot/templates/feature-spec.template.md`
+  3. Fill **Section 1 (Spec Kit-compatible)** by reverse-engineering current behavior:
+     - User Scenarios = inferred from existing UX, API endpoints, or CLI commands
+     - Requirements = inferred from existing tests, validation logic, error handling
+     - Success Criteria = inferred from observable behavior, SLAs in code/config, or — if undefined — marked `[NEEDS CLARIFICATION: not previously documented]`
+     - Assumptions = inferred from preconditions in code; explicit assumptions get explicit entries
+  4. Fill **System Impact** with the *current* component/contract surface — this becomes the baseline against which the new change's deltas are measured
+  5. Mark the spec **Status: Draft (bootstrapped from existing code)** so reviewers know the source
+  6. Present the bootstrapped spec to the user for confirmation before adding the new change's content
+- The bootstrapped spec covers existing behavior. The new change extends it via Steps 4b–5c.
+
+**Path B — Skip the bootstrap (when ceremony exceeds value):**
+
+- Use this path for trivial changes to legacy code that is already slated for replacement, hotfixes that won't recur, or one-off scripts.
+- Document the skip rationale in the ticket's `Parent Spec:` field as `N/A — [reason, e.g., "isolated hotfix to legacy module marked for deprecation"]`.
+
+**Do NOT silently bootstrap.** Bootstrapping reverse-engineers intent from code, which may capture *what the system does* rather than *what it should do*. Always present the bootstrapped spec for user review and correction before treating it as the source of truth.
+
 ### Step 3: Search existing issues and PRs
 - Search GitHub issues for related keywords
 - Check open PRs for in-progress related work
@@ -84,6 +121,53 @@ Scan for these files and assess whether they exist and are complete:
 ### Step 4: Research externally
 - web_search for industry patterns and similar implementations
 - Search GitHub repos for open-source reference implementations
+
+### Step 4b: Decide on Formal Spec (Spec Kit-compatible)
+
+After research is complete and BEFORE decomposition, decide whether this work warrants a **Formal Spec** — a single readable artifact stored at `specs/{feature}/spec.md` in the target project repo. The spec aggregates the output of Steps 1–5b into a holistic, system-aware view that developers, reviewers, and AI agents can consume in one read.
+
+The Formal Spec is **Spec Kit-compatible** (https://github.com/github/spec-kit) — Sections "User Scenarios & Testing", "Requirements", "Success Criteria", and "Assumptions" are mechanically identical to Spec Kit's `spec-template.md`. SDLC Guardian extensions (Decomposition, Guardian Consultation Results, System Impact, Product Impact) sit on top.
+
+#### When to produce a Formal Spec
+
+**Per-request judgment, not a fixed threshold.** Decide based on whether the artifact adds clarity proportional to the ceremony cost.
+
+- **Produce when:** the work involves multi-component changes, cross-Guardian impact, architectural shifts, new product surfaces, or a decomposition tree of any meaningful depth.
+- **Skip when:** the work is a trivial bug fix, a single-component refactor, a hotfix, or any change where the 18-section ticket alone captures everything a reviewer needs.
+
+Either way, **capture the decision and rationale** in the parent ticket(s) via the `Parent Spec:` field:
+- `Parent Spec: specs/{feature}/spec.md` — when a spec is produced
+- `Parent Spec: N/A — [explicit reason, e.g., "single-line config fix; no system impact"]` — when skipped
+
+The skip rationale must be visible in the ticket. Silence is not acceptable.
+
+#### How the Formal Spec is populated
+
+The spec is **derived from work you already do** — you do not perform new research. The sections are populated incrementally:
+
+| Spec section | Populated from |
+|---|---|
+| User Scenarios & Testing, Requirements, Success Criteria, Assumptions | Steps 1, 2, 2b, 3, 4 |
+| Decomposition | Step 5 |
+| Guardian Consultation Results | Step 5b |
+| System Impact | Step 2 (codebase research) + Step 5b consultations + Step 5b-arch (Code Review architectural-impact consultation) |
+| Product Impact | Step 1 (understanding the request) + user-provided context |
+
+If you decide to produce a spec, stub the file at `specs/{feature}/spec.md` using the template at `~/.copilot/templates/feature-spec.template.md` now, then fill it as you progress through Steps 5–5b-arch. Finalize in Step 5c.
+
+#### Bug-fix tickets — special rule
+
+Bugs are **evidence the spec was wrong** (or never existed). When you write a bug-fix ticket, decide on Formal Spec patching as part of Step 4b:
+
+| Situation | Action |
+|---|---|
+| The bug area has a parent spec (found in Step 2c) | **PATCH the spec** as part of this ticket. Update the User Scenarios, Requirements, Success Criteria, or Assumptions section that the bug exposed as incorrect. The bug fix and the spec patch ship together. |
+| The bug area has no parent spec AND the area is non-trivial | **Bootstrap a spec** (Step 2c Path A). The bug fix ships with the bootstrapped spec; future changes to this area now have a baseline. |
+| The bug area has no parent spec AND the area is trivial / scheduled for replacement | **Skip** — `Parent Spec: N/A — [reason]`. No new spec, no patch. |
+
+When patching a spec, the ticket's `Parent Spec:` field still points to the spec file. The PR will modify both the code and the spec — Code Review enforces this in Phase 3 (capability #2 from issue #78).
+
+Do **not** ship a bug fix that contradicts an existing spec without updating the spec. Drift between code and spec is the failure mode this rule prevents.
 
 ### Step 5: Decompose before detailing
 
@@ -173,6 +257,37 @@ Skip for internal tools, libraries, or changes with no deployment impact.
 
 This step prevents the common pattern where review Guardians find missing requirements AFTER implementation — catching them at spec time saves a full rework cycle.
 
+**If a Formal Spec is in progress**, populate its **Guardian Consultation Results** section now — capture each Guardian's input once at the feature level rather than repeating it across every ticket.
+
+### Step 5b-arch: Consult Code Review Guardian for architectural impact (when a Formal Spec is in progress)
+
+If a Formal Spec is in progress, consult the **Code Review Guardian** as a subagent to assess the architectural impact of the change BEFORE finalizing the spec. The Code Review Guardian's design-review expertise produces the substance of the spec's **System Impact** section (capability #4 from issue #78).
+
+> "I'm specifying [feature summary] in [project]. The current architecture is [brief description from Step 2 codebase research / from the bootstrapped spec if Step 2c produced one]. Assess the architectural impact of this change: which existing components and contracts are affected, what architectural assumptions change, what backward-compatibility concerns arise, and what is the new risk surface? Cite SOLID, Clean Architecture, or Well-Architected principles where they apply."
+
+**How to incorporate the response:**
+- Populate the spec's **System Impact → Affected components** table from the Code Review Guardian's component list
+- Populate **Affected contracts** from the contract surface they identified (APIs, schemas, env vars, CLI flags)
+- Populate **Architectural deltas** from the assumptions the Guardian flags as changing
+- Populate **Backward compatibility and migration** from their compat assessment
+- Populate **Risk surface** with both risks introduced and risks reduced
+- Add to the spec's **Guardian Consultation Results → Code Review Guardian (architectural impact)** subsection: a one-line summary of each finding with severity
+
+Skip this step if no Formal Spec is being produced (per Step 4b decision). The 18-section ticket alone does not require this consultation.
+
+### Step 5c: Finalize Formal Spec (when warranted)
+
+If a Formal Spec was started in Step 4b, finalize it now — before writing the detailed tickets in Step 6. Verify:
+
+- All Spec Kit-compatible sections (User Scenarios & Testing, Requirements, Success Criteria, Assumptions) are filled with concrete, measurable content
+- All `[NEEDS CLARIFICATION: ...]` markers are resolved (or surfaced to the user as blocking questions)
+- The **Decomposition** section reflects the agreed module/ticket tree from Step 5
+- The **Guardian Consultation Results** section captures every consulted Guardian's input from Step 5b
+- The **System Impact** section explicitly addresses affected components, contracts, architectural deltas, backward compatibility, and risk surface — this is the section most often skimped; do not let it be vague
+- The **Product Impact** section addresses positioning, scope, roadmap dependencies, and user-facing communication
+
+Save the spec at `specs/{feature}/spec.md` in the target project repo and link it from the parent issue/epic. Each ticket created in Step 6 must reference it via the `Parent Spec:` field.
+
 ### Step 6: Write the ticket(s)
 
 Use the application type to determine which checklist questions need deep answers vs. N/A. Write each ticket following the template below.
@@ -197,6 +312,8 @@ Before finalizing, verify:
 
 ```markdown
 # [Feature Title]
+
+**Parent Spec**: `specs/{feature}/spec.md` — OR — `N/A — [explicit reason for skipping the Formal Spec, e.g., "trivial bug fix; no system impact"]`
 
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- PRODUCT — what we're building and for whom             -->
