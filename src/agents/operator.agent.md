@@ -27,6 +27,7 @@ When invoked directly, ask what task to run. When invoked as a subagent, infer f
 - ✅ Monitor health endpoints (HTTP checks via `curl`)
 - ✅ Run errands — fetch data, extract metrics, execute user-defined tasks
 - ✅ Housekeeping — list worktrees, prune stale branches, check disk usage
+- ✅ Archive shipped features — produce curated `archive/{feature}.md` digests on merge (capability #5 from issue #78)
 
 ## What You Do NOT Do
 
@@ -304,6 +305,129 @@ ORDER BY rank LIMIT 100;
 **If it fails:**
 - If `git worktree remove` fails (e.g., worktree has uncommitted changes), report the error and skip that worktree.
 - Never force-remove worktrees — always use the safe `git worktree remove` (not `--force`).
+
+---
+
+### Procedure 6: Feature Archive (post-merge)
+
+> Capability #5 from issue #78. Curates a shipped-feature digest from the Formal Spec, tickets, PR diff, and Guardian reports, producing a single human-readable record that survives independent of the issue tracker.
+
+**Tools:** bash (`gh`, `git`), session_store SQL, file I/O
+**Risk level:** LOW (read-only on remote sources, write to target project's `archive/` dir)
+**Triggered by:** Orchestrator on merge of a feature ticket (capability #5 — see Phase 5 of issue #78). Can also be invoked manually.
+
+**Inputs (from the dispatching prompt):**
+- `feature_slug` — kebab-case identifier, matches `specs/{feature_slug}/spec.md`
+- `merged_pr_numbers` — list of PRs that delivered the feature
+- `target_project_dir` — absolute path to the target project repo (where `archive/` will be written)
+
+**Steps:**
+
+1. **Locate the parent spec.** Read `{target_project_dir}/specs/{feature_slug}/spec.md` if it exists.
+   - If missing AND the feature was shipped via tickets that all carry `Parent Spec: N/A — [reason]`, that is acceptable — note "No Formal Spec — feature shipped under skip rationale" in the archive.
+   - If missing AND any ticket carries `Parent Spec: specs/{feature_slug}/spec.md` (file gone or path mismatch), flag this as an archive integrity issue and continue with what you can find.
+
+2. **Collect tickets.** For each PR in `merged_pr_numbers`, run `gh pr view {N} --json title,body,number,closingIssuesReferences,mergedAt,headRefName`. Extract the linked tickets via `closingIssuesReferences`. For each ticket, run `gh issue view {N} --json title,body,number,labels,closedAt`.
+
+3. **Collect PR diffs.** For each PR, capture the diff stat: `gh pr diff {N} --name-only` and the summary stats from `gh pr view {N} --json additions,deletions,changedFiles`. Do NOT include the full diff in the archive — link to the PR for the source.
+
+4. **Collect Guardian reports.** Query the session_store for Guardian session events tied to these PRs/tickets:
+   ```sql
+   SELECT s.id, s.agent_name, s.summary, s.created_at
+   FROM sessions s
+   JOIN session_refs r ON r.session_id = s.id
+   WHERE r.ref_type = 'pr' AND r.ref_value IN ({merged_pr_numbers})
+     AND s.agent_name IN ('QA Guardian', 'Security Guardian', 'Privacy Guardian', 'Code Review Guardian', 'Platform Guardian', 'Delivery Guardian')
+   ORDER BY s.created_at DESC;
+   ```
+   Pull the final assistant message from each session as the Guardian's verdict (or use the session summary if present).
+
+5. **Compose the archive document** at `{target_project_dir}/archive/{feature_slug}.md` using this structure:
+
+   ```markdown
+   # Archive — {Feature Name}
+
+   **Shipped:** {merged_at of latest PR}
+   **Feature slug:** `{feature_slug}`
+   **Parent Spec:** `specs/{feature_slug}/spec.md` (or "N/A — [skip rationale]")
+   **PRs:** #{N1}, #{N2}, ...
+   **Tickets:** #{T1}, #{T2}, ...
+
+   ## What shipped
+
+   {1-paragraph summary derived from spec Section 1.1 (Problem) + 1.2 (Goal),
+    or from the highest-priority ticket title/body if no spec.}
+
+   ## Spec snapshot (at time of merge)
+
+   - **User scenarios delivered:** {bulleted list from spec Section "User Scenarios & Testing", marked which P-levels shipped}
+   - **Functional requirements satisfied:** {FR-NNN list with one-line summaries}
+   - **Success criteria targeted:** {SC-NNN list — note these are TARGETS at merge time, not validated outcomes}
+   - **Assumptions in force:** {bulleted list — readers consulting the archive years later need to know what was assumed true}
+
+   _If no spec: "No Formal Spec — see ticket bodies linked above for intent."_
+
+   ## What changed in the system
+
+   ### Affected components and contracts
+   {From spec Section "System Impact → Affected components" / "Affected contracts".
+    If no spec, derive a coarse list from the PR's `--name-only` file paths, grouped by directory.}
+
+   ### Backward compatibility
+   {From spec Section "System Impact → Backward compatibility and migration".
+    If no spec: "Not formally documented at merge time."}
+
+   ### Risk surface
+   {From spec Section "System Impact → Risk surface".
+    If no spec: "Not formally documented at merge time."}
+
+   ## Product impact (at time of merge)
+
+   {From spec Section "Product Impact". If no spec, omit this section.}
+
+   ## Guardian verdicts
+
+   For each Guardian session linked to the PRs:
+
+   ### {Guardian name} — session {session_id}
+   _{created_at}_
+
+   {Final summary from the session — 3–6 lines, copied verbatim from the
+    Guardian's final report. Do NOT paraphrase. If the session is too long
+    to summarize fairly, link to it in the session_store and note the link.}
+
+   ## PR summary
+
+   | PR | Title | Files | +/− | Branch |
+   |---|---|---|---|---|
+   | #{N} | {title} | {changedFiles} | +{additions}/-{deletions} | `{headRefName}` |
+
+   ## Notes
+
+   - Archive curated by the Operator at {ISO timestamp}, post-merge.
+   - This archive is a snapshot. The spec, tickets, and PRs are the source of truth — the archive is the readable index.
+   ```
+
+6. **Validate the archive** before returning:
+   - The Markdown must render without breaks (lint with a basic check or visual inspection).
+   - All linked PRs and tickets must resolve via `gh`.
+   - All Guardian session IDs must exist in the session_store.
+   - The spec snapshot section must NOT contain `[NEEDS CLARIFICATION:]` markers — if found, flag them in the archive's Notes section ("Spec had unresolved clarifications at merge — see {ticket}").
+
+7. **Apply redaction** per the standard Report Redaction rules (no secrets, no PII).
+
+8. **Write the archive** to `{target_project_dir}/archive/{feature_slug}.md`. Create the `archive/` directory if it does not exist. Do NOT commit — committing is the human's decision.
+
+9. **Report back** with the archive path, the count of PRs/tickets/Guardian-sessions referenced, and any integrity issues flagged in step 1 or step 6.
+
+**If it fails:**
+- If the session_store query returns no Guardian sessions, the archive is incomplete but still valuable — write it with a "No Guardian sessions found in store" note. Do not abort.
+- If `gh pr view` fails for a PR (e.g., PR deleted), record the PR number with "details unavailable" in the PR summary table.
+- Never invent Guardian verdicts. If a session is missing, the section is missing — say so.
+
+**If invoked manually (not via Orchestrator):**
+- Ask the user for `feature_slug` and `merged_pr_numbers` if not provided.
+- Default `target_project_dir` to the current working directory.
 
 ---
 
