@@ -96,8 +96,9 @@ The PO Guardian will:
 - **Ask you questions** — don't expect it to assume. It asks about auth, deployment, accessibility, data sensitivity, etc.
 - **Classify your app type** — frontend, API, full-stack, CLI, etc. This determines which quality concerns apply.
 - **Check project documentation** — if README or ARCHITECTURE.md is missing, it offers to create them with you.
+- **Decide whether a Formal Spec is warranted** — for multi-component, cross-Guardian, or architecturally significant work, the PO produces a Spec Kit-compatible spec at `specs/{feature}/spec.md` in your project repo. For trivial work it skips the spec and notes the reason in the ticket. Either way, every ticket carries a `Parent Spec:` field so the decision is visible.
 - **Decompose large requests** — breaks big features into modules, then components, then tickets. You approve the decomposition before it details anything.
-- **Create an issue** — the spec lives in the issue tracker (GitHub Issues, Azure DevOps Work Items, etc.), not in a markdown file.
+- **Create an issue** — the spec lives in the issue tracker (GitHub Issues, Azure DevOps Work Items, etc.). The Formal Spec, when produced, lives at `specs/{feature}/spec.md` in your repo and is linked bidirectionally with the issue.
 
 **Example interaction:**
 ```

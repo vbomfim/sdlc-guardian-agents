@@ -55,6 +55,7 @@ install() {
   mkdir -p "$TARGET_DIR/skills/privacy-guardian"
   mkdir -p "$TARGET_DIR/agents"
   mkdir -p "$TARGET_DIR/instructions"
+  mkdir -p "$TARGET_DIR/templates"
 
   # ── Install agents ──
   cp "$SRC_DIR/agents/security-guardian.agent.md" "$TARGET_DIR/agents/"
@@ -83,6 +84,9 @@ install() {
 
   # ── Install Craig instructions ──
   cp "$SRC_DIR/instructions/craig.instructions.md" "$TARGET_DIR/instructions/"
+
+  # ── Install templates (Spec Kit-compatible Formal Spec, etc.) ──
+  cp "$SRC_DIR/templates/feature-spec.template.md" "$TARGET_DIR/templates/"
 
   # ── Install skills (tool definitions only — no scripts) ──
   mkdir -p "$TARGET_DIR/skills/playwright-mcp"
@@ -171,6 +175,9 @@ install() {
   echo -e "${GREEN}✔${NC}  Extension:    ~/.copilot/extensions/sdlc-guardian/extension.mjs"
   echo -e "${GREEN}✔${NC}  State machine: ~/.copilot/extensions/sdlc-guardian/uat-state-machine.mjs"
   echo ""
+  echo -e "${BOLD}Templates:${NC}"
+  echo -e "${GREEN}✔${NC}  Feature Spec: ~/.copilot/templates/feature-spec.template.md (Spec Kit-compatible)"
+  echo ""
   echo -e "${BOLD}Side-Notes (advisory):${NC}"
   echo -e "${GREEN}✔${NC}  Notes: ${NOTES_CREATED} created, ${NOTES_EXISTED} preserved"
   echo ""
@@ -201,6 +208,10 @@ uninstall() {
   # ── Remove extensions ──
   [ -d "$TARGET_DIR/extensions/sdlc-guardian" ] && rm -rf "$TARGET_DIR/extensions/sdlc-guardian" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/extensions/sdlc-guardian/"
   [ -d "$TARGET_DIR/extensions/craig" ] && rm -rf "$TARGET_DIR/extensions/craig" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/extensions/craig/"
+
+  # ── Remove templates ──
+  [ -f "$TARGET_DIR/templates/feature-spec.template.md" ] && rm "$TARGET_DIR/templates/feature-spec.template.md" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/templates/feature-spec.template.md"
+  [ -d "$TARGET_DIR/templates" ] && rmdir "$TARGET_DIR/templates" 2>/dev/null && echo -e "${GREEN}✔${NC}  Removed empty ~/.copilot/templates/"
 
   echo ""
   echo -e "${GREEN}Done.${NC} Repo-level files (.github/) are untouched — remove per-repo if needed."

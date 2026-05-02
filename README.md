@@ -91,6 +91,9 @@ The Guardians are not invoked manually — the default Copilot agent enforces th
 💡 Idea
   │
   ├─ No ticket? → 🎯 PO Guardian creates specification (auto)
+  │                    └─ For multi-component / cross-Guardian work,
+  │                       PO produces a Spec Kit-compatible Formal Spec
+  │                       at specs/{feature}/spec.md (per-request judgment)
   │
   ▼
 🎯 Specification exists
@@ -413,6 +416,8 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
 │       ├── extension.mjs                ← SDK wiring shell (thin)
 │       ├── uat-state-machine.mjs        ← Pure state-machine logic (testable)
 │       └── uat-state-machine.test.mjs   ← Zero-dep tests (node --test)
+├── templates/                           ← Reusable artifact templates
+│   └── feature-spec.template.md         ← Spec Kit-compatible Formal Spec template
 ├── reports/                             ← Operator output (created at runtime by Operator)
 │   ├── weekly-recap-2026-04-05-170030.md
 │   └── grafana-dashboard-2026-04-05-083015.png

@@ -85,6 +85,39 @@ Scan for these files and assess whether they exist and are complete:
 - web_search for industry patterns and similar implementations
 - Search GitHub repos for open-source reference implementations
 
+### Step 4b: Decide on Formal Spec (Spec Kit-compatible)
+
+After research is complete and BEFORE decomposition, decide whether this work warrants a **Formal Spec** — a single readable artifact stored at `specs/{feature}/spec.md` in the target project repo. The spec aggregates the output of Steps 1–5b into a holistic, system-aware view that developers, reviewers, and AI agents can consume in one read.
+
+The Formal Spec is **Spec Kit-compatible** (https://github.com/github/spec-kit) — Sections "User Scenarios & Testing", "Requirements", "Success Criteria", and "Assumptions" are mechanically identical to Spec Kit's `spec-template.md`. SDLC Guardian extensions (Decomposition, Guardian Consultation Results, System Impact, Product Impact) sit on top.
+
+#### When to produce a Formal Spec
+
+**Per-request judgment, not a fixed threshold.** Decide based on whether the artifact adds clarity proportional to the ceremony cost.
+
+- **Produce when:** the work involves multi-component changes, cross-Guardian impact, architectural shifts, new product surfaces, or a decomposition tree of any meaningful depth.
+- **Skip when:** the work is a trivial bug fix, a single-component refactor, a hotfix, or any change where the 18-section ticket alone captures everything a reviewer needs.
+
+Either way, **capture the decision and rationale** in the parent ticket(s) via the `Parent Spec:` field:
+- `Parent Spec: specs/{feature}/spec.md` — when a spec is produced
+- `Parent Spec: N/A — [explicit reason, e.g., "single-line config fix; no system impact"]` — when skipped
+
+The skip rationale must be visible in the ticket. Silence is not acceptable.
+
+#### How the Formal Spec is populated
+
+The spec is **derived from work you already do** — you do not perform new research. The sections are populated incrementally:
+
+| Spec section | Populated from |
+|---|---|
+| User Scenarios & Testing, Requirements, Success Criteria, Assumptions | Steps 1, 2, 2b, 3, 4 |
+| Decomposition | Step 5 |
+| Guardian Consultation Results | Step 5b |
+| System Impact | Step 2 (codebase research) + Step 5b consultations + (Phase 2: Code Review consultation for architectural impact) |
+| Product Impact | Step 1 (understanding the request) + user-provided context |
+
+If you decide to produce a spec, stub the file at `specs/{feature}/spec.md` using the template at `~/.copilot/templates/feature-spec.template.md` now, then fill it as you progress through Steps 5–5b. Finalize in Step 5c.
+
 ### Step 5: Decompose before detailing
 
 **Do NOT try to spec everything in one ticket.** Large requests must be broken down first.
@@ -173,6 +206,21 @@ Skip for internal tools, libraries, or changes with no deployment impact.
 
 This step prevents the common pattern where review Guardians find missing requirements AFTER implementation — catching them at spec time saves a full rework cycle.
 
+**If a Formal Spec is in progress**, populate its **Guardian Consultation Results** section now — capture each Guardian's input once at the feature level rather than repeating it across every ticket.
+
+### Step 5c: Finalize Formal Spec (when warranted)
+
+If a Formal Spec was started in Step 4b, finalize it now — before writing the detailed tickets in Step 6. Verify:
+
+- All Spec Kit-compatible sections (User Scenarios & Testing, Requirements, Success Criteria, Assumptions) are filled with concrete, measurable content
+- All `[NEEDS CLARIFICATION: ...]` markers are resolved (or surfaced to the user as blocking questions)
+- The **Decomposition** section reflects the agreed module/ticket tree from Step 5
+- The **Guardian Consultation Results** section captures every consulted Guardian's input from Step 5b
+- The **System Impact** section explicitly addresses affected components, contracts, architectural deltas, backward compatibility, and risk surface — this is the section most often skimped; do not let it be vague
+- The **Product Impact** section addresses positioning, scope, roadmap dependencies, and user-facing communication
+
+Save the spec at `specs/{feature}/spec.md` in the target project repo and link it from the parent issue/epic. Each ticket created in Step 6 must reference it via the `Parent Spec:` field.
+
 ### Step 6: Write the ticket(s)
 
 Use the application type to determine which checklist questions need deep answers vs. N/A. Write each ticket following the template below.
@@ -197,6 +245,8 @@ Before finalizing, verify:
 
 ```markdown
 # [Feature Title]
+
+**Parent Spec**: `specs/{feature}/spec.md` — OR — `N/A — [explicit reason for skipping the Formal Spec, e.g., "trivial bug fix; no system impact"]`
 
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- PRODUCT — what we're building and for whom             -->
