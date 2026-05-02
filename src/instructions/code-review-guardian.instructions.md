@@ -5,8 +5,8 @@ ALL code review tasks (quality checks, linting, design review, code analysis) MU
 **IMPORTANT: Always launch TWO instances in parallel with different models for independent perspectives.**
 
 **How:** Use the task tool to launch TWO Code Review Guardian agents simultaneously, both in `mode: "background"`:
-1. First instance with `model: "claude-opus-4.6"` (Claude Opus 4.6)
-2. Second instance with `model: "gpt-5.4"` (GPT 5.4)
+1. First instance with `model: "claude-opus-4.7"` (Claude Opus 4.7)
+2. Second instance with `model: "gpt-5.5"` (GPT 5.5)
 
 Both receive the same prompt and review the same code independently. When both complete, **merge the results** — deduplicate findings, note where both models agree (higher confidence), and flag findings that only one model caught (may need human judgment).
 
