@@ -5,6 +5,12 @@
   </picture>
 </p>
 
+<!-- Spec Kit compatibility — to be replaced with the official badge once published. -->
+<p align="center">
+  <a href="https://github.com/github/spec-kit"><img alt="Spec Kit Compatible" src="https://img.shields.io/badge/Spec_Kit-Compatible-7F52FF?style=flat-square&logo=github&logoColor=white"></a>
+  <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS_%7C_Linux_%7C_Windows-0078D4?style=flat-square">
+</p>
+
 <h1 align="center">SDLC Guardian Agents for GitHub Copilot</h1>
 
 <p align="center">
@@ -13,9 +19,44 @@
 
 ---
 
+## Table of Contents
+
+- [Rewritable by Design](#rewritable-by-design-foundation)
+  - [Motivation](#motivation)
+  - [The Idea-First Model](#the-idea-first-model)
+  - [Core Principles](#core-principles)
+- [Overview](#overview)
+  - [The Problem](#the-problem)
+  - [Enforcement Through SDLC Guardian Agents](#enforcement-through-sdlc-guardian-agents)
+  - [Automatic Workflow Orchestration](#automatic-workflow-orchestration)
+- [Harness Architecture](#harness-architecture)
+- [The Eight Guardians](#the-eight-guardians)
+- [Operational Agents](#operational-agents)
+  - [Operator — Task Runner](#operator--task-runner)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Usage](#usage)
+  - [Verify Tool Availability](#verify-tool-availability)
+- [Delegation Model](#delegation-model)
+- [Standards Reference](#standards-reference)
+- [File Structure](#file-structure)
+- [Side-Notes — Improvement Cycle](#side-notes--improvement-cycle)
+  - [How it works](#how-it-works)
+  - [Key principles](#key-principles)
+  - [Notes files](#notes-files)
+  - [Installation](#installation-1)
+- [Not Yet Covered](#not-yet-covered)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
 <p align="center">
   <img src="assets/rewritable-by-design-logo.svg" alt="Rewritable by Design" width="700">
 </p>
+
+## Rewritable by Design — Foundation
 
 ### Motivation
 
@@ -160,6 +201,33 @@ The user never needs to remember which Guardian to invoke. The workflow enforces
 
 ---
 
+## Harness Architecture
+
+This project is a **harness** in the OpenAI / Anthropic / Martin Fowler sense — a structured environment where AI coding agents operate effectively because the scaffolding, governance, and verification surrounding them are rigorous.
+
+The intuition from the research:
+
+- **OpenAI ([Harness Engineering](https://openai.com/index/harness-engineering/))** — built a 1M-LOC product with zero human-written code. The enabler was a structured harness, not a smarter model. The missing piece they identified was *verification of functionality and behaviour*.
+- **Anthropic ([Harness Design for Long-Running Apps](https://www.anthropic.com/engineering/harness-design-long-running-apps))** — three-agent architecture: **Planner → Generator → Evaluator**. Without the planner expanding intent into a structured spec, the generator under-scoped and produced thin output. Solo agent: broken. Harness with spec + evaluation: working.
+- **Martin Fowler ([Harness Engineering Memo](https://martinfowler.com/articles/exploring-gen-ai/harness-engineering-memo.html))** — envisions harnesses becoming shareable templates: constitution + enforcement rules + context documentation + verification.
+- **GitHub [Spec Kit](https://github.com/github/spec-kit)** — specifications as the source of truth. The spec persists; the code is disposable.
+
+This project implements all four ideas as a coherent system. Every harness role has a concrete owner:
+
+| Harness role | Source | Implementation in this project |
+|---|---|---|
+| **Constitution** — project-wide governance, gates, no-bypass rules | Spec Kit, Fowler | `~/.copilot/instructions/` — executable instructions loaded every session (no separate `constitution.md` — the instructions ARE the constitution) |
+| **Context / Specification** — what to build, why, system impact | Spec Kit, OpenAI | **Formal Spec** at `specs/{feature}/spec.md` (Spec Kit-compatible Sections 1–4 + SDLC extensions for Decomposition, Guardian consultations, System Impact, Product Impact) |
+| **Planner** — expand intent into structured spec | Anthropic | **PO Guardian** — 18-section ticket, decomposition tree, Step 5b consultations with Security/Privacy/Platform/Delivery, Step 5b-arch consultation with Code Review for architectural impact |
+| **Generator** — implement from spec | Anthropic | **Developer Guardian** — TDD, ports & adapters, no cross-component imports, pre-compliance with Security and Code Review standards |
+| **Evaluator** — verify behavior, catch drift, enforce spec | Anthropic, OpenAI | **QA + Security + Privacy + Code Review Guardians** — parallel review gate. Code Review Domain 8 explicitly enforces spec drift, Parent Spec linkage, and bug-fix → spec patching |
+| **Human oversight** — approval gates, course correction | All | **UAT Checkpoint** (post-Developer pair-fix loop) + **Pre-Merge Gate** + final user approval |
+| **Memory / Archive** — preserve what shipped for future reference | Fowler, Spec Kit | **Operator Procedure 6** — curated `archive/{feature}.md` digest combining spec + tickets + PR diff + Guardian verdicts on every merge |
+
+The **Rewritable by Design** philosophy is the architectural principle that makes this harness work: components with clearly-defined boundaries, contracts, and tests can be safely rewritten by an AI agent. The harness scaffolds the boundaries; Rewritable by Design defines what those boundaries must look like.
+
+---
+
 ## The Eight Guardians
 
 <img src="assets/banner-po.svg" alt="Product Owner Guardian" width="500">
@@ -168,7 +236,11 @@ The process guardian and specification writer. Takes ideas and produces comprehe
 
 | Capability | Standards |
 |---|---|
-| 14-section feature specifications (component design, API, security, observability, data model) | INVEST criteria, BDD Given/When/Then |
+| 18-section feature tickets (component design, API, security, observability, data model) | INVEST criteria, BDD Given/When/Then |
+| **Spec Kit-compatible Formal Spec** at `specs/{feature}/spec.md` for multi-component / cross-Guardian / architectural work (per-request judgment, captured via `Parent Spec:` field) | [GitHub Spec Kit](https://github.com/github/spec-kit), Anthropic Planner→Generator→Evaluator |
+| **Brownfield bootstrap** — reverse-engineers a baseline spec from existing code so adoption on legacy projects is incremental | — |
+| **Bug-fix → spec patch** — bugs are evidence the originating spec was wrong; fix and patch ship together | — |
+| **Architectural impact consultation** with Code Review Guardian feeds the spec's System Impact section | SOLID, Clean Architecture |
 | Codebase, GitHub, and web research before writing | — |
 | 25-item project health audit | Google Engineering Practices, SRE |
 | Document scaffolding (README, ARCHITECTURE, CONTRIBUTING, SECURITY, ADRs) | GitHub Community Health |
@@ -231,13 +303,13 @@ The privacy auditor. Detects PII and PHI leaks in logging, error handling, API r
 
 <img src="assets/banner-codereview.svg" alt="Code Review Guardian" width="500">
 
-The quality auditor. Runs language-specific linters in parallel, then reviews for architecture, design patterns, naming, performance, and documentation quality. Every finding cites its source standard. **Runs two instances in parallel with different AI models** (Claude Opus 4.6 + GPT 5.4) for independent perspectives — findings from both are merged with confidence scoring.
+The quality auditor. Runs language-specific linters in parallel, then reviews for architecture, design patterns, naming, performance, documentation quality, and **Formal Spec drift & linkage**. Every finding cites its source standard. **Runs two instances in parallel with different AI models** (Claude Opus 4.7 + GPT 5.5) for independent perspectives — findings from both are merged with confidence scoring.
 
 | Capability | Standards |
 |---|---|
-| **Dual-model review:** Claude Opus 4.6 + GPT 5.4 in parallel | — |
+| **Dual-model review:** Claude Opus 4.7 + GPT 5.5 in parallel | — |
 | Parallel linters: ESLint, Pylint+Ruff, Clippy, dotnet format, Checkstyle | — |
-| 8 review domains: quality, design, rewritability, testing, naming, errors, performance, documentation | Google Engineering Practices |
+| **8 review domains** including Domain 8: Spec Drift & Linkage (per-PR drift detection vs `Parent Spec:`, bug-fix-PR enforcement, spec hygiene) | Google Engineering Practices, Spec-Driven Development |
 | SOLID principle and component boundary validation | Clean Code (Martin), SOLID |
 | PR size and review process checks | Microsoft Code Review Guidelines |
 
@@ -288,8 +360,9 @@ The Operator executes routine operational chores and errands. It is NOT a Guardi
 | Health monitoring — HTTP endpoint checks with status and response time | bash (`curl`) |
 | Errands — fetch data from web pages, extract metrics, run user-defined tasks | Playwright MCP, bash, GitHub MCP |
 | Housekeeping — worktree cleanup, branch pruning, disk usage reports | bash (`git`, `du`) |
+| **Feature Archive** — post-merge digest at `archive/{feature}.md` combining Formal Spec, tickets, PR diff, and Guardian session reports | bash (`gh`, `git`), session_store SQL |
 
-**Trigger:** *"take a screenshot"*, *"generate a report"*, *"weekly recap"*, *"check health endpoint"*, *"clean up worktrees"*, *"disk usage"*
+**Trigger:** *"take a screenshot"*, *"generate a report"*, *"weekly recap"*, *"check health endpoint"*, *"clean up worktrees"*, *"disk usage"*, *"archive this feature"*
 
 **Background execution:** The Operator always runs in background mode (`mode: "background"`) so the user's coding session is not blocked.
 
@@ -341,7 +414,7 @@ The agents activate immediately. Describe what you need in natural language:
 
 | Input | Guardian | Output |
 |-------|----------|--------|
-| *"I want to add user file uploads"* | PO Guardian | 14-section feature specification |
+| *"I want to add user file uploads"* | PO Guardian | 18-section feature ticket (+ Spec Kit-compatible Formal Spec when warranted) |
 | *"implement ticket #42"* | Developer Guardian | TDD implementation with unit tests |
 | *"write integration tests"* | QA Guardian | Tests traced to acceptance criteria |
 | *"check for security"* | Security Guardian | Scan results with OWASP classification |
@@ -531,10 +604,18 @@ git clone https://github.com/vbomfim/sdlc-guardian-agents.git
 cd sdlc-guardian-agents
 
 # Edit agents in src/
+
+# macOS / Linux
 ./package.sh --install      # Build and install locally
 ./package.sh                # Package for distribution
 ./package.sh --uninstall    # Remove from ~/.copilot/
 ./package.sh --doctor       # Verify all prerequisites
+
+# Windows / cross-platform PowerShell (also works on macOS/Linux with pwsh)
+.\package.ps1 -Install      # Build and install locally
+.\package.ps1               # Package for distribution
+.\package.ps1 -Uninstall    # Remove from ~/.copilot/
+.\package.ps1 -Doctor       # Verify all prerequisites
 ```
 
 ---
