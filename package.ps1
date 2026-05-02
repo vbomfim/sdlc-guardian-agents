@@ -64,7 +64,14 @@ $ErrorActionPreference = 'Stop'
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $SrcDir    = Join-Path $ScriptDir 'src'
 $DistDir   = Join-Path $ScriptDir 'dist'
-$TargetDir = Join-Path $env:USERPROFILE '.copilot'
+
+# Cross-platform user profile directory:
+#   Windows → %USERPROFILE% (e.g. C:\Users\vbomfim)
+#   macOS / Linux → $HOME (e.g. /Users/vbomfim)
+# [Environment]::GetFolderPath('UserProfile') returns the correct location on
+# both platforms, which keeps the install layout identical to package.sh.
+$UserHome  = [Environment]::GetFolderPath('UserProfile')
+$TargetDir = Join-Path $UserHome '.copilot'
 
 # ────────────────────────────────────────────────────────────────────────────
 # Guardian roster — single source of truth (must match package.sh)
@@ -119,7 +126,8 @@ function Copy-DirContents {
         throw "Source directory not found: $From"
     }
     New-DirIfMissing -Path $To
-    Copy-Item -LiteralPath (Join-Path $From '*') -Destination $To -Recurse -Force
+    # -Path (not -LiteralPath) so the wildcard is expanded
+    Copy-Item -Path (Join-Path $From '*') -Destination $To -Recurse -Force
 }
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -137,7 +145,7 @@ function Invoke-Package {
     }
 
     # Build a staging dir that mirrors src but excludes hidden files and *.test.* files
-    $staging = Join-Path $env:TEMP "sdlc-guardian-stage-$(Get-Random)"
+    $staging = Join-Path ([System.IO.Path]::GetTempPath()) "sdlc-guardian-stage-$(Get-Random)"
     try {
         New-DirIfMissing -Path $staging
 
@@ -164,7 +172,7 @@ function Invoke-Package {
     Write-Ok "Package created: dist\sdlc-guardian-agents.zip ($size)"
     Write-Host ''
     Write-Host '  To install:'
-    Write-Info '    Expand-Archive dist\sdlc-guardian-agents.zip -DestinationPath $env:USERPROFILE\.copilot\'
+    Write-Info '    Expand-Archive dist\sdlc-guardian-agents.zip -DestinationPath (Join-Path ([Environment]::GetFolderPath(''UserProfile'')) ''.copilot'')'
     Write-Info '    .\package.ps1 -Install   (recommended)'
 }
 
