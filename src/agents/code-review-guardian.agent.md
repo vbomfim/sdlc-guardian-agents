@@ -234,8 +234,8 @@ After automated scans, review for issues tools cannot detect:
 - Acceptable values:
   - `Parent Spec: specs/{feature}/spec.md` — a spec is in play; proceed to drift check (8.2)
   - `Parent Spec: N/A — [explicit reason]` — spec was deliberately skipped; record the rationale, no drift check needed
-- **Failure mode (current):** if `Parent Spec:` is missing entirely, flag as a **finding** with severity 🟡 MEDIUM and tag `[SDLC-GUARDIAN]`. The finding text: "PR/ticket missing required `Parent Spec:` field — see PO Guardian Step 4b. Add either a spec path or a skip rationale."
-- **Future tightening:** once Phase 1–5 of issue #78 are stable in production use, this finding may be promoted to a blocking gate (severity 🔴 CRITICAL). Until then, flag-and-allow.
+- **Failure mode (permanent):** if `Parent Spec:` is missing entirely, flag as a **finding** with severity 🟡 MEDIUM and tag `[SDLC-GUARDIAN]`. The finding text: "PR/ticket missing required `Parent Spec:` field — see PO Guardian Step 4b. Add either a spec path or a skip rationale."
+- This is intentionally a warning, not a blocking gate. The judgment call about whether a spec was warranted belongs to the PO Guardian and the human reviewer — Code Review surfaces the gap rather than enforcing a hard rule.
 
 **8.2 Spec drift detection (when a parent spec exists)**
 

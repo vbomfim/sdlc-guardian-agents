@@ -62,6 +62,15 @@
   - Do not modify Section 1–4 headings or ID formats — Spec Kit
     compatibility depends on them. Sections 5–8 are SDLC extensions and
     may evolve independently.
+
+  VERSIONING
+  ----------
+  Git history is the version log. Update the `Last updated` header field
+  on every change so the latest revision is visible without `git log`,
+  but do NOT maintain a separate amendment log inside the spec — `git log
+  -- specs/{feature}/spec.md` (or `git blame`) is the source of truth for
+  who changed what and when. Keeping a parallel changelog inside the spec
+  body invariably drifts from the git history.
 =============================================================================
 -->
 
