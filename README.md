@@ -305,6 +305,8 @@ See **[PREREQUISITES.md](PREREQUISITES.md)** for the complete setup guide — co
 
 ### Installation
 
+**macOS / Linux:**
+
 ```bash
 unzip sdlc-guardian-agents.zip -d ~/.copilot/
 ```
@@ -316,6 +318,16 @@ git clone https://github.com/vbomfim/sdlc-guardian-agents.git
 cd sdlc-guardian-agents
 ./package.sh --install
 ```
+
+**Windows (PowerShell):**
+
+```powershell
+git clone https://github.com/vbomfim/sdlc-guardian-agents.git
+cd sdlc-guardian-agents
+.\package.ps1 -Install
+```
+
+The PowerShell script (`package.ps1`) is the Windows equivalent of `package.sh` — same install layout under `%USERPROFILE%\.copilot\`, same Guardian roster, same `-Install`, `-Uninstall`, `-Doctor` operations.
 
 ### Usage
 
