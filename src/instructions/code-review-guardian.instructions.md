@@ -12,7 +12,13 @@ Both receive the same prompt and review the same code independently. When both c
 
 **Trigger words:** "review code", "check code quality", "lint", "code review", "review my changes", "review this PR"
 
-**Do NOT** run linters yourself or do your own pre-analysis. The agents run the linters, then analyze architecture, design, testing, naming, performance, and documentation against Google Engineering Practices, Microsoft guidelines, and Clean Code principles.
+**Do NOT** run linters yourself or do your own pre-analysis. The agents run the linters, then analyze architecture, design, testing, naming, performance, documentation, and **Formal Spec drift & linkage** (Domain 8 — Spec Kit-compatible specs at `specs/{feature}/spec.md`) against Google Engineering Practices, Microsoft guidelines, Clean Code principles, and SDLC Guardian conventions.
+
+**Spec-aware review (Domain 8 — capabilities #1 and #2 from issue #78):**
+- Verify every PR/ticket carries a `Parent Spec:` field (path or `N/A — [reason]`)
+- When a parent spec exists, check the implementation for drift against the spec's User Scenarios, Requirements, Success Criteria, Assumptions, and System Impact
+- Bug-fix PRs against an area with a parent spec MUST also patch the spec (PO Guardian Step 4b bug-fix rule)
+- Spec file changes themselves get hygiene checks (Spec Kit Sections 1–4 must remain mechanically identical, `Last updated:` bumped, `[NEEDS CLARIFICATION:]` markers resolved)
 
 **After both agents report:**
 1. Merge findings — deduplicate, combine severity assessments
