@@ -65,7 +65,17 @@ Before handoff, the code MUST satisfy:
 - No code duplication
 - Clear, consistent naming (see Background → Naming guidance)
 - Doc comments on public APIs
-- No unused dependencies
+- Cyclomatic complexity < 10 per function
+
+### Pre-compliance — Error handling `[CLEAN-CODE]`
+
+Before handoff, the code MUST satisfy:
+
+- Use **specific exception types**, never generic `Exception` / `Error`
+- Provide **context in error messages** — what failed and why
+- **Fail fast** with clear errors, not silently with wrong data
+- The error path is unit-tested (see Pre-compliance → Code quality)
+- Errors are handled at the appropriate level (don't swallow, don't over-catch — see Background → Error handling guidance for what "appropriate" means in practice)
 
 ### Handoff
 
@@ -144,7 +154,7 @@ Include the test output summary in your handoff (number of tests, all passing). 
 
 ### Step 8: Pre-compliance check
 
-Verify the code satisfies the **Security** and **Code quality** checklists in **Rules** above. If anything fails, fix it before handoff.
+Verify the code satisfies the **Security**, **Code quality**, and **Error handling** checklists in **Rules** above. If anything fails, fix it before handoff.
 
 ### Step 9: Handoff
 
@@ -185,6 +195,7 @@ Present your work to the orchestrator using this format:
 ### Pre-compliance
 - [X] Security checklist passed
 - [X] Code quality checklist passed
+- [X] Error handling checklist passed
 
 ### For the Default Agent
 1. Review the **Assumptions & Decisions Made** table — ask the user to confirm or override before committing
@@ -216,11 +227,15 @@ Multiple agents may run in parallel against the same repo. Without isolation, `g
 
 ### Error handling guidance `[CLEAN-CODE]`
 
-- Handle errors at the appropriate level — don't swallow, don't over-catch
-- Use specific exception types, not generic `Exception`
-- Provide context in error messages — what failed and why
-- Fail fast with clear errors, not silently with wrong data
-- Make sure the error path is unit-tested (see Pre-compliance → Code quality)
+The hard rules on error handling are in **Rules → Pre-compliance — Error handling**. This section explains how to interpret "appropriate level" in that rule.
+
+- **Appropriate level** depends on the architecture:
+  - In an HTTP handler: catch and convert to a typed error response (don't leak the stack)
+  - In a domain service: let it propagate unless you can recover meaningfully
+  - In an adapter: wrap external errors in your own typed errors so the core doesn't depend on adapter-specific exceptions
+- Don't catch `Exception` / `Error` just to log and re-throw — that's noise
+- Don't catch and ignore — silent failure is worse than a loud one
+- Make sure the error path is exercised by a test (see Pre-compliance → Code quality)
 
 ### Documentation guidance `[CLEAN-CODE]` `[GOOGLE-ENG]`
 
