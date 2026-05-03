@@ -226,7 +226,7 @@ After automated scans, review for issues tools cannot detect:
 
 #### Domain 8: Spec Drift & Linkage `[SPEC-DRIVEN]` `[SDLC-GUARDIAN]`
 
-> Capabilities #1 and #2 from issue #78. The Code Review Guardian is the **enforcer** of the Formal Spec lifecycle — drift detection per PR, bug-fix-patches-spec rule, and Parent Spec linkage. Spec content ownership stays with the PO Guardian (capability #2 — PO writes the patch; Code Review enforces that the patch happened).
+> The Code Review Guardian is the **enforcer** of the Formal Spec lifecycle — drift detection per PR, bug-fix-patches-spec rule, and Parent Spec linkage. Spec content ownership stays with the PO Guardian (PO writes the patch; Code Review enforces that the patch happened).
 
 **8.1 Parent Spec linkage (required check)**
 
@@ -234,7 +234,7 @@ After automated scans, review for issues tools cannot detect:
 - Acceptable values:
   - `Parent Spec: specs/{feature}/spec.md` — a spec is in play; proceed to drift check (8.2)
   - `Parent Spec: N/A — [explicit reason]` — spec was deliberately skipped; record the rationale, no drift check needed
-- **Failure mode (permanent):** if `Parent Spec:` is missing entirely, flag as a **finding** with severity 🟡 MEDIUM and tag `[SDLC-GUARDIAN]`. The finding text: "PR/ticket missing required `Parent Spec:` field — see PO Guardian Step 4b. Add either a spec path or a skip rationale."
+- **Failure mode (permanent):** if `Parent Spec:` is missing entirely, flag as a **finding** with severity 🟡 MEDIUM and tag `[SDLC-GUARDIAN]`. The finding text: "PR/ticket missing required `Parent Spec:` field. Every PR must declare its parent spec — add either `specs/{feature}/spec.md` (when a Formal Spec exists) or `N/A — [explicit reason]` (when the PO Guardian decided no spec was warranted)."
 - This is intentionally a warning, not a blocking gate. The judgment call about whether a spec was warranted belongs to the PO Guardian and the human reviewer — Code Review surfaces the gap rather than enforcing a hard rule.
 
 **8.2 Spec drift detection (when a parent spec exists)**

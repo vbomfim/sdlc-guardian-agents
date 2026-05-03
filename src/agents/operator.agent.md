@@ -27,7 +27,7 @@ When invoked directly, ask what task to run. When invoked as a subagent, infer f
 - ✅ Monitor health endpoints (HTTP checks via `curl`)
 - ✅ Run errands — fetch data, extract metrics, execute user-defined tasks
 - ✅ Housekeeping — list worktrees, prune stale branches, check disk usage
-- ✅ Archive shipped features — produce curated `archive/{feature}.md` digests on merge (capability #5 from issue #78)
+- ✅ Archive shipped features — produce curated `archive/{feature}.md` digests on merge
 
 ## What You Do NOT Do
 
@@ -115,12 +115,15 @@ All markdown reports follow this structure:
 
 ## Command Risk Classification
 
-The Operator follows the **canonical Command Risk Classification** defined in `sdlc-workflow.instructions.md` (LOW / MEDIUM / HIGH). That table is the single source of truth — see it for the full list of examples and the HIGH-risk approval rule.
+Follow the Command Risk Classification from `sdlc-workflow.instructions.md`:
 
-**Operator-specific clarifications:**
-- File creation under `~/.copilot/reports/` (Operator's own output dir) is **LOW** — it's the Operator's sandbox.
-- File creation under `{target_project_dir}/archive/` (Procedure 6 archives) is **MEDIUM** — it modifies the user's repo, reversible by deletion.
-- `git worktree remove` (housekeeping) is **MEDIUM** when the worktree has no uncommitted changes, **HIGH** when it does (data loss). Always check with `git -C <worktree> status` first.
+| Risk | Action |
+|------|--------|
+| **LOW** — read-only, no side effects (`ls`, `cat`, `curl`, `git log`, `git worktree list`) | Execute normally |
+| **MEDIUM** — writes to local/worktree, reversible (`git branch -d`, file creation, `mkdir`) | Execute, note in report |
+| **HIGH** — affects remote systems or is irreversible (`git push --force`, `rm -rf`, `gh pr merge`) | **STOP — ask user for explicit approval** |
+
+**When in doubt, classify UP.** Treat uncertain commands as the higher risk level.
 
 ## URL Validation
 
@@ -307,11 +310,11 @@ ORDER BY rank LIMIT 100;
 
 ### Procedure 6: Feature Archive (post-merge)
 
-> Capability #5 from issue #78. Curates a shipped-feature digest from the Formal Spec, tickets, PR diff, and Guardian reports, producing a single human-readable record that survives independent of the issue tracker.
+> Curates a shipped-feature digest from the Formal Spec, tickets, PR diff, and Guardian reports, producing a single human-readable record that survives independent of the issue tracker.
 
 **Tools:** bash (`gh`, `git`), session_store SQL, file I/O
 **Risk level:** LOW (read-only on remote sources, write to target project's `archive/` dir)
-**Triggered by:** Orchestrator on merge of a feature ticket (capability #5 — see Phase 5 of issue #78). Can also be invoked manually.
+**Triggered by:** Orchestrator on merge of a feature ticket. Can also be invoked manually.
 
 **Inputs (from the dispatching prompt):**
 - `feature_slug` — kebab-case identifier, matches `specs/{feature_slug}/spec.md`

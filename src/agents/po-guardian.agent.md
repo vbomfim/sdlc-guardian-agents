@@ -165,7 +165,7 @@ Bugs are **evidence the spec was wrong** (or never existed). When you write a bu
 | The bug area has no parent spec AND the area is non-trivial | **Bootstrap a spec** (Step 2c Path A). The bug fix ships with the bootstrapped spec; future changes to this area now have a baseline. |
 | The bug area has no parent spec AND the area is trivial / scheduled for replacement | **Skip** — `Parent Spec: N/A — [reason]`. No new spec, no patch. |
 
-When patching a spec, the ticket's `Parent Spec:` field still points to the spec file. The PR will modify both the code and the spec — Code Review enforces this in Phase 3 (capability #2 from issue #78).
+When patching a spec, the ticket's `Parent Spec:` field still points to the spec file. The PR will modify both the code and the spec — the Code Review Guardian's spec-aware review enforces this.
 
 Do **not** ship a bug fix that contradicts an existing spec without updating the spec. Drift between code and spec is the failure mode this rule prevents.
 
@@ -261,7 +261,7 @@ This step prevents the common pattern where review Guardians find missing requir
 
 ### Step 5b-arch: Consult Code Review Guardian for architectural impact (when a Formal Spec is in progress)
 
-If a Formal Spec is in progress, consult the **Code Review Guardian** as a subagent to assess the architectural impact of the change BEFORE finalizing the spec. The Code Review Guardian's design-review expertise produces the substance of the spec's **System Impact** section (capability #4 from issue #78).
+If a Formal Spec is in progress, consult the **Code Review Guardian** as a subagent to assess the architectural impact of the change BEFORE finalizing the spec. The Code Review Guardian's design-review expertise produces the substance of the spec's **System Impact** section.
 
 > "I'm specifying [feature summary] in [project]. The current architecture is [brief description from Step 2 codebase research / from the bootstrapped spec if Step 2c produced one]. Assess the architectural impact of this change: which existing components and contracts are affected, what architectural assumptions change, what backward-compatibility concerns arise, and what is the new risk surface? Cite SOLID, Clean Architecture, or Well-Architected principles where they apply."
 

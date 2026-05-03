@@ -16,7 +16,7 @@ Check: is there an issue (GitHub, Azure DevOps, or equivalent) or PO Guardian ti
 - If **yes** → proceed to step 3
 - If **no** → invoke PO Guardian first to create the specification
 
-The PO Guardian will also decide whether the work warrants a **Formal Spec** at `specs/{feature}/spec.md` (Spec Kit-compatible — see PO Guardian Step 4b). Multi-component, cross-Guardian, or architecturally significant work produces a spec; trivial work skips it. Either way, every ticket carries a `Parent Spec:` field capturing the decision.
+The PO Guardian will also decide whether the work warrants a **Formal Spec** at `specs/{feature}/spec.md` (Spec Kit-compatible). The PO makes this decision per-request based on complexity — multi-component, cross-Guardian, or architecturally significant work produces a spec; trivial work skips it. Either way, every ticket carries a `Parent Spec:` field capturing the decision.
 
 Do NOT allow implementation without a specification. Say:
 > "There's no ticket for this yet. Let me invoke the PO Guardian to spec it out first."
@@ -137,7 +137,7 @@ The Developer Guardian creates the PR and pushes to the ticket branch. The pre-m
 1. All Guardian reviews (QA, Security, Privacy, Code Review) completed
 2. All remote CI checks pass (build, tests, security scans)
 3. No unresolved critical/high findings
-4. **Spec linkage and drift checks pass** (Code Review Guardian Domain 8 — capabilities #1 and #2 from issue #78):
+4. **Spec linkage and drift checks pass** (enforced by the Code Review Guardian's spec-aware review):
    - Every PR carries a `Parent Spec:` field (path or `N/A — [reason]`)
    - When a parent spec exists, no unresolved drift findings against User Scenarios, Requirements, Success Criteria, or System Impact
    - Bug-fix PRs against an area with a parent spec have patched the spec
@@ -151,7 +151,7 @@ If any Guardian review is missing or has unresolved findings, say:
 
 **Immediately after a feature ticket merges, dispatch the Operator to archive the shipped work.**
 
-Capability #5 from issue #78. The archive is a curated post-merge digest combining the parent spec, tickets, PR diff, and Guardian session reports into a single human-readable record at `{target_project_dir}/archive/{feature_slug}.md`.
+The archive is a curated post-merge digest combining the parent spec, tickets, PR diff, and Guardian session reports into a single human-readable record at `{target_project_dir}/archive/{feature_slug}.md`.
 
 **Trigger conditions:**
 - A PR was just merged
@@ -169,11 +169,11 @@ On merge:
   3. Determine target_project_dir (the repo root of the merged PR)
   4. Dispatch the Operator in mode: "background" with this prompt:
 
-     "Operator: Procedure 6 — Feature Archive.
+     "Operator: produce a Feature Archive.
       feature_slug: {slug}
       merged_pr_numbers: {N1, N2, ...}
       target_project_dir: {abs_path}
-      Produce archive/{feature_slug}.md per the procedure."
+      Save the archive to archive/{feature_slug}.md in the target project."
 
   5. When the Operator completes, present the archive path to the user
      with a short summary (PRs/tickets/Guardian sessions referenced).
@@ -208,10 +208,10 @@ When the user asks to deploy, release, or push to an environment:
   ├─ No ticket? → PO Guardian (auto, interactive)
   ↓
 🎯 PO Guardian creates issue in tracker
-  │     └─ Step 2c: brownfield bootstrap (specs/{feature}/spec.md from existing code)
-  │     └─ Step 4b: decide on Formal Spec — multi-component / cross-Guardian / architectural?
-  │     └─ Step 5b-arch: consult Code Review for architectural impact (when spec produced)
-  │     └─ Step 5c: finalize Spec Kit-compatible spec at specs/{feature}/spec.md
+  │     └─ For brownfield areas without a parent spec, bootstrap one from existing code
+  │     └─ Decide whether to produce a Formal Spec (multi-component / cross-Guardian / architectural?)
+  │     └─ For non-trivial work, consult Code Review for architectural impact
+  │     └─ Finalize the Spec Kit-compatible spec at specs/{feature}/spec.md
   │     └─ Every ticket carries Parent Spec field (path or N/A — rationale)
   ↓
 📋 Orchestrator presents FULL spec to user
@@ -227,7 +227,7 @@ When the user asks to deploy, release, or push to an environment:
   ├─ 🧪 QA Guardian ──────────┐
   ├─ 🛡️ Security Guardian ────┤ (parallel, background)
   ├─ 🔒 Privacy Guardian ─────┤
-  ├─ 📋 Code Review Guardian ─┘ (Domain 8: spec drift + Parent Spec linkage)
+  ├─ 📋 Code Review Guardian ─┘ (spec drift + Parent Spec linkage)
   ↓
   Combined results → fix critical/high → commit
   ↓
