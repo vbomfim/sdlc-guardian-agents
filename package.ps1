@@ -212,8 +212,12 @@ function Invoke-Install {
     # ── Install Craig instructions ──
     Copy-FileSafe -From (Join-Path $SrcDir 'instructions\craig.instructions.md') -To (Join-Path $TargetDir 'instructions')
 
-    # ── Install templates (Spec Kit-compatible Formal Spec, etc.) ──
-    Copy-FileSafe -From (Join-Path $SrcDir 'templates\feature-spec.template.md') -To (Join-Path $TargetDir 'templates')
+    # ── Install templates (Spec Kit-compatible Formal Spec, ticket, audit, scaffolds) ──
+    New-DirIfMissing (Join-Path $TargetDir 'templates\scaffold')
+    Copy-FileSafe -From (Join-Path $SrcDir 'templates\feature-spec.template.md')   -To (Join-Path $TargetDir 'templates')
+    Copy-FileSafe -From (Join-Path $SrcDir 'templates\feature-ticket.template.md') -To (Join-Path $TargetDir 'templates')
+    Copy-FileSafe -From (Join-Path $SrcDir 'templates\project-audit.template.md')  -To (Join-Path $TargetDir 'templates')
+    Copy-DirContents -From (Join-Path $SrcDir 'templates\scaffold')               -To (Join-Path $TargetDir 'templates\scaffold')
 
     # ── Install skills (tool definitions only — no scripts) ──
     New-DirIfMissing (Join-Path $TargetDir 'skills\playwright-mcp')
@@ -307,7 +311,10 @@ function Invoke-Install {
     Write-Ok 'State machine: ~/.copilot/extensions/sdlc-guardian/uat-state-machine.mjs'
     Write-Host ''
     Write-Bold 'Templates:'
-    Write-Ok 'Feature Spec: ~/.copilot/templates/feature-spec.template.md (Spec Kit-compatible)'
+    Write-Ok 'Feature Spec:   ~/.copilot/templates/feature-spec.template.md (Spec Kit-compatible)'
+    Write-Ok 'Feature Ticket: ~/.copilot/templates/feature-ticket.template.md (18 sections)'
+    Write-Ok 'Project Audit:  ~/.copilot/templates/project-audit.template.md'
+    Write-Ok 'Scaffolds:      ~/.copilot/templates/scaffold/ (README, ARCHITECTURE, ADR, CONTRIBUTING, SECURITY)'
     Write-Host ''
     Write-Bold 'Side-Notes (advisory):'
     Write-Ok ('Notes: {0} created, {1} preserved' -f $notesCreated, $notesExisted)
@@ -348,7 +355,10 @@ function Invoke-Uninstall {
     Remove-IfExists -Path (Join-Path $TargetDir 'extensions\craig')                           -Description '~/.copilot/extensions/craig/'
 
     # ── Remove templates ──
-    Remove-IfExists -Path (Join-Path $TargetDir 'templates\feature-spec.template.md') -Description '~/.copilot/templates/feature-spec.template.md'
+    Remove-IfExists -Path (Join-Path $TargetDir 'templates\feature-spec.template.md')   -Description '~/.copilot/templates/feature-spec.template.md'
+    Remove-IfExists -Path (Join-Path $TargetDir 'templates\feature-ticket.template.md') -Description '~/.copilot/templates/feature-ticket.template.md'
+    Remove-IfExists -Path (Join-Path $TargetDir 'templates\project-audit.template.md')  -Description '~/.copilot/templates/project-audit.template.md'
+    Remove-IfExists -Path (Join-Path $TargetDir 'templates\scaffold')                   -Description '~/.copilot/templates/scaffold/'
     $templatesDir = Join-Path $TargetDir 'templates'
     if ((Test-Path -LiteralPath $templatesDir) -and (-not (Get-ChildItem -LiteralPath $templatesDir))) {
         Remove-Item -LiteralPath $templatesDir -Force
@@ -505,7 +515,14 @@ function Doctor-CheckFiles {
     Test-Artifact -RelativePath 'extensions\craig\craig-scheduler.mjs'           -Description 'extensions/craig/craig-scheduler.mjs'
     Test-Artifact -RelativePath 'extensions\craig\craig-config.mjs'              -Description 'extensions/craig/craig-config.mjs'
 
-    Test-Artifact -RelativePath 'templates\feature-spec.template.md' -Description 'templates/feature-spec.template.md'
+    Test-Artifact -RelativePath 'templates\feature-spec.template.md'   -Description 'templates/feature-spec.template.md (Spec Kit-compatible)'
+    Test-Artifact -RelativePath 'templates\feature-ticket.template.md' -Description 'templates/feature-ticket.template.md'
+    Test-Artifact -RelativePath 'templates\project-audit.template.md'  -Description 'templates/project-audit.template.md'
+    Test-Artifact -RelativePath 'templates\scaffold\README.template.md'        -Description 'templates/scaffold/README.template.md'
+    Test-Artifact -RelativePath 'templates\scaffold\ARCHITECTURE.template.md'  -Description 'templates/scaffold/ARCHITECTURE.template.md'
+    Test-Artifact -RelativePath 'templates\scaffold\ADR.template.md'           -Description 'templates/scaffold/ADR.template.md'
+    Test-Artifact -RelativePath 'templates\scaffold\CONTRIBUTING.template.md'  -Description 'templates/scaffold/CONTRIBUTING.template.md'
+    Test-Artifact -RelativePath 'templates\scaffold\SECURITY.template.md'      -Description 'templates/scaffold/SECURITY.template.md'
 
     foreach ($g in $Guardians) {
         Test-Artifact -RelativePath "instructions\$g.notes.md" -Description "$g.notes.md (side-notes)"

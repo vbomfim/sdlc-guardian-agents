@@ -85,8 +85,12 @@ install() {
   # ── Install Craig instructions ──
   cp "$SRC_DIR/instructions/craig.instructions.md" "$TARGET_DIR/instructions/"
 
-  # ── Install templates (Spec Kit-compatible Formal Spec, etc.) ──
-  cp "$SRC_DIR/templates/feature-spec.template.md" "$TARGET_DIR/templates/"
+  # ── Install templates (Spec Kit-compatible Formal Spec, ticket, audit, scaffolds) ──
+  mkdir -p "$TARGET_DIR/templates/scaffold"
+  cp "$SRC_DIR/templates/feature-spec.template.md"     "$TARGET_DIR/templates/"
+  cp "$SRC_DIR/templates/feature-ticket.template.md"   "$TARGET_DIR/templates/"
+  cp "$SRC_DIR/templates/project-audit.template.md"    "$TARGET_DIR/templates/"
+  cp "$SRC_DIR/templates/scaffold/"*.md                "$TARGET_DIR/templates/scaffold/"
 
   # ── Install skills (tool definitions only — no scripts) ──
   mkdir -p "$TARGET_DIR/skills/playwright-mcp"
@@ -176,7 +180,10 @@ install() {
   echo -e "${GREEN}✔${NC}  State machine: ~/.copilot/extensions/sdlc-guardian/uat-state-machine.mjs"
   echo ""
   echo -e "${BOLD}Templates:${NC}"
-  echo -e "${GREEN}✔${NC}  Feature Spec: ~/.copilot/templates/feature-spec.template.md (Spec Kit-compatible)"
+  echo -e "${GREEN}✔${NC}  Feature Spec:   ~/.copilot/templates/feature-spec.template.md (Spec Kit-compatible)"
+  echo -e "${GREEN}✔${NC}  Feature Ticket: ~/.copilot/templates/feature-ticket.template.md (18 sections)"
+  echo -e "${GREEN}✔${NC}  Project Audit:  ~/.copilot/templates/project-audit.template.md"
+  echo -e "${GREEN}✔${NC}  Scaffolds:      ~/.copilot/templates/scaffold/ (README, ARCHITECTURE, ADR, CONTRIBUTING, SECURITY)"
   echo ""
   echo -e "${BOLD}Side-Notes (advisory):${NC}"
   echo -e "${GREEN}✔${NC}  Notes: ${NOTES_CREATED} created, ${NOTES_EXISTED} preserved"
@@ -211,6 +218,9 @@ uninstall() {
 
   # ── Remove templates ──
   [ -f "$TARGET_DIR/templates/feature-spec.template.md" ] && rm "$TARGET_DIR/templates/feature-spec.template.md" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/templates/feature-spec.template.md"
+  [ -f "$TARGET_DIR/templates/feature-ticket.template.md" ] && rm "$TARGET_DIR/templates/feature-ticket.template.md" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/templates/feature-ticket.template.md"
+  [ -f "$TARGET_DIR/templates/project-audit.template.md" ] && rm "$TARGET_DIR/templates/project-audit.template.md" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/templates/project-audit.template.md"
+  [ -d "$TARGET_DIR/templates/scaffold" ] && rm -rf "$TARGET_DIR/templates/scaffold" && echo -e "${GREEN}✔${NC}  Removed ~/.copilot/templates/scaffold/"
   [ -d "$TARGET_DIR/templates" ] && rmdir "$TARGET_DIR/templates" 2>/dev/null && echo -e "${GREEN}✔${NC}  Removed empty ~/.copilot/templates/"
 
   echo ""
@@ -365,6 +375,16 @@ doctor_check_files() {
   _check_file "extensions/craig/extension.mjs"                 "extensions/craig/extension.mjs"
   _check_file "extensions/craig/craig-scheduler.mjs"           "extensions/craig/craig-scheduler.mjs"
   _check_file "extensions/craig/craig-config.mjs"              "extensions/craig/craig-config.mjs"
+
+  # Templates
+  _check_file "templates/feature-spec.template.md"   "templates/feature-spec.template.md (Spec Kit-compatible)"
+  _check_file "templates/feature-ticket.template.md" "templates/feature-ticket.template.md"
+  _check_file "templates/project-audit.template.md"  "templates/project-audit.template.md"
+  _check_file "templates/scaffold/README.template.md"        "templates/scaffold/README.template.md"
+  _check_file "templates/scaffold/ARCHITECTURE.template.md"  "templates/scaffold/ARCHITECTURE.template.md"
+  _check_file "templates/scaffold/ADR.template.md"           "templates/scaffold/ADR.template.md"
+  _check_file "templates/scaffold/CONTRIBUTING.template.md"  "templates/scaffold/CONTRIBUTING.template.md"
+  _check_file "templates/scaffold/SECURITY.template.md"      "templates/scaffold/SECURITY.template.md"
 
   # Side-notes (advisory — not critical if missing)
   # shellcheck disable=SC2086

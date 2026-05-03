@@ -310,219 +310,15 @@ Before finalizing, verify:
 
 ---
 
-```markdown
-# [Feature Title]
-
-**Parent Spec**: `specs/{feature}/spec.md` — OR — `N/A — [explicit reason for skipping the Formal Spec, e.g., "trivial bug fix; no system impact"]`
-
-<!-- ═══════════════════════════════════════════════════════ -->
-<!-- PRODUCT — what we're building and for whom             -->
-<!-- Google PRD structure                                    -->
-<!-- ═══════════════════════════════════════════════════════ -->
-
-## 1. User Story
-As a [specific role/persona],
-I want [specific goal or action],
-so that [measurable value or outcome].
-
-**Success metrics:** [How will we know this succeeded? OKRs, KPIs, or measurable outcomes]
-
-## 2. Component Design (Rewritable by Design)
-
-This section is critical. Components with clear boundaries and responsibilities enable any component to be rewritten independently by a developer or AI agent.
-
-### Component Map
-
-| Component | Responsibility (single) | New or Existing |
-|-----------|------------------------|-----------------|
-| [Name] | [One sentence — one reason to change] | New / Existing |
-
-For each component that is new or modified:
-
-**Boundary:** What is inside vs. outside this component's scope?
-**File structure:** Where does it live? (e.g., `src/components/maze-generator/`)
-
-**Interface Contract (define BEFORE implementation):**
-- **Ports:** What interfaces does this component expose or consume?
-- **Input contract:** What data comes in, from where, in what format?
-- **Output contract:** What data goes out, to where, in what format?
-- **Error contract:** What errors can occur, how are they surfaced?
-
-**Dependencies:**
-- **Depends on:** Which components does this consume? Via what interface?
-- **Consumed by:** Which components consume this? Via what interface?
-- **Rule:** No direct imports from sibling internals — only through defined interfaces
-
-**Rewritability check:**
-- [ ] Can this component be rewritten given only its interface definition and tests?
-- [ ] Are the interfaces stable enough that consumers survive a rewrite?
-- [ ] Is the data model owned by this component (not shared with siblings)?
-
-## 3. Audience & Personas
-- **Primary persona:** [Who, their context, skill level]
-- **Secondary persona:** [Who else is affected]
-- **Scale:** [Expected number of users, frequency of use]
-
-## 4. Functional Requirements
-
-### Acceptance Criteria (Given/When/Then)
-
-**AC1: [Scenario name]**
-- Given [precondition]
-- When [action]
-- Then [expected result]
-
-**AC2: [Scenario name]**
-- Given [precondition]
-- When [action]
-- Then [expected result]
-
-### Edge Cases
-- [Empty/null input?]
-- [Maximum/minimum values?]
-- [Concurrent access?]
-
-### User Flows
-- [Primary happy path — step by step]
-- [Key alternate paths]
-
-<!-- ═══════════════════════════════════════════════════════ -->
-<!-- QUALITY — Azure Well-Architected Framework pillars     -->
-<!-- + WCAG 2.2 for accessibility                           -->
-<!-- Answer each question or write N/A with a reason.       -->
-<!-- ═══════════════════════════════════════════════════════ -->
-
-## 5. Reliability [Azure WAF]
-- **Availability target:** [e.g., 99.9% over 30-day window — or N/A for local-only apps]
-- **Failure mode:** [What happens when a dependency fails? Graceful degradation? Retry?]
-- **Recovery:** [RPO and RTO targets — how much data loss and downtime is acceptable?]
-- **Fault tolerance:** [Single points of failure? Redundancy strategy?]
-- **Health checks:** [Readiness/liveness probes? Health endpoints?]
-
-## 6. Security [Azure WAF]
-- **Authentication:** [None, API key, OAuth, SSO — what method and why?]
-- **Authorization:** [Who can access what? RBAC/ABAC rules?]
-- **Data sensitivity:** [PII? Encryption at rest/in transit?]
-- **Input validation:** [Validation rules, sanitization approach?]
-- **Secrets management:** [How are credentials stored and rotated?]
-- **Compliance:** [GDPR, HIPAA, SOC2 — or N/A with reason]
-- **OWASP surface:** [Which OWASP Top 10 categories are relevant?]
-
-If significant security surface exists, recommend Security Guardian reviews the implementation.
-
-## 7. Cost Optimization [Azure WAF]
-- **Resource efficiency:** [Right-sized compute? Auto-scaling? Spot instances?]
-- **Cost boundaries:** [Budget limits? Cost alerts?]
-- **Waste prevention:** [Idle resources? Over-provisioning risks?]
-
-## 8. Operational Excellence [Azure WAF]
-- **Deployment strategy:** [Blue-green, canary, rolling — or N/A for static/local]
-- **Rollback plan:** [How to revert a bad deployment?]
-- **CI/CD:** [Pipeline requirements — build, test, deploy on merge?]
-- **Incident response:** [Runbook needed? Escalation path?]
-- **Automation:** [What can be automated? What requires manual intervention?]
-
-## 9. Performance Efficiency [Azure WAF]
-- **Latency targets:** [e.g., p95 < 200ms — or N/A for offline apps]
-- **Throughput:** [Expected requests/sec, concurrent users, data volume?]
-- **Scalability:** [Horizontal? Vertical? Auto-scaling triggers?]
-- **Resource budget:** [CPU/memory limits? Connection pools?]
-- **Caching strategy:** [What is cached? TTL? Invalidation?]
-
-## 10. Accessibility [WCAG 2.2]
-- **Conformance target:** [WCAG 2.2 Level A / AA / AAA — AA is recommended minimum]
-- **Keyboard navigation:** [All interactive elements reachable via keyboard?]
-- **Screen reader:** [VoiceOver/NVDA compatible? Semantic HTML? ARIA labels?]
-- **Color contrast:** [Minimum 4.5:1 for normal text, 3:1 for large text]
-- **Touch targets:** [Minimum 44×44pt for mobile/touch]
-- **Text scaling:** [Supports browser zoom to 200%?]
-- **No color-only information:** [Patterns or labels supplement color?]
-- **Motion:** [Respects prefers-reduced-motion?]
-- **Cognitive load:** [Clear language, predictable navigation, helpful errors?]
-
-N/A for pure backend/API/CLI — state the reason.
-
-<!-- ═══════════════════════════════════════════════════════ -->
-<!-- ARCHITECTURE & PLANNING                                -->
-<!-- ═══════════════════════════════════════════════════════ -->
-
-## 11. API & Data Contracts
-### Endpoints (if applicable)
-| Method | Path | Description | Auth |
-|--------|------|-------------|------|
-| POST | /api/v1/resource | Create resource | Bearer token |
-
-### Request/Response Schemas
-[Define input/output schemas with types, constraints, and examples]
-
-### Pagination, Filtering, Sorting
-[Strategy and defaults — or N/A]
-
-## 12. Data Model & Storage
-- [New tables/collections needed]
-- [Schema changes to existing models]
-- [Migration strategy]
-- [Storage type: SQL, NoSQL, blob, cache]
-- [Data retention and lifecycle]
-
-## 13. Deployment & Infrastructure
-- **Target environment:** [Local-only, static hosting, container, serverless, PaaS]
-- **Hosting:** [GitHub Pages, S3, Azure, K8s — or file:// for local apps]
-- **Environment strategy:** [dev/staging/production? Feature flags?]
-- **Infrastructure as code:** [Terraform, Helm, Kustomize — or N/A]
-
-If K8s/containers, recommend Platform Guardian and Delivery Guardian review.
-
-## 14. Observability [Google SRE]
-### SLIs / SLOs
-| SLI | Target (SLO) | Window |
-|-----|-------------|--------|
-| [Availability] | [99.9%] | [30 days] |
-| [Latency p95] | [< 200ms] | [Rolling] |
-
-### Monitoring
-- **Metrics:** [Key business and technical metrics]
-- **Dashboards:** [What dashboards are needed?]
-- **Alerts:** [Alert conditions, severity, escalation path]
-- **Logging:** [Structured logging? Log levels? Retention?]
-- **Tracing:** [Distributed tracing? — or N/A]
-
-## 15. Dependencies & Risks
-- **Upstream:** [Services/APIs this depends on]
-- **Downstream:** [Services/consumers affected]
-- **Third-party:** [External APIs, SDKs, libraries]
-- **Risks:** [Each risk must have a mitigation — even if "accept and monitor"]
-
-## 16. Out of Scope
-- [Feature X is explicitly NOT part of this ticket]
-- [Edge case Y will be handled in a follow-up]
-
-## 17. Open Questions & Trade-offs
-
-### Open Questions
-- [ ] [Unresolved decision needing input]
-
-### Trade-off Decisions
-When two quality attributes are in tension, document explicitly:
-
-| Trade-off | Option A | Option B | Decision | Rationale |
-|-----------|----------|----------|----------|-----------|
-| [e.g., Security vs. UX] | [Strict MFA] | [Session-based auth] | [Option B] | [Balances security with usability] |
-
-## 18. Testing Strategy
-- **Unit tests:** [Key functions — Developer Guardian scope]
-- **Integration tests:** [Service interactions — QA Guardian scope]
-- **E2E tests:** [User flows — QA Guardian scope]
-- **Accessibility tests:** [Screen reader, keyboard, contrast — user-facing apps]
-- **Performance tests:** [Load testing — if applicable]
-- **Edge cases:** [Specific scenarios from Section 4]
-
-### Guardian Review Plan
-| Guardian | Why | When |
-|----------|-----|------|
-| [Security Guardian] | [Auth + data sensitivity] | [Implementation review] |
-| [Code Review Guardian] | [Always] | [Implementation review] |
-```
+> **The full ticket template is at `~/.copilot/templates/feature-ticket.template.md`** (installed by `package.sh` / `package.ps1`). Read it with the `view` tool when you need it; do not paraphrase from memory.
+>
+> Template structure summary:
+> - Top: `Parent Spec:` field (mandatory — path or `N/A — [reason]`)
+> - **Product** (Sections 1–4): User story, Component design, Audience, Functional requirements
+> - **Quality** (Sections 5–10): Reliability, Security, Cost, Operations, Performance, Accessibility — Azure WAF + WCAG 2.2
+> - **Architecture & Planning** (Sections 11–18): API contracts, Data model, Deployment, Observability, Dependencies, Out of scope, Open questions, Testing
+>
+> Every section MUST have content or `N/A — [reason]`. Every non-functional requirement must be measurable (`p95 < 200ms` not `fast`).
 
 ---
 
@@ -599,63 +395,8 @@ When the user asks to audit a project, check its health, or asks "what's missing
 
 Scan the repo and report what exists (✅), what's missing (❌), and what's incomplete (⚠️). For every gap, explain **why it matters** — not just that it's missing.
 
-```
-## Project Health Audit
 
-### Project Documentation
-| Status | Document | Path | Why It Matters |
-|--------|----------|------|----------------|
-| ✅/❌/⚠️ | README.md | ./README.md | First thing anyone sees — purpose, setup, how to run. Without it, no one can use the project. |
-| ✅/❌/⚠️ | ARCHITECTURE.md | ./ARCHITECTURE.md | Component boundaries, interfaces, dependencies, security model, supported platforms. Required for rewritability — without it, no one can safely modify the system. Applies to ALL projects regardless of size. |
-| ✅/❌/⚠️ | LICENSE | ./LICENSE | Legal clarity — without it, the code has no usage rights. Adoption blocker. |
-| ✅/❌/⚠️ | CONTRIBUTING.md | ./CONTRIBUTING.md | Git workflow, PR process, coding standards. Without it, contributors guess at conventions. |
-| ✅/❌/⚠️ | SECURITY.md | ./SECURITY.md | Vulnerability reporting, data handling policy. Without it, security issues have no disclosure path. |
-| ✅/❌/⚠️ | CHANGELOG.md | ./CHANGELOG.md | Version history, breaking changes. Without it, users can't assess upgrade risk. |
-
-### ARCHITECTURE.md Completeness Check
-If ARCHITECTURE.md exists, verify it covers these categories (scale depth by project size, but every category must be addressed):
-- [ ] Application type and purpose
-- [ ] Component map with responsibilities
-- [ ] Interfaces (inputs, outputs, APIs, protocols)
-- [ ] Security concerns and trust boundaries
-- [ ] Supported OS/platforms
-- [ ] Dependencies (internal and external)
-- [ ] Communication patterns (sync/async, protocols, data flow)
-- [ ] Data model and storage
-
-### Process & Governance
-| Status | Item | Where to Check |
-|--------|------|----------------|
-| ✅/❌ | ADRs (Architecture Decision Records) | ./docs/adr/ or ./adr/ |
-| ✅/❌ | API Documentation (OpenAPI/Swagger) | ./docs/api/ or swagger.yml |
-| ✅/❌ | Runbook / Ops Guide | ./docs/runbook.md or wiki |
-| ✅/❌ | PR template | .github/pull_request_template.md |
-| ✅/❌ | Issue templates | .github/ISSUE_TEMPLATE/ |
-| ✅/❌ | Branch protection rules | GitHub settings |
-
-### CI/CD & Quality Gates
-| Status | Item | Where to Check |
-|--------|------|----------------|
-| ✅/❌ | CI pipeline | .github/workflows/ |
-| ✅/❌ | Security scanning | .github/workflows/security-scan.yml |
-| ✅/❌ | Linting in CI | .github/workflows/ |
-| ✅/❌ | Test automation | .github/workflows/ |
-| ✅/❌ | Dependency updates (Dependabot/Renovate) | .github/dependabot.yml |
-
-### Observability [Google SRE]
-| Status | Item | Why It Matters |
-|--------|------|----------------|
-| ✅/❌ | SLI/SLO definitions | Without them, there's no objective measure of service health |
-| ✅/❌ | Alerting rules | Without them, failures go unnoticed until users report |
-| ✅/❌ | Dashboard | Without it, operational state is invisible |
-| ✅/❌ | Structured logging | Without it, debugging production issues is guesswork |
-| ✅/❌ | Distributed tracing | Without it, cross-service request flows are opaque |
-
-### Summary
-- Project health score: [X/25]
-- Critical gaps: [list with WHY each matters]
-- Recommended actions: [prioritized — offer to produce missing docs]
-```
+> **Template:** read `~/.copilot/templates/project-audit.template.md` with the `view` tool when scaffolding. Do not paraphrase.
 
 ### Audit Procedure
 1. Scan the repo file tree for each document
@@ -671,172 +412,27 @@ If ARCHITECTURE.md exists, verify it covers these categories (scale depth by pro
 When the user asks to create or scaffold project docs, use these templates.
 
 ### README.md Template
-```markdown
-# [Project Name]
 
-## Overview
-[1-2 sentences: what this project does and why it exists]
-
-## Architecture
-[High-level diagram or description of components]
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for details.
-
-## Getting Started
-
-### Prerequisites
-- [Runtime/SDK version]
-- [Dependencies]
-
-### Setup
-\`\`\`bash
-[setup commands]
-\`\`\`
-
-### Running
-\`\`\`bash
-[run commands]
-\`\`\`
-
-### Testing
-\`\`\`bash
-[test commands]
-\`\`\`
-
-## API Documentation
-[Link to OpenAPI spec or API docs]
-
-## Contributing
-See [CONTRIBUTING.md](./CONTRIBUTING.md)
-
-## Security
-See [SECURITY.md](./SECURITY.md)
-```
+> **Template:** read `~/.copilot/templates/scaffold/README.template.md` with the `view` tool when scaffolding. Do not paraphrase.
 
 ### ARCHITECTURE.md Template
 
 Every project needs an ARCHITECTURE.md. Scale the depth by project size, but every section must be addressed (use "N/A — [reason]" if not applicable). These categories come from the user, not assumptions — ask during Step 2b.
 
-```markdown
-# Architecture
 
-## Application Type & Purpose
-[What type of application is this? (frontend, API, full-stack, CLI, library, mobile, infra, embedded)]
-[What does it do and why does it exist? One paragraph.]
-
-## Components
-| Component | Responsibility (single) | Technology | Interface |
-|-----------|------------------------|------------|-----------|
-| [Name] | [What it does — one reason to change] | [Stack] | [How others interact with it] |
-
-## Interfaces
-[What inputs does the system accept? What outputs does it produce?]
-[APIs, CLI args, file formats, protocols, event schemas]
-
-## Security Model
-[Authentication method, authorization model, data sensitivity classification]
-[Trust boundaries between components]
-[Reference SECURITY.md for policy details]
-
-## Supported Platforms
-[Operating systems, browsers, runtimes, minimum versions]
-
-## Dependencies
-### Internal
-[Other components/services this system depends on]
-
-### External
-[Third-party APIs, SDKs, libraries, infrastructure services]
-
-## Communication Patterns
-[Synchronous (HTTP, gRPC) vs. asynchronous (queues, events)]
-[Data flow between components — who talks to whom and how]
-
-## Data Model
-[Key entities and relationships]
-[Storage type: SQL, NoSQL, blob, cache, in-memory]
-
-## Infrastructure & Deployment
-[Where it runs, how it's deployed, environment strategy]
-[Reference deployment docs or runbook if they exist]
-
-## Key Design Decisions
-See [ADRs](./docs/adr/) for decision records.
-
-## Observability
-[Metrics, logging, tracing, alerting — SLIs/SLOs]
-```
+> **Template:** read `~/.copilot/templates/scaffold/ARCHITECTURE.template.md` with the `view` tool when scaffolding. Do not paraphrase.
 
 ### ADR Template (Architecture Decision Record)
-```markdown
-# ADR-[NNN]: [Title]
 
-## Status
-[Proposed | Accepted | Deprecated | Superseded by ADR-XXX]
-
-## Context
-[What is the situation? What problem are we solving?]
-
-## Decision
-[What did we decide?]
-
-## Consequences
-### Positive
-- [Benefit 1]
-### Negative
-- [Trade-off 1]
-### Risks
-- [Risk 1 — mitigation: ...]
-```
+> **Template:** read `~/.copilot/templates/scaffold/ADR.template.md` with the `view` tool when scaffolding. Do not paraphrase.
 
 ### CONTRIBUTING.md Template
-```markdown
-# Contributing
 
-## Git Workflow
-- Branch from `main`: `feature/[short-name]` or `issue-[N]-[short-name]`
-- One commit per logical change
-- PR required, minimum 1 reviewer
-
-## PR Process
-1. Create draft PR early for visibility
-2. Link related issue: `Closes #N`
-3. Fill out PR template
-4. Pass CI checks (lint, test, security scan)
-5. Get review approval
-6. Squash merge to main
-
-## Coding Standards
-[Link to style guide or describe conventions]
-
-## Review Process
-- Security-sensitive changes → invoke Security Guardian (`/agent`)
-- All code changes → invoke Code Review Guardian (`/agent`)
-- New features → require PO Guardian ticket first
-```
+> **Template:** read `~/.copilot/templates/scaffold/CONTRIBUTING.template.md` with the `view` tool when scaffolding. Do not paraphrase.
 
 ### SECURITY.md Template
-```markdown
-# Security Policy
 
-## Reporting Vulnerabilities
-[How to report: email, GitHub security advisories, etc.]
-
-## Supported Versions
-| Version | Supported |
-|---------|-----------|
-| [X.Y] | ✅ |
-
-## Security Practices
-- Dependencies scanned by [Dependabot/Renovate]
-- SAST scanning via [Semgrep/CodeQL]
-- Secret scanning via [Gitleaks/GitHub]
-- Security review required for auth, data, API changes
-
-## Data Handling
-- [What data is collected, stored, transmitted]
-- [Encryption at rest/in transit]
-- [Data retention policy]
-```
+> **Template:** read `~/.copilot/templates/scaffold/SECURITY.template.md` with the `view` tool when scaffolding. Do not paraphrase.
 
 ### Scaffold Procedure
 1. Run the project audit first to see what's missing
