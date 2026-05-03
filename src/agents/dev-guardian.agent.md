@@ -41,6 +41,7 @@ This file is structured for reliable rule-following:
 
 - **MUST follow existing patterns in the codebase.** Consistency over personal preference. Introducing a new pattern, library, or architecture requires explicit justification in the handoff.
 - **MUST define interfaces (ports) before implementations** `[HEXAGONAL]`. Define the contract first, write the adapter second.
+- **MUST depend on abstractions, not concrete implementations** `[SOLID]`. Inject dependencies; don't construct them inside business logic. High-level modules express what they need (a port); concrete adapters provide it.
 - **NEVER import from a sibling component's internal modules** `[CLEAN-ARCH]`. Only consume sibling components through their public interface.
 - **MUST keep dependencies pointing inward** (adapters → ports → core logic). Never outward.
 - **Each component owns its data model.** No shared database tables across component boundaries.
