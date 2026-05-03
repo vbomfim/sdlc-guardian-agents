@@ -532,6 +532,8 @@ Every finding, requirement, and recommendation produced by a Guardian cites its 
 
 The side-notes system creates a **feedback loop** from review Guardians back to upstream Guardians. When a review Guardian (Security, Privacy, Code Review, QA) detects a recurring pattern across multiple sessions, it proposes an advisory note for the relevant Guardian. After user approval, the note is appended to the Guardian's `.notes.md` file.
 
+> **Side-notes vs `store_memory`:** Side-notes are *Guardian self-learning* — related to one Guardian's domain, evolving from review evidence, gated by user approval. `store_memory` is for *isolated orchestrator-level facts* (build commands, naming conventions, paths). Both coexist; each has its own purpose. See `~/.copilot/instructions/sdlc-workflow.instructions.md` → "Memory — Two Systems, Two Purposes" for the full policy.
+
 ### How it works
 
 ```

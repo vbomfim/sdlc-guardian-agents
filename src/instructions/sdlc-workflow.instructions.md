@@ -375,6 +375,55 @@ When upgrading models:
 | Low | 🔵 | Note in report — never re-iterate |
 | Info | ℹ️ | Note in report — never re-iterate |
 
+## Memory — Two Systems, Two Purposes
+
+This project uses two complementary memory systems. Use the right one for the right purpose; do not mix.
+
+### Side-notes (Guardian self-learning) — RELATED, EVOLVING
+
+Per-Guardian advisory files at `~/.copilot/instructions/{guardian}.notes.md`. Each Guardian reads its own notes at startup. Notes capture **patterns the Guardian has learned to watch for** through repeated review evidence — they evolve as the Guardian sees more of the codebase.
+
+**Use side-notes for:**
+- "Pattern X has been flagged N times — pay attention next time"
+- Behavioral hints specific to one Guardian's domain (Security: "this codebase tends to log session IDs"; Code Review: "service classes grow past 200 lines here")
+- Project-specific conventions that affect how the Guardian reviews
+
+**How notes get written:** a review Guardian proposes via the Improvement Cycle, the user approves, the orchestrator appends. Never written silently.
+
+### `store_memory` (orchestrator-scope facts) — ISOLATED, FACTUAL
+
+Copilot CLI's built-in memory tool. Surfaces back as `<memories>` blocks at session start. Use only for **isolated, evergreen facts** the orchestrator needs across sessions.
+
+**Use `store_memory` for:**
+- Build / test / lint commands verified to work (e.g., "Run tests with `node --test src/extensions/sdlc-guardian/uat-state-machine.test.mjs`")
+- Architectural facts and naming conventions (e.g., "The Operator is NOT a Guardian — file is `operator.agent.md`, not `operator-guardian.agent.md`")
+- Installation paths and structural facts (e.g., "Files install to `~/.copilot/`, not `~/.github/`")
+- User-stated preferences likely to apply to future sessions
+
+**Do NOT use `store_memory` for:**
+- ❌ Behavioral patterns from reviews — those belong in side-notes
+- ❌ Anything specific to one Guardian's review domain — same
+- ❌ Outdated facts — re-store with updated content; don't leave stale memories
+- ❌ Code that's in flight (it might not merge)
+- ❌ Speculation, hypothesis, or unverified claims
+
+### When in doubt
+
+**Skip both.** Memory is for things you'll *definitely* want to know next time. Speculation pollutes both systems.
+
+### The rule of thumb
+
+Ask: *"Is this a CONVENTION/FACT, or a BEHAVIORAL PATTERN from reviews?"*
+
+- Convention / fact → `store_memory`
+- Behavioral pattern → propose a side-note via the Improvement Cycle
+
+### Retention
+
+`store_memory` retention is managed by the platform. If a stored fact becomes outdated (e.g., a workflow step renamed, a tool replaced), call `store_memory` again with the corrected fact — the new entry replaces the old in surfacing. Do not maintain a separate amendment log.
+
+Side-notes are managed in plain text — edit the `.notes.md` file directly to remove or update entries.
+
 ## Rules
 
 - **Never skip a gate** — if a Guardian hasn't run, invoke it before proceeding
