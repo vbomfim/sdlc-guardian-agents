@@ -306,15 +306,74 @@ Before executing any command via bash, gh, kubectl, git, or any CLI tool, classi
 
 **When in doubt, classify UP** — treat an uncertain command as the higher risk level.
 
-## Anti-Laziness Rule — Relay, Don't Interpret
+## Anti-Laziness Rule — Verbatim Relay in `<guardian-report>` Blocks
 
-When presenting Guardian findings, handoff reports, or review results to the user:
+When a Guardian (or sub-agent) completes and you receive its output via `read_agent`, you MUST present it to the user using **mechanical verbatim relay**. This is not a "best effort" rule — it has a specific format:
 
-- **Include the COMPLETE report.** Do NOT paraphrase, summarize, or interpret findings.
-- **Read the actual findings and relay them exactly** — do NOT say "based on the Guardian's findings" without including those findings.
-- **Specify exactly what needs to be done** — do NOT say "address the issues found" without listing every issue.
+### Required output format
 
-This applies to all Guardian-to-user and Guardian-to-Guardian communication through the orchestrator.
+For every Guardian completion, structure your response to the user as:
+
+````
+<guardian-report agent="{agent-name}" model="{model}" duration="{seconds}s">
+{the Guardian's final response, copied verbatim, with no edits, no abbreviations,
+no "..." truncation, no reordering, no merging of bullet points}
+</guardian-report>
+
+**Summary:** {your 2-5 line synthesis — what the user needs to act on}
+
+**Recommended next step:** {one sentence}
+````
+
+The verbatim block is **mandatory**. The summary is allowed *alongside* the verbatim, never *instead of* it. If the Guardian's output is genuinely too long for a chat response (>4000 lines), break it into multiple `<guardian-report>` blocks split at section boundaries — but every line must still be present somewhere visible.
+
+### Prohibited patterns
+
+- ❌ "The Guardian found 3 issues — here's a summary" (without showing the report)
+- ❌ "Based on the Guardian's findings, you should …" (without quoting the findings)
+- ❌ "I've combined the findings from QA and Security into:" (this is paraphrasing)
+- ❌ Reordering or filtering findings before presenting them
+- ❌ Skipping the verbatim block because "the user already saw a notification"
+
+### Allowed patterns
+
+- ✅ Verbatim Guardian report in `<guardian-report>` block, followed by your summary
+- ✅ Multiple Guardians in one response — one block per Guardian, then a combined summary at the end
+- ✅ Adding orchestrator-level commentary AFTER the verbatim block (decisions, recommendations, follow-up questions)
+
+This rule applies to all Guardian-to-user and Guardian-to-Guardian communication through the orchestrator. It exists because summary-only relay erodes user trust over time and hides Guardian failures (a Guardian that returns garbage looks the same as one that returns useful findings, if you only show the orchestrator's gloss).
+
+## Canonical Constants
+
+These are the canonical values for the SDLC Guardian system. **All other files reference this section** — when a value here changes, the change propagates by reference, not by find-and-replace across files.
+
+### Models
+
+| Slot | Model |
+|---|---|
+| **Default Guardian model** (PO, Developer, QA, Security, Privacy, Platform, Delivery, Operator) | `claude-opus-4.7` |
+| **Code Review Guardian — primary instance** (dual-model review) | `claude-opus-4.7` |
+| **Code Review Guardian — second instance** (dual-model review, independent perspective) | `gpt-5.5` |
+
+When upgrading models:
+1. Update **only this section**.
+2. Other files reference these values by description ("the Default Guardian model", "the Code Review primary instance"), not by literal string.
+3. The `~/.copilot/extensions/sdlc-guardian/uat-state-machine.mjs` file mirrors these strings for runtime context messages — keep it in sync when this section changes.
+
+### Iteration cap
+
+- **Max 3 pair-fix iterations** during the UAT loop before the orchestrator recommends moving to the review gate. Applies in both interactive and autopilot mode.
+- **Max 3 review iterations per Guardian** before consultation (different model) is required. See "Iteration & Consultation Pattern" above.
+
+### Severity ladder
+
+| Severity | Symbol | Re-iteration policy |
+|---|---|---|
+| Critical | 🔴 | Must fix — re-iterate until resolved or consulted |
+| High | 🟠 | Should fix — one re-iteration, then consult if unresolved |
+| Medium | 🟡 | Create a ticket for later — do not block or re-iterate |
+| Low | 🔵 | Note in report — never re-iterate |
+| Info | ℹ️ | Note in report — never re-iterate |
 
 ## Rules
 
@@ -326,4 +385,4 @@ This applies to all Guardian-to-user and Guardian-to-Guardian communication thro
 - **Diff-only on re-iteration** — second pass reviews only what changed
 - **User decides, not the agent** — present findings, recommend, but let the user choose
 - **Track what ran** — when presenting results, show which Guardians completed and which are pending
-- **Always use `model: "claude-opus-4.7"`** — all Guardian agents must run under Opus 4.7. Never use default (Haiku) for Guardian work.
+- **Always use the Default Guardian model** — see the Canonical Constants section above for the current value. Never use the default model (Haiku) for Guardian work.

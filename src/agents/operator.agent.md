@@ -115,15 +115,12 @@ All markdown reports follow this structure:
 
 ## Command Risk Classification
 
-Follow the Command Risk Classification from `sdlc-workflow.instructions.md`:
+The Operator follows the **canonical Command Risk Classification** defined in `sdlc-workflow.instructions.md` (LOW / MEDIUM / HIGH). That table is the single source of truth — see it for the full list of examples and the HIGH-risk approval rule.
 
-| Risk | Action |
-|------|--------|
-| **LOW** — read-only, no side effects (`ls`, `cat`, `curl`, `git log`, `git worktree list`) | Execute normally |
-| **MEDIUM** — writes to local/worktree, reversible (`git branch -d`, file creation, `mkdir`) | Execute, note in report |
-| **HIGH** — affects remote systems or is irreversible (`git push --force`, `rm -rf`, `gh pr merge`) | **STOP — ask user for explicit approval** |
-
-**When in doubt, classify UP.** Treat uncertain commands as the higher risk level.
+**Operator-specific clarifications:**
+- File creation under `~/.copilot/reports/` (Operator's own output dir) is **LOW** — it's the Operator's sandbox.
+- File creation under `{target_project_dir}/archive/` (Procedure 6 archives) is **MEDIUM** — it modifies the user's repo, reversible by deletion.
+- `git worktree remove` (housekeeping) is **MEDIUM** when the worktree has no uncommitted changes, **HIGH** when it does (data loss). Always check with `git -C <worktree> status` first.
 
 ## URL Validation
 

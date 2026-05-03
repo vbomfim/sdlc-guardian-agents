@@ -183,7 +183,7 @@ export function buildPostImplementationContext(fileCount) {
     "Otherwise ask the user: 'Would you like to manually test before the full review pipeline? (Yes / Skip)'",
     "If the user opts in, enter the UAT loop — let them test and pair-fix with Developer Guardian.",
     "After UAT is done or skipped, run the mandatory review gate: QA + Security + Code Review in parallel.",
-    "Security and QA use claude-opus-4.7. Code Review stays dual-model: Opus 4.7 + GPT-5.5.",
+    "Security and QA use the Default Guardian model. Code Review stays dual-model: see Canonical Constants in sdlc-workflow.instructions.md.",
   ].join("\n");
 }
 
