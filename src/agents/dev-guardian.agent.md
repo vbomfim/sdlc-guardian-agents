@@ -91,6 +91,28 @@ Before handoff, the code MUST satisfy:
 - The error path is unit-tested (see Pre-compliance → Code quality)
 - Errors are handled at the appropriate level (don't swallow, don't over-catch — see Background → Error handling guidance for what "appropriate" means in practice)
 
+### Pre-compliance — Trust boundaries `[OWASP]`
+
+A **trust boundary** is any point where untrusted data enters your code: CLI args (`process.argv`), HTTP request bodies / headers / query params / cookies, message queues, IPC, file I/O, environment variables, third-party callbacks, deserialization, database results from a system you don't control. At every trust boundary:
+
+- **MUST validate type, shape, length, and range** before passing data inward. The valid set must be defined positively (allow-list), not negatively (deny-list).
+- **MUST reject invalid input with a typed, contextful error** — never coerce silently, never pass through "best-effort" data.
+- **MUST cap input size:** max length on strings (defend against DoS via gigantic inputs), max items in lists, max depth in nested structures, max payload size for HTTP. Pick limits proportionate to the use case; document them as constants.
+- **MUST sanitize for the downstream consumer:** HTML-escape for browser output, parameterize for SQL, normalize Unicode for comparison, escape shell metacharacters before exec, etc. Sanitize at the boundary, not deep in the call stack.
+- **MUST test the rejection paths** with hostile inputs (null, empty, oversized, control characters, type mismatches, unicode normalization edge cases) — not just the happy and structural-unhappy paths.
+- **Defensive checks at trust boundaries are NEVER "dead code."** A branch a unit test can't currently trigger is a branch the next attacker will. Test coverage for boundary checks counts as security coverage, not "extra" coverage.
+
+### Pre-compliance — Production readiness
+
+Before handoff, the code MUST be **production-grade**, not "demo-grade":
+
+- **Exit codes mean something:** `0` success, non-zero specific failure modes (usage error vs runtime error vs validation error). Document them.
+- **Stderr vs stdout:** errors and diagnostics → stderr; structured/pipeable output → stdout. Do not mix.
+- **Logs are structured and scoped:** no PII, no secrets, no unbounded `console.log` in hot paths; log level reflects severity.
+- **Resource cleanup:** file handles, network connections, subprocess handles, timers — release in `finally` / `defer` / equivalent. Do not leak.
+- **Time and randomness are injected, not called directly,** wherever testability matters (`Date.now()` and `Math.random()` make tests flaky and replay-attack analysis impossible).
+- **Configuration over hard-coding:** environment-specific values (URLs, ports, paths, limits) come from env vars or config files, not literals.
+
 ### Handoff
 
 - **MUST include in every handoff:** the worktree path, branch name, and the build / test / start commands. The user needs these for the UAT checkpoint.
@@ -168,7 +190,7 @@ Include the test output summary in your handoff (number of tests, all passing). 
 
 ### Step 8: Pre-compliance check
 
-Verify the code satisfies the **Security**, **Code quality**, and **Error handling** checklists in **Rules** above. If anything fails, fix it before handoff.
+Verify the code satisfies the **Security**, **Code quality**, **Error handling**, **Trust boundaries**, and **Production readiness** checklists in **Rules** above. If anything fails, fix it before handoff.
 
 ### Step 9: Handoff
 
@@ -210,6 +232,8 @@ Present your work to the orchestrator using this format:
 - [X] Security checklist passed
 - [X] Code quality checklist passed
 - [X] Error handling checklist passed
+- [X] Trust boundaries checklist passed
+- [X] Production readiness checklist passed
 
 ### For the Default Agent
 1. Review the **Assumptions & Decisions Made** table — ask the user to confirm or override before committing
