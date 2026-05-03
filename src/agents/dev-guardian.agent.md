@@ -37,12 +37,25 @@ This file is structured for reliable rule-following:
 
 ### Architecture & code
 
+**Components & contracts:**
+
 - **MUST follow existing patterns in the codebase.** Consistency over personal preference. Introducing a new pattern, library, or architecture requires explicit justification in the handoff.
 - **MUST define interfaces (ports) before implementations** `[HEXAGONAL]`. Define the contract first, write the adapter second.
 - **NEVER import from a sibling component's internal modules** `[CLEAN-ARCH]`. Only consume sibling components through their public interface.
 - **MUST keep dependencies pointing inward** (adapters → ports → core logic). Never outward.
 - **Each component owns its data model.** No shared database tables across component boundaries.
-- Functions: max ~20 lines. Cyclomatic complexity < 10. Single responsibility per function/class.
+
+**Functions** (a function is a unit of encapsulation — see Background → Functions as Rewritable units):
+
+- **MUST have a single responsibility per function/class.** If you need "and" to describe what it does, split it.
+- **Max ~20 lines per function**, extract if longer.
+- **Cyclomatic complexity < 10** per function.
+- **Function names describe WHAT, not HOW.** `getUserById`, not `queryDB`. The name should let a reader skip the implementation.
+- **Boolean names read as questions.** `isActive`, `hasPermission`, `canEdit` — never `active`, `permission`, `edit`.
+- **Constants use UPPER_SNAKE** with descriptive names. `MAX_RETRY_ATTEMPTS`, not `N`. **No magic numbers** in the body — extract to a named constant.
+- **Function arity ≤ 3 parameters**, prefer 0–2. If you need more, the missing abstraction is usually a data structure (config object, request object) — extract it. High-arity functions are hard to test, easy to mis-call.
+- **No abbreviations** unless universally understood. `id`, `url`, `api` are OK; `usr`, `mgr`, `svc` are not.
+- **Inline comments explain WHY, never WHAT.** The code shows what; comments add the reasoning the code can't carry.
 
 ### Pre-compliance — Security `[OWASP]`
 
@@ -220,10 +233,12 @@ Multiple agents may run in parallel against the same repo. Without isolation, `g
 
 ### Naming guidance `[CLEAN-CODE]`
 
-- Variables/functions: describe WHAT, not HOW (`getUserById`, not `queryDB`)
-- Booleans: read as questions (`isActive`, `hasPermission`, `canEdit`)
-- Constants: UPPER_SNAKE for true constants, descriptive names (`MAX_RETRY_ATTEMPTS`, not `N`)
-- No abbreviations unless universally understood (`id`, `url`, `api` are OK; `usr`, `mgr`, `svc` are not)
+The hard naming rules are in **Rules → Architecture & code → Functions**. This section covers edge cases the rule doesn't fully prescribe.
+
+- **Pluralization:** collections plural (`users`), single items singular (`user`). Don't mix (`user_list` is redundant).
+- **Tense for events:** past for things that happened (`UserCreated`), present for state (`UserActive`).
+- **Verb prefixes for functions:** `get`/`fetch`/`load` (read), `create`/`add`/`save` (write), `delete`/`remove`, `validate`/`check`, `parse`/`format` — pick the project's convention and stay consistent.
+- **Class names are nouns, function/method names are verbs** — except predicates (`isAdmin`, `hasAccess`).
 
 ### Error handling guidance `[CLEAN-CODE]`
 
@@ -239,17 +254,39 @@ The hard rules on error handling are in **Rules → Pre-compliance — Error han
 
 ### Documentation guidance `[CLEAN-CODE]` `[GOOGLE-ENG]`
 
-- Doc comments on public APIs (functions, classes, endpoints)
-- Inline comments only for the *why*, never the *what* — the code shows what
-- Update README when adding new features, commands, or config options
+The hard rule on inline comments is in **Rules → Architecture & code → Functions**. This section covers documentation beyond inline comments.
+
+- **Doc comments on public APIs** (functions, classes, endpoints) — describe purpose, parameters, return values, errors. The code's user shouldn't need to read the body.
+- **Update README** when adding new features, commands, or config options users would discover via the entry point.
+- **Architecture decisions** that affect future contributors → ADR (Architecture Decision Record), not a buried code comment.
 
 ### Component design — Rewritable by Design `[HEXAGONAL]` `[CLEAN-ARCH]`
 
-The architectural rules in **Rules** flow from this principle. The goal: any component can be rewritten by an AI agent (or a human) using only its interface definition and tests, without modifying or redeploying any other component.
+The architectural rules in **Rules → Architecture & code → Components & contracts** flow from this principle. The goal: any component can be rewritten by an AI agent (or a human) using only its interface definition and tests, without modifying or redeploying any other component.
 
 - **Ports & Adapters** — business logic depends on ports (interfaces); adapters implement them for specific technologies
 - **Dependency direction** — dependencies always point inward (adapters → ports → core), never outward
 - **Rewritability self-test** — *"Can an AI agent rewrite this component from just its interface and tests?"* If not, the boundary is unclear and the rules in Architecture & Code are being violated.
+
+### Functions as Rewritable units `[HEXAGONAL]` `[CLEAN-ARCH]`
+
+The Rewritable by Design philosophy applies at the function level, not just the component level. A function is the smallest unit of encapsulation — and like a component, it has:
+
+- **An interface** — its signature (parameters, return type, errors it can produce)
+- **A single responsibility** — one reason to exist, one reason to change
+- **A behavioral contract** — its tests, which describe what it does without prescribing how
+
+The function-level Rules (single responsibility, ~20 lines, complexity < 10, low arity, descriptive name) are not arbitrary preferences. They are what makes a function *rewritable*. A function that violates them — too long, too many parameters, multiple responsibilities, vague name — cannot be safely rewritten by another developer or an AI agent without reading and understanding its entire implementation.
+
+**Rewritability self-test for functions:**
+
+- *"From this function's signature, name, and tests alone, could I rewrite the body without seeing the original?"* If not, one of these is wrong:
+  - The name doesn't describe WHAT (rewrite reading the body to figure out intent)
+  - The signature is incomplete (missing return type, missing error contract, opaque flag parameter)
+  - The tests don't cover the behavior (rewrite passes the tests but breaks the real use case)
+  - The function does more than one thing (the rewrite would have to discover all of them)
+
+This is why the function-level Rules are non-negotiable: each one removes a class of "you must read the body to understand it" friction.
 
 ### Why pre-compliance
 
