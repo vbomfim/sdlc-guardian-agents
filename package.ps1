@@ -258,6 +258,25 @@ function Invoke-Install {
 <!-- Learned patterns from past reviews. Guardians read this file at startup. -->
 <!-- Add notes as markdown bullets. Keep to ~20 items; prune when exceeded. -->
 "@
+            # Security Guardian uses a [sub] tag convention so the coordinator can
+            # filter notes per sub-Guardian on fan-out (see specs/security-guardian-split/spec.md FR-013).
+            if ($g -eq 'security-guardian') {
+                $body += @"
+
+
+<!-- TAG CONVENTION (coordinator-filtered):
+     Prefix each note with [appsec], [supply-chain], [secrets], [threat-model],
+     or [iac] so the coordinator passes only the relevant subset to each sub.
+     Untagged notes are passed to all subs.
+     Examples:
+       - [secrets] Repo keeps API keys in src/config/secrets.ts — scan there.
+       - [appsec] Repository layer historically uses raw SQL strings — always flag.
+       - [iac] Production Terraform lives in infra/prod/ and uses aws_iam_role modules.
+       - [supply-chain] CI runs npm audit --production; dev deps may have intentional unfixed CVEs.
+       - [threat-model] Tenant boundary is at the API gateway; no app-server enforcement.
+     -->
+"@
+            }
             # Use WriteAllText so we get UTF-8 without BOM (matches package.sh output)
             [System.IO.File]::WriteAllText($notesFile, $body, [System.Text.UTF8Encoding]::new($false))
             $notesCreated++

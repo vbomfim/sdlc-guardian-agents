@@ -126,6 +126,21 @@ install() {
       printf "# %s — Advisory Notes\\n\\n" "$guardian" > "$notes_file"
       printf "<!-- Learned patterns from past reviews. Guardians read this file at startup. -->\\n" >> "$notes_file"
       printf "<!-- Add notes as markdown bullets. Keep to ~20 items; prune when exceeded. -->\\n" >> "$notes_file"
+      # Security Guardian uses a [sub] tag convention so the coordinator can
+      # filter notes per sub-Guardian on fan-out (see specs/security-guardian-split/spec.md FR-013).
+      if [ "$guardian" = "security-guardian" ]; then
+        printf "\\n<!-- TAG CONVENTION (coordinator-filtered):\\n" >> "$notes_file"
+        printf "     Prefix each note with [appsec], [supply-chain], [secrets], [threat-model],\\n" >> "$notes_file"
+        printf "     or [iac] so the coordinator passes only the relevant subset to each sub.\\n" >> "$notes_file"
+        printf "     Untagged notes are passed to all subs.\\n" >> "$notes_file"
+        printf "     Examples:\\n" >> "$notes_file"
+        printf "       - [secrets] Repo keeps API keys in src/config/secrets.ts — scan there.\\n" >> "$notes_file"
+        printf "       - [appsec] Repository layer historically uses raw SQL strings — always flag.\\n" >> "$notes_file"
+        printf "       - [iac] Production Terraform lives in infra/prod/ and uses aws_iam_role modules.\\n" >> "$notes_file"
+        printf "       - [supply-chain] CI runs npm audit --production; dev deps may have intentional unfixed CVEs.\\n" >> "$notes_file"
+        printf "       - [threat-model] Tenant boundary is at the API gateway; no app-server enforcement.\\n" >> "$notes_file"
+        printf "     -->\\n" >> "$notes_file"
+      fi
       chmod 600 "$notes_file"
       NOTES_CREATED=$((NOTES_CREATED + 1))
     else
