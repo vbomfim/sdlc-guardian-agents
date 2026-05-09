@@ -254,6 +254,14 @@ function Invoke-Install {
     Copy-FileSafe -From (Join-Path $SrcDir 'extensions\craig\craig-scheduler.mjs') -To (Join-Path $TargetDir 'extensions\craig')
     Copy-FileSafe -From (Join-Path $SrcDir 'extensions\craig\craig-config.mjs')   -To (Join-Path $TargetDir 'extensions\craig')
 
+    # Security sub-Guardians registration extension — triggers agent.reload() at
+    # startup so newly-installed sub-* agent files become invokable in fresh sessions.
+    $secSubExt = Join-Path $SrcDir 'extensions\security-sub-guardians\extension.mjs'
+    if (Test-Path $secSubExt) {
+        New-DirIfMissing (Join-Path $TargetDir 'extensions\security-sub-guardians')
+        Copy-FileSafe -From $secSubExt -To (Join-Path $TargetDir 'extensions\security-sub-guardians')
+    }
+
     # ── Seed side-notes files (never overwrite existing — user data) ──
     $notesCreated = 0
     $notesExisted = 0

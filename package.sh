@@ -123,6 +123,13 @@ install() {
   cp "$SRC_DIR/extensions/craig/craig-scheduler.mjs" "$TARGET_DIR/extensions/craig/"
   cp "$SRC_DIR/extensions/craig/craig-config.mjs" "$TARGET_DIR/extensions/craig/"
 
+  # Security sub-Guardians registration extension — triggers agent.reload() at
+  # startup so newly-installed sub-* agent files become invokable in fresh sessions.
+  if [ -f "$SRC_DIR/extensions/security-sub-guardians/extension.mjs" ]; then
+    mkdir -p "$TARGET_DIR/extensions/security-sub-guardians"
+    cp "$SRC_DIR/extensions/security-sub-guardians/extension.mjs" "$TARGET_DIR/extensions/security-sub-guardians/"
+  fi
+
   # ── Seed side-notes files (never overwrite existing — user data) ──
   local NOTES_CREATED=0
   local NOTES_EXISTED=0
