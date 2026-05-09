@@ -17,13 +17,15 @@ The 5 sub-Guardians:
 
 | Sub-Guardian | File | Domain |
 |---|---|---|
-| **sub-AppSec** | `~/.copilot/agents/security/appsec.agent.md` | OWASP Top 10, CWE, code-level vulnerabilities, business logic flaws |
-| **sub-SupplyChain** | `~/.copilot/agents/security/supply-chain.agent.md` | Dependencies, lockfiles, SBOM, SLSA, transitive CVEs, license risk |
-| **sub-Secrets** | `~/.copilot/agents/security/secrets.agent.md` | Hardcoded secrets, key rotation, vault/KMS hygiene |
-| **sub-ThreatModel** | `~/.copilot/agents/security/threat-model.agent.md` | STRIDE, abuse cases, attack surface, trust boundaries |
-| **sub-IaC** | `~/.copilot/agents/security/iac.agent.md` | Terraform, Helm, K8s, cloud configs, CIS Benchmarks |
+| **sub-AppSec** | `~/.copilot/agents/sub-appsec.agent.md` (agent_type `Sub-AppSec`) | OWASP Top 10, CWE, code-level vulnerabilities, business logic flaws |
+| **sub-SupplyChain** | `~/.copilot/agents/sub-supply-chain.agent.md` (agent_type `Sub-SupplyChain`) | Dependencies, lockfiles, SBOM, SLSA, transitive CVEs, license risk |
+| **sub-Secrets** | `~/.copilot/agents/sub-secrets.agent.md` (agent_type `Sub-Secrets`) | Hardcoded secrets, key rotation, vault/KMS hygiene |
+| **sub-ThreatModel** | `~/.copilot/agents/sub-threat-model.agent.md` (agent_type `Sub-ThreatModel`) | STRIDE, abuse cases, attack surface, trust boundaries |
+| **sub-IaC** | `~/.copilot/agents/sub-iac.agent.md` (agent_type `Sub-IaC`) | Terraform, Helm, K8s, cloud configs, CIS Benchmarks |
 
 The coordinator and all 5 sub-Guardians use the **standard finding schema** at `~/.copilot/agents/security/_finding-schema.md` for inter-Guardian communication.
+
+> **File layout note:** Sub-Guardian agent files live at the **root** of `agents/` (not under a subdirectory) because Copilot CLI's `task` tool only registers top-level agent files. The `security/` subdirectory holds the shared finding schema reference doc only. The `Sub-*` naming convention groups them visually.
 
 ---
 
@@ -166,7 +168,7 @@ For each selected sub-Guardian, invoke via `task`:
 
 ```
 task(
-  agent_type=<sub-Guardian's registered name>,
+  agent_type="Sub-AppSec" | "Sub-SupplyChain" | "Sub-Secrets" | "Sub-ThreatModel" | "Sub-IaC",
   mode="background",
   prompt=<scoped context: worktree path, branch name, mode, filtered side-notes,
           tool inventory subset, past-findings hints, cross-Guardian handoffs
@@ -338,11 +340,11 @@ After ≥10 comparison runs and acceptance against the success criteria, the mon
 - Standard finding schema: `src/agents/security/_finding-schema.md`
 
 #### Sub-Guardians
-- `src/agents/security/appsec.agent.md`
-- `src/agents/security/supply-chain.agent.md` *(Phase B)*
-- `src/agents/security/secrets.agent.md` *(Phase B)*
-- `src/agents/security/threat-model.agent.md` *(Phase B)*
-- `src/agents/security/iac.agent.md` *(Phase B)*
+- `src/agents/sub-appsec.agent.md` (agent_type `Sub-AppSec`)
+- `src/agents/sub-supply-chain.agent.md` (agent_type `Sub-SupplyChain`)
+- `src/agents/sub-secrets.agent.md` (agent_type `Sub-Secrets`)
+- `src/agents/sub-threat-model.agent.md` (agent_type `Sub-ThreatModel`)
+- `src/agents/sub-iac.agent.md` (agent_type `Sub-IaC`)
 
 #### Standards (full lists in each sub's Background section)
 - [OWASP Top 10 (2025)](https://owasp.org/Top10/2025/) — primarily AppSec

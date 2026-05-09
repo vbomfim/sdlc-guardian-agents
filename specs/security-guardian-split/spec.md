@@ -80,7 +80,7 @@ As a project maintainer, I want to run the new coordinator and the old monolith 
 ### Functional Requirements
 
 - **FR-001**: System MUST provide a Security Guardian *coordinator* agent at `src/agents/security-guardian.agent.md` that does NOT itself scan code, but instead delegates all scanning to specialist sub-Guardians.
-- **FR-002**: System MUST provide 5 specialist sub-Guardian agent files at `src/agents/security/{appsec,supply-chain,secrets,threat-model,iac}.agent.md`.
+- **FR-002**: System MUST provide 5 specialist sub-Guardian agent files at `src/agents/sub-{appsec,supply-chain,secrets,threat-model,iac}.agent.md`. Sub-Guardian agent files MUST live at the **root** of `agents/` (not in a subdirectory) — Copilot CLI's `task` tool only registers top-level agent files. The `Sub-*` filename prefix groups them visually.
 - **FR-003**: The coordinator MUST implement *hybrid routing*: fan out to ALL 5 sub-Guardians by default and on review-gate/PR triggers; fan out to a subset only when the user explicitly scopes the request (e.g., "scan for leaked secrets" → sub-Secrets only). Default on ambiguity = fan out to all 5.
 - **FR-004**: The coordinator MUST invoke selected sub-Guardians in parallel using `task` with `mode: "background"`.
 - **FR-005**: The coordinator MUST wait for all selected sub-Guardians to complete before merging results, with a per-sub timeout (default 5 minutes). If a sub times out, treat as "failed" and produce a partial report flagging the failure.
@@ -200,11 +200,11 @@ Alternatives considered:
 |-----------|-------------|-------------|
 | `src/agents/security-guardian.agent.md` | Modified | Becomes the slim coordinator (~150 lines, no scanning) — was 820 lines of scanning logic |
 | `src/agents/security/` (new directory) | New | Holds 5 sub-Guardian files |
-| `src/agents/security/appsec.agent.md` | New | Sub-AppSec specialist |
-| `src/agents/security/supply-chain.agent.md` | New | Sub-SupplyChain specialist |
-| `src/agents/security/secrets.agent.md` | New | Sub-Secrets specialist |
-| `src/agents/security/threat-model.agent.md` | New | Sub-ThreatModel specialist |
-| `src/agents/security/iac.agent.md` | New | Sub-IaC specialist |
+| `src/agents/sub-appsec.agent.md` | New | Sub-AppSec specialist |
+| `src/agents/sub-supply-chain.agent.md` | New | Sub-SupplyChain specialist |
+| `src/agents/sub-secrets.agent.md` | New | Sub-Secrets specialist |
+| `src/agents/sub-threat-model.agent.md` | New | Sub-ThreatModel specialist |
+| `src/agents/sub-iac.agent.md` | New | Sub-IaC specialist |
 | `src/agents/security/_finding-schema.md` | New | Shared finding schema referenced by all subs (per Code Review consultation) |
 | `src/instructions/security-guardian.instructions.md` | Modified | Auto-delegation triggers point to coordinator (no changes for orchestrator-side; subs are invisible) |
 | `src/instructions/sdlc-workflow.instructions.md` | Modified | Document the coordinator/sub pattern as a reusable template; clarify iteration-cap semantics for coordinators |

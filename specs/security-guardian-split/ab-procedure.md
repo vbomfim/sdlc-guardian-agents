@@ -209,7 +209,7 @@ Once A/B results support deprecation:
 ## Risks during A/B testing
 
 - **Coordinator-only mode without all 5 subs:** if some subs fail to load on the test machine (e.g., file permissions), coordinator produces partial report. Validate Tools Report header before scoring.
-- **Sub-Guardian discovery in Copilot CLI:** verify that sub-Guardians under `agents/security/` are actually invoked by the coordinator. If the CLI doesn't auto-register subdirectory agents, the coordinator's `task` calls will fail. This is the highest-risk technical assumption to validate in run 001.
+- **Sub-Guardian discovery in Copilot CLI:** validated in run-001 — Copilot CLI only registers top-level agent files. Sub-Guardians MUST live at the root of `agents/` with the `sub-*` filename prefix, not in a subdirectory. The `agents/security/` subdirectory holds only the shared finding schema (a reference doc, not an agent).
 - **Side-notes filtering not yet exercised:** until users add tagged notes, the filtering logic isn't tested. Add 1–2 tagged notes to `~/sg-coordinator/.copilot/instructions/security-guardian.notes.md` for at least one comparison run to exercise the path.
 - **Token cost measurement:** Copilot CLI reports per-tool token usage in `session_store.events.usage_*` columns. Sum across the run to get totals.
 

@@ -200,6 +200,15 @@ function Invoke-Install {
     }
 
     # Security Guardian sub-Guardians (coordinator/specialist split — see specs/security-guardian-split/spec.md)
+    # Sub-agent files MUST live at the root of agents\ — Copilot CLI's task tool
+    # only registers top-level agent files, not files in subdirectories.
+    foreach ($sub in @('sub-appsec', 'sub-supply-chain', 'sub-secrets', 'sub-threat-model', 'sub-iac')) {
+        $subSrc = Join-Path $SrcDir "agents\$sub.agent.md"
+        if (Test-Path $subSrc) {
+            Copy-FileSafe -From $subSrc -To (Join-Path $TargetDir 'agents')
+        }
+    }
+    # Shared finding schema (reference doc, NOT an agent — kept in subdir)
     $secSubSrc = Join-Path $SrcDir 'agents\security'
     if (Test-Path $secSubSrc) {
         $secSubDst = Join-Path $TargetDir 'agents\security'
@@ -287,11 +296,16 @@ function Invoke-Install {
 
     # ── Print summary in package.sh order ──
     Write-Bold 'Security Guardian:'
-    Write-Ok 'Agent:        ~/.copilot/agents/security-guardian.agent.md'
-    $secSubDst = Join-Path $TargetDir 'agents\security'
-    if (Test-Path $secSubDst) {
-        $subCount = (Get-ChildItem -Path $secSubDst -Filter '*.agent.md' -ErrorAction SilentlyContinue | Measure-Object).Count
-        Write-Ok ("Sub-agents:   ~/.copilot/agents/security/ ({0} specialist file(s))" -f $subCount)
+    Write-Ok 'Agent:        ~/.copilot/agents/security-guardian.agent.md (coordinator)'
+    $subCount = 0
+    foreach ($sub in @('sub-appsec', 'sub-supply-chain', 'sub-secrets', 'sub-threat-model', 'sub-iac')) {
+        if (Test-Path -LiteralPath (Join-Path $TargetDir "agents\$sub.agent.md")) { $subCount++ }
+    }
+    if ($subCount -gt 0) {
+        Write-Ok ("Sub-agents:   ~/.copilot/agents/sub-{{appsec,supply-chain,secrets,threat-model,iac}}.agent.md ({0} installed)" -f $subCount)
+    }
+    if (Test-Path -LiteralPath (Join-Path $TargetDir 'agents\security\_finding-schema.md')) {
+        Write-Ok 'Schema doc:   ~/.copilot/agents/security/_finding-schema.md'
     }
     Write-Ok 'Instructions: ~/.copilot/instructions/security-guardian.instructions.md'
     Write-Ok 'Skill:        ~/.copilot/skills/security-guardian/'

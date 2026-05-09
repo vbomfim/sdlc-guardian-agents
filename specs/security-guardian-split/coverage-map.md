@@ -13,11 +13,11 @@
 | Code | Owner |
 |---|---|
 | **C** | Coordinator (`src/agents/security-guardian.agent.md` — slim parent) |
-| **AS** | sub-AppSec (`src/agents/security/appsec.agent.md`) |
-| **SC** | sub-SupplyChain (`src/agents/security/supply-chain.agent.md`) |
-| **SE** | sub-Secrets (`src/agents/security/secrets.agent.md`) |
-| **TM** | sub-ThreatModel (`src/agents/security/threat-model.agent.md`) |
-| **IaC** | sub-IaC (`src/agents/security/iac.agent.md`) |
+| **AS** | sub-AppSec (`src/agents/sub-appsec.agent.md`) |
+| **SC** | sub-SupplyChain (`src/agents/sub-supply-chain.agent.md`) |
+| **SE** | sub-Secrets (`src/agents/sub-secrets.agent.md`) |
+| **TM** | sub-ThreatModel (`src/agents/sub-threat-model.agent.md`) |
+| **IaC** | sub-IaC (`src/agents/sub-iac.agent.md`) |
 
 Multiple owners separated by `+`. The first listed owner is primary; subsequent owners contribute when the topic is genuinely cross-domain.
 

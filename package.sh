@@ -60,6 +60,14 @@ install() {
   # ── Install agents ──
   cp "$SRC_DIR/agents/security-guardian.agent.md" "$TARGET_DIR/agents/"
   # Security Guardian sub-Guardians (coordinator/specialist split — see specs/security-guardian-split/spec.md)
+  # Sub-agent files MUST live at the root of agents/ — Copilot CLI's task tool
+  # only registers top-level agent files, not files in subdirectories.
+  for sub in sub-appsec sub-supply-chain sub-secrets sub-threat-model sub-iac; do
+    if [ -f "$SRC_DIR/agents/${sub}.agent.md" ]; then
+      cp "$SRC_DIR/agents/${sub}.agent.md" "$TARGET_DIR/agents/"
+    fi
+  done
+  # Shared finding schema (reference doc, NOT an agent — kept in subdir)
   if [ -d "$SRC_DIR/agents/security" ]; then
     mkdir -p "$TARGET_DIR/agents/security"
     cp -r "$SRC_DIR/agents/security/"* "$TARGET_DIR/agents/security/"
@@ -149,10 +157,16 @@ install() {
   done
 
   echo -e "${BOLD}Security Guardian:${NC}"
-  echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/security-guardian.agent.md"
-  if [ -d "$TARGET_DIR/agents/security" ]; then
-    sub_count=$(find "$TARGET_DIR/agents/security" -name "*.agent.md" 2>/dev/null | wc -l | tr -d ' ')
-    echo -e "${GREEN}✔${NC}  Sub-agents:   ~/.copilot/agents/security/ ($sub_count specialist file(s))"
+  echo -e "${GREEN}✔${NC}  Agent:        ~/.copilot/agents/security-guardian.agent.md (coordinator)"
+  local sub_count=0
+  for sub in sub-appsec sub-supply-chain sub-secrets sub-threat-model sub-iac; do
+    [ -f "$TARGET_DIR/agents/${sub}.agent.md" ] && sub_count=$((sub_count + 1))
+  done
+  if [ "$sub_count" -gt 0 ]; then
+    echo -e "${GREEN}✔${NC}  Sub-agents:   ~/.copilot/agents/sub-{appsec,supply-chain,secrets,threat-model,iac}.agent.md ($sub_count installed)"
+  fi
+  if [ -f "$TARGET_DIR/agents/security/_finding-schema.md" ]; then
+    echo -e "${GREEN}✔${NC}  Schema doc:   ~/.copilot/agents/security/_finding-schema.md"
   fi
   echo -e "${GREEN}✔${NC}  Instructions: ~/.copilot/instructions/security-guardian.instructions.md"
   echo -e "${GREEN}✔${NC}  Skill:        ~/.copilot/skills/security-guardian/"
