@@ -199,6 +199,14 @@ function Invoke-Install {
         Copy-FileSafe -From (Join-Path $SrcDir "agents\$g.agent.md") -To (Join-Path $TargetDir 'agents')
     }
 
+    # Security Guardian sub-Guardians (coordinator/specialist split — see specs/security-guardian-split/spec.md)
+    $secSubSrc = Join-Path $SrcDir 'agents\security'
+    if (Test-Path $secSubSrc) {
+        $secSubDst = Join-Path $TargetDir 'agents\security'
+        New-DirIfMissing $secSubDst
+        Copy-DirContents -From $secSubSrc -To $secSubDst
+    }
+
     # ── Install instructions ──
     foreach ($g in $Guardians) {
         Copy-FileSafe -From (Join-Path $SrcDir "instructions\$g.instructions.md") -To (Join-Path $TargetDir 'instructions')
@@ -261,6 +269,11 @@ function Invoke-Install {
     # ── Print summary in package.sh order ──
     Write-Bold 'Security Guardian:'
     Write-Ok 'Agent:        ~/.copilot/agents/security-guardian.agent.md'
+    $secSubDst = Join-Path $TargetDir 'agents\security'
+    if (Test-Path $secSubDst) {
+        $subCount = (Get-ChildItem -Path $secSubDst -Filter '*.agent.md' -ErrorAction SilentlyContinue | Measure-Object).Count
+        Write-Ok ("Sub-agents:   ~/.copilot/agents/security/ ({0} specialist file(s))" -f $subCount)
+    }
     Write-Ok 'Instructions: ~/.copilot/instructions/security-guardian.instructions.md'
     Write-Ok 'Skill:        ~/.copilot/skills/security-guardian/'
     Write-Host ''
